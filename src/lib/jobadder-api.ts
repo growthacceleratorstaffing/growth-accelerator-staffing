@@ -1,5 +1,6 @@
-// JobAdder API client
+// JobAdder API client for JobBoard ID 8734
 const JOBADDER_API_BASE = 'https://api.jobadder.com/v2';
+const JOBBOARD_ID = 8734;
 
 export interface JobAdderJob {
   adId: number;
@@ -67,6 +68,32 @@ class JobAdderAPI {
     // 'Authorization': `Bearer ${API_KEY}`,
   };
 
+  private async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
+    try {
+      const response = await fetch(url, options);
+
+      // Handle 429 Too Many Requests with retry logic
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, retryCount) * 1000; // Exponential backoff if no Retry-After
+        
+        console.warn(`Rate limited (429). Waiting ${waitTime / 1000} seconds before retry...`);
+        
+        // Only retry up to 3 times
+        if (retryCount < 3) {
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          return this.makeRequest(url, options, retryCount + 1);
+        } else {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        }
+      }
+
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async findJobBoardJobAds(params?: {
     offset?: number;
     limit?: number;
@@ -78,15 +105,15 @@ class JobAdderAPI {
       if (params?.limit) searchParams.append('limit', params.limit.toString());
       if (params?.search) searchParams.append('search', params.search);
 
-      const url = `${JOBADDER_API_BASE}/jobboards/jobads${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      const url = `${JOBADDER_API_BASE}/jobboards/${JOBBOARD_ID}/jobads${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
       
-      const response = await fetch(url, {
+      const response = await this.makeRequest(url, {
         method: 'GET',
         headers: this.headers,
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -99,15 +126,15 @@ class JobAdderAPI {
 
   async getJobBoardJobAd(adId: number): Promise<JobAdderJobDetail> {
     try {
-      const url = `${JOBADDER_API_BASE}/jobboards/jobads/${adId}`;
+      const url = `${JOBADDER_API_BASE}/jobboards/${JOBBOARD_ID}/jobads/${adId}`;
       
-      const response = await fetch(url, {
+      const response = await this.makeRequest(url, {
         method: 'GET',
         headers: this.headers,
       });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();

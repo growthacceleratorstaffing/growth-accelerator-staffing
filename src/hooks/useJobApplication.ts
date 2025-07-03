@@ -104,9 +104,35 @@ class JobApplicationAPI {
     // 'Authorization': `Bearer ${API_KEY}`,
   };
 
+  private async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
+    try {
+      const response = await fetch(url, options);
+
+      // Handle 429 Too Many Requests with retry logic
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, retryCount) * 1000; // Exponential backoff if no Retry-After
+        
+        console.warn(`Rate limited (429). Waiting ${waitTime / 1000} seconds before retry...`);
+        
+        // Only retry up to 3 times
+        if (retryCount < 3) {
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          return this.makeRequest(url, options, retryCount + 1);
+        } else {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        }
+      }
+
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async submitJobApplication(jobId: number, applicationData: JobApplicationData): Promise<JobApplicationResponse> {
     try {
-      const url = `https://api.jobadder.com/v2/jobboards/jobads/${jobId}/applications`;
+      const url = `https://api.jobadder.com/v2/jobboards/8734/jobads/${jobId}/applications`;
       
       // Prepare the payload according to JobAdder API specification
       const payload = {
@@ -124,7 +150,7 @@ class JobApplicationAPI {
         custom: applicationData.custom
       };
 
-      const response = await fetch(url, {
+      const response = await this.makeRequest(url, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(payload),
