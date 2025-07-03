@@ -10,14 +10,19 @@ import { useNavigate } from "react-router-dom";
 
 const PostJob = () => {
   const [formData, setFormData] = useState({
-    title: "",
-    company: "",
-    location: "",
-    type: "",
-    salary: "",
-    description: "",
-    requirements: "",
-    benefits: ""
+    jobTitle: "",
+    companyId: "",
+    locationId: "",
+    workTypeId: "",
+    categoryId: "",
+    subCategoryId: "",
+    salaryRatePer: "Year",
+    salaryRateLow: "",
+    salaryRateHigh: "",
+    salaryCurrency: "USD",
+    jobDescription: "",
+    skillTags: "",
+    source: ""
   });
   
   const { toast } = useToast();
@@ -34,7 +39,7 @@ const PostJob = () => {
     e.preventDefault();
     
     // Basic validation
-    if (!formData.title || !formData.company || !formData.location || !formData.type) {
+    if (!formData.jobTitle || !formData.companyId || !formData.locationId || !formData.workTypeId) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -72,23 +77,23 @@ const PostJob = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Job Title *</Label>
+                <Label htmlFor="jobTitle">Job Title *</Label>
                 <Input
-                  id="title"
+                  id="jobTitle"
                   placeholder="e.g. Senior Frontend Developer"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
+                  value={formData.jobTitle}
+                  onChange={(e) => handleInputChange("jobTitle", e.target.value)}
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="company">Company *</Label>
+                <Label htmlFor="companyId">Company ID *</Label>
                 <Input
-                  id="company"
-                  placeholder="e.g. Tech Corp"
-                  value={formData.company}
-                  onChange={(e) => handleInputChange("company", e.target.value)}
+                  id="companyId"
+                  placeholder="e.g. 101"
+                  value={formData.companyId}
+                  onChange={(e) => handleInputChange("companyId", e.target.value)}
                   required
                 />
               </div>
@@ -96,74 +101,124 @@ const PostJob = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="location">Location *</Label>
+                <Label htmlFor="locationId">Location ID *</Label>
                 <Input
-                  id="location"
-                  placeholder="e.g. San Francisco, CA or Remote"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange("location", e.target.value)}
+                  id="locationId"
+                  placeholder="e.g. 201"
+                  value={formData.locationId}
+                  onChange={(e) => handleInputChange("locationId", e.target.value)}
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="type">Job Type *</Label>
-                <Select onValueChange={(value) => handleInputChange("type", value)}>
+                <Label htmlFor="workTypeId">Work Type ID *</Label>
+                <Select onValueChange={(value) => handleInputChange("workTypeId", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select job type" />
+                    <SelectValue placeholder="Select work type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="full-time">Full-time</SelectItem>
-                    <SelectItem value="part-time">Part-time</SelectItem>
-                    <SelectItem value="contract">Contract</SelectItem>
-                    <SelectItem value="freelance">Freelance</SelectItem>
-                    <SelectItem value="internship">Internship</SelectItem>
+                    <SelectItem value="1">Full-time</SelectItem>
+                    <SelectItem value="2">Part-time</SelectItem>
+                    <SelectItem value="3">Contract</SelectItem>
+                    <SelectItem value="4">Freelance</SelectItem>
+                    <SelectItem value="5">Internship</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="salaryRateLow">Salary Low</Label>
+                <Input
+                  id="salaryRateLow"
+                  type="number"
+                  placeholder="e.g. 120000"
+                  value={formData.salaryRateLow}
+                  onChange={(e) => handleInputChange("salaryRateLow", e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="salaryRateHigh">Salary High</Label>
+                <Input
+                  id="salaryRateHigh"
+                  type="number"
+                  placeholder="e.g. 160000"
+                  value={formData.salaryRateHigh}
+                  onChange={(e) => handleInputChange("salaryRateHigh", e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="salaryRatePer">Rate Per</Label>
+                <Select value={formData.salaryRatePer} onValueChange={(value) => handleInputChange("salaryRatePer", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select rate type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Hour">Hour</SelectItem>
+                    <SelectItem value="Day">Day</SelectItem>
+                    <SelectItem value="Week">Week</SelectItem>
+                    <SelectItem value="Month">Month</SelectItem>
+                    <SelectItem value="Year">Year</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="salary">Salary Range</Label>
-              <Input
-                id="salary"
-                placeholder="e.g. $120,000 - $160,000"
-                value={formData.salary}
-                onChange={(e) => handleInputChange("salary", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Job Description *</Label>
+              <Label htmlFor="jobDescription">Job Description *</Label>
               <Textarea
-                id="description"
+                id="jobDescription"
                 placeholder="Describe the role, responsibilities, and what you're looking for..."
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
+                value={formData.jobDescription}
+                onChange={(e) => handleInputChange("jobDescription", e.target.value)}
                 rows={6}
                 required
               />
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="categoryId">Category ID</Label>
+                <Input
+                  id="categoryId"
+                  placeholder="e.g. 1"
+                  value={formData.categoryId}
+                  onChange={(e) => handleInputChange("categoryId", e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="subCategoryId">Sub Category ID</Label>
+                <Input
+                  id="subCategoryId"
+                  placeholder="e.g. 11"
+                  value={formData.subCategoryId}
+                  onChange={(e) => handleInputChange("subCategoryId", e.target.value)}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="requirements">Requirements</Label>
-              <Textarea
-                id="requirements"
-                placeholder="List the required skills, experience, and qualifications..."
-                value={formData.requirements}
-                onChange={(e) => handleInputChange("requirements", e.target.value)}
-                rows={4}
+              <Label htmlFor="skillTags">Skill Tags</Label>
+              <Input
+                id="skillTags"
+                placeholder="e.g. React, TypeScript, Node.js (comma separated)"
+                value={formData.skillTags}
+                onChange={(e) => handleInputChange("skillTags", e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="benefits">Benefits & Perks</Label>
-              <Textarea
-                id="benefits"
-                placeholder="Describe the benefits, perks, and company culture..."
-                value={formData.benefits}
-                onChange={(e) => handleInputChange("benefits", e.target.value)}
-                rows={4}
+              <Label htmlFor="source">Source</Label>
+              <Input
+                id="source"
+                placeholder="e.g. Company Website"
+                value={formData.source}
+                onChange={(e) => handleInputChange("source", e.target.value)}
               />
             </div>
 

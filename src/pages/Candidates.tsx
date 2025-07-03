@@ -7,67 +7,164 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Mail, Phone, Search, Star, Download } from "lucide-react";
 
 interface Candidate {
-  id: string;
-  name: string;
+  candidateId: number;
+  firstName: string;
+  lastName: string;
   email: string;
-  phone: string;
-  location: string;
-  title: string;
-  experience: string;
-  skills: string[];
-  rating: number;
+  phone?: string;
+  mobile?: string;
+  mobileNormalized?: string;
+  contactMethod?: string;
+  salutation?: string;
+  unsubscribed?: boolean;
+  address?: {
+    street?: string[];
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+    countryCode?: string;
+  };
+  status: {
+    statusId: number;
+    name: string;
+    active: boolean;
+    default: boolean;
+  };
+  rating?: string;
+  source?: string;
+  seeking?: string;
+  // Additional fields for UI
+  position?: string;
+  experience?: string;
+  skills?: string[];
   avatar?: string;
-  status: "Available" | "Interviewing" | "Hired";
 }
 
 const sampleCandidates: Candidate[] = [
   {
-    id: "1",
-    name: "Sarah Johnson",
+    candidateId: 1,
+    firstName: "Sarah",
+    lastName: "Johnson",
     email: "sarah.johnson@email.com",
     phone: "+1 (555) 123-4567",
-    location: "San Francisco, CA",
-    title: "Senior Frontend Developer",
+    mobile: "+1 (555) 123-4567",
+    contactMethod: "Email",
+    salutation: "Ms.",
+    unsubscribed: false,
+    address: {
+      street: ["123 Tech Street"],
+      city: "San Francisco",
+      state: "CA",
+      postalCode: "94105",
+      country: "United States",
+      countryCode: "US"
+    },
+    status: {
+      statusId: 1,
+      name: "Available",
+      active: true,
+      default: true
+    },
+    rating: "4.8",
+    source: "LinkedIn",
+    seeking: "Yes",
+    position: "Senior Frontend Developer",
     experience: "5+ years",
-    skills: ["React", "TypeScript", "Next.js", "Tailwind"],
-    rating: 4.8,
-    status: "Available"
+    skills: ["React", "TypeScript", "Next.js", "Tailwind"]
   },
   {
-    id: "2",
-    name: "Michael Chen",
-    email: "michael.chen@email.com", 
+    candidateId: 2,
+    firstName: "Michael",
+    lastName: "Chen",
+    email: "michael.chen@email.com",
     phone: "+1 (555) 987-6543",
-    location: "New York, NY",
-    title: "Product Manager",
+    mobile: "+1 (555) 987-6543",
+    contactMethod: "Phone",
+    salutation: "Mr.",
+    unsubscribed: false,
+    address: {
+      street: ["456 Business Ave"],
+      city: "New York",
+      state: "NY",
+      postalCode: "10001",
+      country: "United States",
+      countryCode: "US"
+    },
+    status: {
+      statusId: 2,
+      name: "Interviewing",
+      active: true,
+      default: false
+    },
+    rating: "4.9",
+    source: "Company Website",
+    seeking: "Yes",
+    position: "Product Manager",
     experience: "7+ years",
-    skills: ["Product Strategy", "Agile", "Analytics", "Leadership"],
-    rating: 4.9,
-    status: "Interviewing"
+    skills: ["Product Strategy", "Agile", "Analytics", "Leadership"]
   },
   {
-    id: "3",
-    name: "Emily Rodriguez",
+    candidateId: 3,
+    firstName: "Emily",
+    lastName: "Rodriguez",
     email: "emily.rodriguez@email.com",
-    phone: "+1 (555) 456-7890", 
-    location: "Austin, TX",
-    title: "UX Designer",
+    phone: "+1 (555) 456-7890",
+    mobile: "+1 (555) 456-7890",
+    contactMethod: "Email",
+    salutation: "Ms.",
+    unsubscribed: false,
+    address: {
+      street: ["789 Design Lane"],
+      city: "Austin",
+      state: "TX",
+      postalCode: "73301",
+      country: "United States",
+      countryCode: "US"
+    },
+    status: {
+      statusId: 1,
+      name: "Available",
+      active: true,
+      default: true
+    },
+    rating: "4.7",
+    source: "Dribbble",
+    seeking: "Yes",
+    position: "UX Designer",
     experience: "4+ years",
-    skills: ["Figma", "User Research", "Prototyping", "Design Systems"],
-    rating: 4.7,
-    status: "Available"
+    skills: ["Figma", "User Research", "Prototyping", "Design Systems"]
   },
   {
-    id: "4",
-    name: "David Kim",
+    candidateId: 4,
+    firstName: "David",
+    lastName: "Kim",
     email: "david.kim@email.com",
     phone: "+1 (555) 321-0987",
-    location: "Seattle, WA", 
-    title: "Full Stack Developer",
+    mobile: "+1 (555) 321-0987",
+    contactMethod: "Phone",
+    salutation: "Mr.",
+    unsubscribed: false,
+    address: {
+      street: ["321 Code Street"],
+      city: "Seattle",
+      state: "WA",
+      postalCode: "98101",
+      country: "United States",
+      countryCode: "US"
+    },
+    status: {
+      statusId: 3,
+      name: "Hired",
+      active: false,
+      default: false
+    },
+    rating: "4.6",
+    source: "GitHub",
+    seeking: "No",
+    position: "Full Stack Developer",
     experience: "6+ years",
-    skills: ["Node.js", "Python", "PostgreSQL", "AWS"],
-    rating: 4.6,
-    status: "Hired"
+    skills: ["Node.js", "Python", "PostgreSQL", "AWS"]
   }
 ];
 
@@ -78,10 +175,10 @@ const Candidates = () => {
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     const filtered = sampleCandidates.filter(candidate => 
-      candidate.name.toLowerCase().includes(value.toLowerCase()) ||
-      candidate.title.toLowerCase().includes(value.toLowerCase()) ||
-      candidate.skills.some(skill => skill.toLowerCase().includes(value.toLowerCase())) ||
-      candidate.location.toLowerCase().includes(value.toLowerCase())
+      `${candidate.firstName} ${candidate.lastName}`.toLowerCase().includes(value.toLowerCase()) ||
+      candidate.position?.toLowerCase().includes(value.toLowerCase()) ||
+      candidate.skills?.some(skill => skill.toLowerCase().includes(value.toLowerCase())) ||
+      candidate.address?.city?.toLowerCase().includes(value.toLowerCase())
     );
     setFilteredCandidates(filtered);
   };
@@ -119,33 +216,35 @@ const Candidates = () => {
 
       <div className="grid gap-6">
         {filteredCandidates.map((candidate) => (
-          <Card key={candidate.id} className="hover:shadow-lg transition-shadow">
+          <Card key={candidate.candidateId} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-start gap-4">
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={candidate.avatar} />
                   <AvatarFallback className="text-lg">
-                    {candidate.name.split(' ').map(n => n[0]).join('')}
+                    {`${candidate.firstName[0]}${candidate.lastName[0]}`}
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <CardTitle className="text-xl">{candidate.name}</CardTitle>
+                      <CardTitle className="text-xl">
+                        {candidate.salutation ? `${candidate.salutation} ` : ''}{candidate.firstName} {candidate.lastName}
+                      </CardTitle>
                       <CardDescription className="text-base font-medium">
-                        {candidate.title}
+                        {candidate.position}
                       </CardDescription>
                     </div>
-                    <Badge className={getStatusColor(candidate.status)}>
-                      {candidate.status}
+                    <Badge className={getStatusColor(candidate.status.name)}>
+                      {candidate.status.name}
                     </Badge>
                   </div>
                   
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                     <span className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
-                      {candidate.location}
+                      {candidate.address ? `${candidate.address.city}, ${candidate.address.state}` : 'Location not specified'}
                     </span>
                     <span>{candidate.experience} experience</span>
                     <span className="flex items-center gap-1">
@@ -162,9 +261,9 @@ const Candidates = () => {
                 <div>
                   <h4 className="font-medium mb-2">Skills</h4>
                   <div className="flex flex-wrap gap-2">
-                    {candidate.skills.map((skill, index) => (
+                    {candidate.skills?.map((skill, index) => (
                       <Badge key={index} variant="outline">{skill}</Badge>
-                    ))}
+                    )) || <span className="text-muted-foreground">No skills listed</span>}
                   </div>
                 </div>
                 
@@ -176,7 +275,7 @@ const Candidates = () => {
                     </span>
                     <span className="flex items-center gap-1">
                       <Phone className="h-4 w-4" />
-                      {candidate.phone}
+                      {candidate.phone || candidate.mobile}
                     </span>
                   </div>
                   
