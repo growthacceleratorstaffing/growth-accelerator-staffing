@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { jobAdderAPI } from '@/lib/jobadder-api';
+import oauth2Manager from '@/lib/oauth2-manager';
 
 export interface JobApplicationData {
   firstName: string;
@@ -98,11 +98,19 @@ let mockApplicationId = 1000;
 const mockApplications: Record<number, JobApplicationResponse> = {};
 
 class JobApplicationAPI {
-  private headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    // Note: In production, you would need proper authentication headers
-    // 'Authorization': `Bearer ${API_KEY}`,
-  };
+  private async getHeaders(): Promise<HeadersInit> {
+    const accessToken = await oauth2Manager.getValidAccessToken();
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    return headers;
+  }
 
   private async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
     try {
@@ -150,9 +158,10 @@ class JobApplicationAPI {
         custom: applicationData.custom
       };
 
+      const headers = await this.getHeaders();
       const response = await this.makeRequest(url, {
         method: 'POST',
-        headers: this.headers,
+        headers: headers,
         body: JSON.stringify(payload),
       });
 

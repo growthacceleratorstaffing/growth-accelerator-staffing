@@ -1,4 +1,6 @@
-// JobAdder API client for JobBoard ID 8734
+// JobAdder API client for JobBoard ID 8734 with OAuth2 authentication
+import oauth2Manager from './oauth2-manager';
+
 const JOBADDER_API_BASE = 'https://api.jobadder.com/v2';
 const JOBBOARD_ID = 8734;
 
@@ -62,11 +64,19 @@ export interface JobAdderJobDetail extends JobAdderJob {
 }
 
 class JobAdderAPI {
-  private headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    // Note: In production, you would need proper authentication headers
-    // 'Authorization': `Bearer ${API_KEY}`,
-  };
+  private async getHeaders(): Promise<HeadersInit> {
+    const accessToken = await oauth2Manager.getValidAccessToken();
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    return headers;
+  }
 
   private async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
     try {
@@ -107,9 +117,10 @@ class JobAdderAPI {
 
       const url = `${JOBADDER_API_BASE}/jobboards/${JOBBOARD_ID}/jobads${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
       
+      const headers = await this.getHeaders();
       const response = await this.makeRequest(url, {
         method: 'GET',
-        headers: this.headers,
+        headers: headers,
       });
 
       if (!response.ok) {
@@ -128,9 +139,10 @@ class JobAdderAPI {
     try {
       const url = `${JOBADDER_API_BASE}/jobboards/${JOBBOARD_ID}/jobads/${adId}`;
       
+      const headers = await this.getHeaders();
       const response = await this.makeRequest(url, {
         method: 'GET',
-        headers: this.headers,
+        headers: headers,
       });
 
       if (!response.ok) {

@@ -1,12 +1,25 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Users, Plus, Home } from "lucide-react";
+import { Briefcase, Users, Plus, Home, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import oauth2Manager from "@/lib/oauth2-manager";
 
 const Navigation = () => {
   const location = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const isActive = (path: string) => location.pathname === path;
+
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsAuthenticated(oauth2Manager.isAuthenticated());
+    };
+    
+    checkAuth();
+    const interval = setInterval(checkAuth, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
   
   return (
     <nav className="border-b bg-background">
@@ -53,12 +66,25 @@ const Navigation = () => {
             </div>
           </div>
           
-          <Link to="/post-job">
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Post Job
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/auth/login">
+              <Button 
+                variant={isAuthenticated ? "default" : "outline"} 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Shield className="h-4 w-4" />
+                {isAuthenticated ? "Connected" : "Connect"}
+              </Button>
+            </Link>
+            
+            <Link to="/post-job">
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Post Job
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </nav>
