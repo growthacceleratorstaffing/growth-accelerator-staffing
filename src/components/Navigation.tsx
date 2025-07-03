@@ -14,8 +14,8 @@ const Navigation = () => {
     <nav className="border-b bg-background shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          <div className="flex items-center space-x-8">
-            <Link to="/" className="flex items-center space-x-3">
+          <div className="flex items-center space-x-12">
+            <Link to="/" className="flex items-center space-x-3 mr-8">
               <img 
                 src="/lovable-uploads/1f532f91-9114-4076-931d-e16a868fef79.png" 
                 alt="Startup Accelerator" 
