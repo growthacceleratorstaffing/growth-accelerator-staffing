@@ -28,7 +28,7 @@ const Navigation = () => {
           <div className="flex items-center space-x-8">
             <Link to="/" className="flex items-center space-x-2">
               <Briefcase className="h-6 w-6" />
-              <span className="font-bold text-xl">JobPortal</span>
+              <span className="font-bold text-xl">Startup Accelerator</span>
             </Link>
             
             <div className="flex items-center space-x-1">

@@ -1,8 +1,11 @@
-// JobAdder API client for JobBoard ID 8734 with OAuth2 authentication
+// JobAdder API client for Startup Accelerator Website API
+// Job Board: Startup Accelerator Website API (ID: 8734)
+// Portal: Startup Accelerator API (ID: 4809)
 import oauth2Manager from './oauth2-manager';
 
 const JOBADDER_API_BASE = 'https://api.jobadder.com/v2';
 const JOBBOARD_ID = 8734;
+const PORTAL_ID = 4809;
 
 export interface JobAdderJob {
   adId: number;

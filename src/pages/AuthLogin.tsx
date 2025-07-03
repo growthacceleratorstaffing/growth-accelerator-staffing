@@ -43,9 +43,9 @@ const AuthLogin = () => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">JobAdder Authentication</h1>
+        <h1 className="text-3xl font-bold mb-2">Startup Accelerator API Authentication</h1>
         <p className="text-muted-foreground">
-          Connect your JobAdder account to access live job data and enable job applications
+          Connect to the Startup Accelerator Website API to access live job data and enable job applications
         </p>
       </div>
 
@@ -56,10 +56,10 @@ const AuthLogin = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-green-600" />
-                Connected to JobAdder
+                Connected to Startup Accelerator API
               </CardTitle>
               <CardDescription>
-                Your JobAdder account is connected and authenticated
+                Your Startup Accelerator Website API is connected and authenticated
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -67,11 +67,11 @@ const AuthLogin = () => {
                 <div className="flex items-center gap-4">
                   <Badge variant="outline" className="flex items-center gap-1">
                     <Building className="h-3 w-3" />
-                    Instance: {accountInfo.instance}
+                    Portal ID: {accountInfo.account || '4809'}
                   </Badge>
                   <Badge variant="outline" className="flex items-center gap-1">
                     <User className="h-3 w-3" />
-                    Account: {accountInfo.account}
+                    Job Board ID: 8734
                   </Badge>
                 </div>
                 
@@ -100,9 +100,9 @@ const AuthLogin = () => {
           {/* Authentication Required */}
           <Card>
             <CardHeader>
-              <CardTitle>Connect to JobAdder</CardTitle>
+              <CardTitle>Connect to Startup Accelerator API</CardTitle>
               <CardDescription>
-                Authenticate with JobAdder to access live job data and enable job application submissions
+                Authenticate with the Startup Accelerator Website API to access live job data and enable job application submissions
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -110,13 +110,13 @@ const AuthLogin = () => {
                 <Alert>
                   <Shield className="h-4 w-4" />
                   <AlertDescription>
-                    This will redirect you to JobAdder's secure authentication page where you can grant access to your account.
+                    This will redirect you to JobAdder's secure authentication page where you can grant access to the Startup Accelerator Website API.
                   </AlertDescription>
                 </Alert>
 
                 <Button onClick={handleLogin} className="flex items-center gap-2">
                   <ExternalLink className="h-4 w-4" />
-                  Connect to JobAdder
+                  Connect to Startup Accelerator API
                 </Button>
               </div>
             </CardContent>

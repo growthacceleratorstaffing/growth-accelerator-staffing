@@ -39,7 +39,7 @@ const AuthCallback = () => {
         setSuccess(true);
         toast({
           title: "Authentication Successful!",
-          description: `Connected to JobAdder account ${tokenResponse.account}`,
+          description: `Connected to Startup Accelerator API (Portal: ${tokenResponse.account})`,
         });
 
         // Redirect to jobs page after successful authentication
@@ -64,7 +64,7 @@ const AuthCallback = () => {
         <Card>
           <CardHeader>
             <CardTitle>Authenticating...</CardTitle>
-            <CardDescription>Processing your JobAdder authentication</CardDescription>
+            <CardDescription>Processing your Startup Accelerator API authentication</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-8">
@@ -85,7 +85,7 @@ const AuthCallback = () => {
               <AlertCircle className="h-5 w-5 text-destructive" />
               Authentication Failed
             </CardTitle>
-            <CardDescription>There was an issue with your JobAdder authentication</CardDescription>
+            <CardDescription>There was an issue with your Startup Accelerator API authentication</CardDescription>
           </CardHeader>
           <CardContent>
             <Alert variant="destructive" className="mb-4">
@@ -116,13 +116,13 @@ const AuthCallback = () => {
               <CheckCircle className="h-5 w-5 text-green-600" />
               Authentication Successful!
             </CardTitle>
-            <CardDescription>You have successfully connected to JobAdder</CardDescription>
+            <CardDescription>You have successfully connected to the Startup Accelerator API</CardDescription>
           </CardHeader>
           <CardContent>
             <Alert className="mb-4">
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Your JobAdder account is now connected and tokens will be automatically refreshed.
+                Your Startup Accelerator API connection is now active and tokens will be automatically refreshed.
                 Redirecting to jobs page...
               </AlertDescription>
             </Alert>
