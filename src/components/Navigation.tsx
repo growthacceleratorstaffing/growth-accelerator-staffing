@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const Navigation = () => {
   const location = useLocation();
-  const { isAuthenticated, profile, signOut } = useAuth();
+  const { isAuthenticated, profile, signOut, canAccessJobs, canViewCandidates, canPostJobs } = useAuth();
   
   const isActive = (path: string) => location.pathname === path;
   
@@ -33,27 +33,31 @@ const Navigation = () => {
                     </Button>
                   </Link>
                   
-                  <Link to="/jobs">
-                    <Button 
-                      variant={isActive("/jobs") ? "default" : "ghost"}
-                      className="flex items-center gap-2"
-                    >
-                      <Briefcase className="h-4 w-4" />
-                      Jobs
-                      <Badge variant="secondary">23</Badge>
-                    </Button>
-                  </Link>
+                  {canAccessJobs() && (
+                    <Link to="/jobs">
+                      <Button 
+                        variant={isActive("/jobs") ? "default" : "ghost"}
+                        className="flex items-center gap-2"
+                      >
+                        <Briefcase className="h-4 w-4" />
+                        Jobs
+                        <Badge variant="secondary">23</Badge>
+                      </Button>
+                    </Link>
+                  )}
                   
-                  <Link to="/candidates">
-                    <Button 
-                      variant={isActive("/candidates") ? "default" : "ghost"}
-                      className="flex items-center gap-2"
-                    >
-                      <User className="h-4 w-4" />
-                      Candidates
-                      <Badge variant="secondary">156</Badge>
-                    </Button>
-                  </Link>
+                  {canViewCandidates() && (
+                    <Link to="/candidates">
+                      <Button 
+                        variant={isActive("/candidates") ? "default" : "ghost"}
+                        className="flex items-center gap-2"
+                      >
+                        <User className="h-4 w-4" />
+                        Candidates
+                        <Badge variant="secondary">156</Badge>
+                      </Button>
+                    </Link>
+                  )}
                   
                   <Link to="/matches">
                     <Button 

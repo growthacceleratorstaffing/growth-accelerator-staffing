@@ -12,6 +12,7 @@ import { MapPin, Building, Clock, DollarSign, Search, AlertCircle, Plus, Chevron
 import { Link } from "react-router-dom";
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +35,7 @@ const Jobs = () => {
   
   const { jobs, loading, error, useMockData, refetch } = useJobs();
   const { toast } = useToast();
+  const { canPostJobs } = useAuth();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -106,10 +108,12 @@ const Jobs = () => {
           <h1 className="text-3xl font-bold">Job Listings</h1>
           <p className="text-muted-foreground mt-2">Find your next opportunity</p>
         </div>
-        <Button onClick={() => setShowPostJobForm(!showPostJobForm)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Post a Job
-        </Button>
+        {canPostJobs() && (
+          <Button onClick={() => setShowPostJobForm(!showPostJobForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Post a Job
+          </Button>
+        )}
       </div>
 
       {error && useMockData && (

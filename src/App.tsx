@@ -38,37 +38,37 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/jobs" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredScope="read_job">
                 <Navigation />
                 <Jobs />
               </ProtectedRoute>
             } />
             <Route path="/jobs/:jobId" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredScope="read_job">
                 <Navigation />
                 <JobDetail />
               </ProtectedRoute>
             } />
             <Route path="/jobs/:jobId/apply" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredScope="read_jobapplication">
                 <Navigation />
                 <ApplyJob />
               </ProtectedRoute>
             } />
             <Route path="/candidates" element={
-              <ProtectedRoute requiredRole="recruiter">
+              <ProtectedRoute requiredScope="read_candidate">
                 <Navigation />
                 <Candidates />
               </ProtectedRoute>
             } />
             <Route path="/matches" element={
-              <ProtectedRoute requiredRole="recruiter">
+              <ProtectedRoute requiredScope="read_placement">
                 <Navigation />
                 <Matches />
               </ProtectedRoute>
             } />
             <Route path="/post-job" element={
-              <ProtectedRoute requiredRole="admin">
+              <ProtectedRoute requiredScope="write_job">
                 <Navigation />
                 <PostJob />
               </ProtectedRoute>

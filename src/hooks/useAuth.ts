@@ -211,6 +211,27 @@ export function useAuth() {
     return roleHierarchy[profile.role] >= roleHierarchy[requiredRole]
   }
 
+  const hasJobAdderScope = (scope: 'read' | 'write' | 'read_candidate' | 'write_candidate' | 'read_company' | 'write_company' | 'read_contact' | 'write_contact' | 'read_jobad' | 'write_jobad' | 'read_jobapplication' | 'write_jobapplication' | 'read_job' | 'write_job' | 'read_placement' | 'write_placement' | 'read_user' | 'partner_jobboard' | 'offline_access') => {
+    if (!profile?.jobadder_scopes) return false
+    return profile.jobadder_scopes.includes(scope)
+  }
+
+  const canAccessJobs = () => {
+    return hasJobAdderScope('read_job') || hasJobAdderScope('read_jobad') || hasJobAdderScope('read')
+  }
+
+  const canPostJobs = () => {
+    return hasJobAdderScope('write_job') || hasJobAdderScope('write_jobad') || hasJobAdderScope('write')
+  }
+
+  const canViewCandidates = () => {
+    return hasJobAdderScope('read_candidate') || hasJobAdderScope('read')
+  }
+
+  const canManageCandidates = () => {
+    return hasJobAdderScope('write_candidate') || hasJobAdderScope('write')
+  }
+
   return {
     user,
     profile,
@@ -219,6 +240,11 @@ export function useAuth() {
     signUp,
     signOut,
     hasRole,
+    hasJobAdderScope,
+    canAccessJobs,
+    canPostJobs,
+    canViewCandidates,
+    canManageCandidates,
     isAuthenticated: !!user,
   }
 }
