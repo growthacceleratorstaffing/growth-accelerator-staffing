@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
+import JobDetail from "./pages/JobDetail";
 import Jobs from "./pages/Jobs";
 import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
@@ -40,6 +41,12 @@ const App = () => (
               <ProtectedRoute>
                 <Navigation />
                 <Jobs />
+              </ProtectedRoute>
+            } />
+            <Route path="/jobs/:jobId" element={
+              <ProtectedRoute>
+                <Navigation />
+                <JobDetail />
               </ProtectedRoute>
             } />
             <Route path="/jobs/:jobId/apply" element={

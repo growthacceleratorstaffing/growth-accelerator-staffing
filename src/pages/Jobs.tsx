@@ -111,7 +111,9 @@ const Jobs = () => {
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline">View Details</Button>
+                    <Link to={`/jobs/${job.adId}`}>
+                      <Button variant="outline">View Details</Button>
+                    </Link>
                     <Link to={`/jobs/${job.adId}/apply`}>
                       <Button>Apply Now</Button>
                     </Link>
