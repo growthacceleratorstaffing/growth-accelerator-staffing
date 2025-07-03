@@ -127,7 +127,7 @@ const Landing = () => {
             </div>
             
             <p className="text-xs text-muted-foreground">
-              © 2024 Startup Accelerator. All rights reserved.
+              © 2025 Startup Accelerator. All rights reserved.
             </p>
           </div>
         </footer>
