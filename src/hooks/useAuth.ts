@@ -14,12 +14,27 @@ export function useAuth() {
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    // Fallback timeout to prevent infinite loading
+    timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth timeout - setting loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
 
     // Get initial session
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        if (error) {
+          console.error('Session error:', error);
+          if (mounted) {
+            setLoading(false);
+          }
+          return;
+        }
         
         if (mounted) {
           setUser(session?.user ?? null);
@@ -31,7 +46,11 @@ export function useAuth() {
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
       }
     };
 
@@ -41,6 +60,7 @@ export function useAuth() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.email);
       if (mounted) {
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -54,13 +74,13 @@ export function useAuth() {
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loading]);
 
   const fetchProfile = async (userId: string) => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -68,19 +88,20 @@ export function useAuth() {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        throw error;
+        console.error('Profile fetch error:', error);
+        setLoading(false);
+        return;
       }
 
       if (data) {
         setProfile(data);
+        setLoading(false);
       } else {
         // Profile doesn't exist, create one
         await createProfile(userId);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      // Still set loading to false even on error
-    } finally {
       setLoading(false);
     }
   };
@@ -102,12 +123,15 @@ export function useAuth() {
 
       if (error) {
         console.error('Error creating profile:', error);
+        setLoading(false);
         return;
       }
       
       setProfile(data);
+      setLoading(false);
     } catch (error) {
       console.error('Error creating profile:', error);
+      setLoading(false);
     }
   };
 
