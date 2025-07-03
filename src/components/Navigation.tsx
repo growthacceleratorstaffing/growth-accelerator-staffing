@@ -46,17 +46,6 @@ const Navigation = () => {
                 </Button>
               </Link>
               
-              <Link to="/applications">
-                <Button 
-                  variant={isActive("/applications") ? "default" : "ghost"}
-                  className="flex items-center gap-2 h-12 px-6 text-base"
-                >
-                  <User className="h-5 w-5" />
-                  Applications
-                  <Badge variant="secondary">45</Badge>
-                </Button>
-              </Link>
-              
               <Link to="/candidates">
                 <Button 
                   variant={isActive("/candidates") ? "default" : "ghost"}
@@ -65,6 +54,17 @@ const Navigation = () => {
                   <User className="h-5 w-5" />
                   Candidates
                   <Badge variant="secondary">156</Badge>
+                </Button>
+              </Link>
+              
+              <Link to="/applications">
+                <Button 
+                  variant={isActive("/applications") ? "default" : "ghost"}
+                  className="flex items-center gap-2 h-12 px-6 text-base"
+                >
+                  <User className="h-5 w-5" />
+                  Talent Pool
+                  <Badge variant="secondary">45</Badge>
                 </Button>
               </Link>
               
