@@ -26,34 +26,26 @@ const ProtectedRoute = ({ children, requiredRole = 'viewer' }: ProtectedRoutePro
     return <Navigate to="/auth" replace />;
   }
 
-  // Debug logging
-  console.log('ProtectedRoute debug:', {
-    isAuthenticated,
-    user: user?.email,
-    profile: profile?.role,
-    requiredRole,
-    hasRoleResult: hasRole(requiredRole)
-  });
-
-  // For now, allow access if authenticated (bypass role checking temporarily)
-  if (isAuthenticated) {
-    return <>{children}</>;
+  // Check role permissions
+  if (!hasRole(requiredRole)) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+          <p className="text-muted-foreground mb-4">
+            You don't have permission to access this page.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Your role: {profile?.role || 'No profile'}<br/>
+            Required role: {requiredRole}
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  // Fallback access denied
-  return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-        <p className="text-muted-foreground mb-4">
-          User: {user?.email}<br/>
-          Profile Role: {profile?.role || 'No profile'}<br/>
-          Required Role: {requiredRole}
-        </p>
-        <p className="text-muted-foreground">Please contact an administrator for access.</p>
-      </div>
-    </div>
-  );
+  // Render protected content if authenticated and has required role
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;
