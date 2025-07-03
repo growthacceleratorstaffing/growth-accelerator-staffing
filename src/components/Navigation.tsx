@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Users, Plus, Home, Shield } from "lucide-react";
+import { Briefcase, Users, Plus, Home, Shield, UserCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import oauth2Manager from "@/lib/oauth2-manager";
 
@@ -61,6 +61,17 @@ const Navigation = () => {
                   <Users className="h-4 w-4" />
                   Candidates
                   <Badge variant="secondary">156</Badge>
+                </Button>
+              </Link>
+              
+              <Link to="/matches">
+                <Button 
+                  variant={isActive("/matches") ? "default" : "ghost"}
+                  className="flex items-center gap-2"
+                >
+                  <UserCheck className="h-4 w-4" />
+                  Matches
+                  <Badge variant="secondary">12</Badge>
                 </Button>
               </Link>
             </div>

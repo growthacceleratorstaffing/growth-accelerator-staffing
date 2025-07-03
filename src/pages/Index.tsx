@@ -8,7 +8,7 @@ const Index = () => {
   const stats = [
     { title: "Active Jobs", value: "23", icon: Briefcase, color: "text-blue-600" },
     { title: "Total Candidates", value: "156", icon: Users, color: "text-green-600" },
-    { title: "This Month", value: "12", icon: TrendingUp, color: "text-purple-600" },
+    { title: "Successful Matches", value: "12", icon: TrendingUp, color: "text-purple-600" },
     { title: "Pending Reviews", value: "8", icon: Clock, color: "text-orange-600" }
   ];
 

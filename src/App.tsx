@@ -7,6 +7,7 @@ import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
 import Jobs from "./pages/Jobs";
 import Candidates from "./pages/Candidates";
+import Matches from "./pages/Matches";
 import PostJob from "./pages/PostJob";
 import ApplyJob from "./pages/ApplyJob";
 import AuthLogin from "./pages/AuthLogin";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:jobId/apply" element={<ApplyJob />} />
             <Route path="/candidates" element={<Candidates />} />
+            <Route path="/matches" element={<Matches />} />
             <Route path="/post-job" element={<PostJob />} />
             <Route path="/auth/login" element={<AuthLogin />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
