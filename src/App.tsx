@@ -6,14 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navigation from "./components/Navigation";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
+import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import Jobs from "./pages/Jobs";
 import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
 import PostJob from "./pages/PostJob";
 import ApplyJob from "./pages/ApplyJob";
-import AuthLogin from "./pages/AuthLogin";
-import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,8 +27,7 @@ const App = () => (
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<><Navigation /><Landing /></>} />
-            <Route path="/auth/login" element={<><Navigation /><AuthLogin /></>} />
-            <Route path="/auth/callback" element={<><Navigation /><AuthCallback /></>} />
+            <Route path="/auth" element={<Auth />} />
             
             {/* Protected routes */}
             <Route path="/dashboard" element={
@@ -51,19 +49,19 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/candidates" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="recruiter">
                 <Navigation />
                 <Candidates />
               </ProtectedRoute>
             } />
             <Route path="/matches" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="recruiter">
                 <Navigation />
                 <Matches />
               </ProtectedRoute>
             } />
             <Route path="/post-job" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="admin">
                 <Navigation />
                 <PostJob />
               </ProtectedRoute>

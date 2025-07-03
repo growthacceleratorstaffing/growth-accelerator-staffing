@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Users, TrendingUp, Shield, ArrowRight, CheckCircle } from "lucide-react";
+import { Briefcase, User, TrendingUp, UserCheck, ArrowRight, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Landing = () => {
@@ -12,7 +12,7 @@ const Landing = () => {
       description: "Post and manage job opportunities with ease"
     },
     {
-      icon: Users,
+      icon: User,
       title: "Candidate Tracking",
       description: "Track applications and candidate progress"
     },
@@ -46,11 +46,10 @@ const Landing = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth/login">
+            <Link to="/auth">
               <Button size="lg" className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Connect with JobAdder
-                <ArrowRight className="h-4 w-4" />
+                <User className="h-5 w-5" />
+                Sign In to Get Started
               </Button>
             </Link>
           </div>

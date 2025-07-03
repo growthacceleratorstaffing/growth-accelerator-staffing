@@ -1,25 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, Users, Plus, Home, Shield, UserCheck } from "lucide-react";
-import { useEffect, useState } from "react";
-import oauth2Manager from "@/lib/oauth2-manager";
+import { Briefcase, User, LogOut, UserCheck } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navigation = () => {
   const location = useLocation();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, profile, signOut } = useAuth();
   
   const isActive = (path: string) => location.pathname === path;
-
-  useEffect(() => {
-    const checkAuth = () => {
-      setIsAuthenticated(oauth2Manager.isAuthenticated());
-    };
-    
-    checkAuth();
-    const interval = setInterval(checkAuth, 10000); // Check every 10 seconds
-    return () => clearInterval(interval);
-  }, []);
   
   return (
     <nav className="border-b bg-background">
@@ -39,7 +28,7 @@ const Navigation = () => {
                       variant={isActive("/dashboard") ? "default" : "ghost"} 
                       className="flex items-center gap-2"
                     >
-                      <Home className="h-4 w-4" />
+                      <Briefcase className="h-4 w-4" />
                       Dashboard
                     </Button>
                   </Link>
@@ -60,7 +49,7 @@ const Navigation = () => {
                       variant={isActive("/candidates") ? "default" : "ghost"}
                       className="flex items-center gap-2"
                     >
-                      <Users className="h-4 w-4" />
+                      <User className="h-4 w-4" />
                       Candidates
                       <Badge variant="secondary">156</Badge>
                     </Button>
@@ -84,35 +73,35 @@ const Navigation = () => {
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
               <>
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  className="flex items-center gap-2"
-                  onClick={() => {
-                    oauth2Manager.clearTokens();
-                    window.location.href = '/';
-                  }}
-                >
-                  <Shield className="h-4 w-4" />
-                  Disconnect
-                </Button>
+                <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-md">
+                  <User className="h-4 w-4" />
+                  <span className="text-sm">
+                    {profile?.full_name || profile?.email || 'User'}
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {profile?.role || 'viewer'}
+                  </Badge>
+                </div>
                 
-                <Link to="/post-job">
-                  <Button className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Post Job
-                  </Button>
-                </Link>
-              </>
-            ) : (
-              <Link to="/auth/login">
                 <Button 
                   variant="outline" 
                   size="sm"
                   className="flex items-center gap-2"
+                  onClick={signOut}
                 >
-                  <Shield className="h-4 w-4" />
-                  Connect with JobAdder
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Link to="/auth">
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  Sign In
                 </Button>
               </Link>
             )}
