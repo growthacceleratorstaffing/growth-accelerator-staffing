@@ -103,6 +103,34 @@ const Landing = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Footer with Privacy Policy and Disclaimer */}
+        <footer className="mt-16 pt-8 border-t border-border">
+          <div className="flex flex-col items-center space-y-4 text-center">
+            <div className="flex items-center gap-4">
+              <Link to="/privacy">
+                <Button variant="ghost" size="sm">Privacy Policy</Button>
+              </Link>
+            </div>
+            
+            <div className="max-w-2xl text-sm text-muted-foreground space-y-2">
+              <p>
+                <strong>Disclaimer:</strong> This platform integrates with JobAdder's API services for 
+                recruitment management. All job data and applications are processed in accordance 
+                with JobAdder's terms of service and privacy policies.
+              </p>
+              <p>
+                By using this platform, you acknowledge that your data may be shared with employers 
+                and recruitment partners through JobAdder's systems. We are committed to protecting 
+                your privacy and handling your information responsibly.
+              </p>
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              © 2024 Startup Accelerator. All rights reserved.
+            </p>
+          </div>
+        </footer>
       </div>
     </div>
   );

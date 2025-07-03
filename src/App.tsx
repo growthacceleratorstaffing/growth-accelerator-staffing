@@ -9,6 +9,7 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import JobDetail from "./pages/JobDetail";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Jobs from "./pages/Jobs";
 import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
@@ -29,6 +30,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/" element={<><Navigation /><Landing /></>} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/privacy" element={<><Navigation /><PrivacyPolicy /></>} />
             
             {/* Protected routes */}
             <Route path="/dashboard" element={
