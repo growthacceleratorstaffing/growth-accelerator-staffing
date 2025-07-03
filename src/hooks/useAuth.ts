@@ -13,80 +13,103 @@ export function useAuth() {
   const { toast } = useToast()
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      } else {
-        setLoading(false)
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (mounted) {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await fetchProfile(session.user.id);
+          } else {
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+        if (mounted) setLoading(false);
       }
-    })
+    };
+
+    getInitialSession();
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      } else {
-        setProfile(null)
-        setLoading(false)
+      if (mounted) {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setLoading(false);
+        }
       }
-    })
+    });
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const fetchProfile = async (userId: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single()
+        .maybeSingle();
 
-      if (error) {
-        // If profile doesn't exist, create one
-        if (error.code === 'PGRST116') {
-          await createProfile(userId)
-          return
-        }
-        throw error
+      if (error && error.code !== 'PGRST116') {
+        throw error;
       }
 
-      setProfile(data)
+      if (data) {
+        setProfile(data);
+      } else {
+        // Profile doesn't exist, create one
+        await createProfile(userId);
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error)
+      console.error('Error fetching profile:', error);
+      // Still set loading to false even on error
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const createProfile = async (userId: string) => {
     try {
-      const { data: userData } = await supabase.auth.getUser()
-      const email = userData.user?.email || ''
+      const { data: userData } = await supabase.auth.getUser();
+      const email = userData.user?.email || '';
       
       const { data, error } = await supabase
         .from('profiles')
         .insert({
           id: userId,
           email,
-          role: 'viewer' // Default role
+          role: email === 'bart@startupaccelerator.nl' || email === 'bart@growthaccelerator.nl' ? 'admin' : 'viewer'
         })
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
-      setProfile(data)
+      if (error) {
+        console.error('Error creating profile:', error);
+        return;
+      }
+      
+      setProfile(data);
     } catch (error) {
-      console.error('Error creating profile:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error creating profile:', error);
     }
-  }
+  };
 
   const signIn = async (email: string, password: string) => {
     try {
