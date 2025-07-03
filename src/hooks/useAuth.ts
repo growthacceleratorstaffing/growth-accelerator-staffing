@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react'
 import { User } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import type { Tables } from '@/integrations/supabase/types'
 
-export interface UserProfile {
-  id: string
-  email: string
-  full_name: string | null
-  role: 'admin' | 'recruiter' | 'viewer'
-  created_at: string
-  updated_at: string
-}
+export type UserProfile = Tables<'profiles'>
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
