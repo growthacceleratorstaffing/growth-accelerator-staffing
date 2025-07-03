@@ -1,0 +1,546 @@
+import { useState, useEffect } from 'react';
+import oauth2Manager from '@/lib/oauth2-manager';
+
+// JobAdder Job Application interfaces based on API docs
+export interface JobApplicationCandidate {
+  applicationId: number;
+  jobTitle?: string;
+  jobReference?: string;
+  manual: boolean;
+  source?: string;
+  rating?: number;
+  status: {
+    statusId: number;
+    name: string;
+    active: boolean;
+    rejected: boolean;
+    default: boolean;
+    defaultRejected: boolean;
+    workflow?: {
+      stage: string;
+      stageIndex: number;
+      step: number;
+      progress: string;
+    };
+  };
+  review?: {
+    stage: string;
+    submittedAt?: string;
+    submittedBy?: {
+      userId: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    reviewedAt?: string;
+    reviewedBy?: any;
+  };
+  candidate: {
+    candidateId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    mobile?: string;
+    mobileNormalized?: string;
+    contactMethod?: string;
+    salutation?: string;
+    unsubscribed?: boolean;
+    address?: {
+      street?: string[];
+      city?: string;
+      state?: string;
+      postalCode?: string;
+      country?: string;
+      countryCode?: string;
+    };
+    status?: {
+      statusId: number;
+      name: string;
+      active: boolean;
+      default: boolean;
+    };
+    rating?: string;
+    source?: string;
+    seeking?: string;
+  };
+  job: {
+    jobId: number;
+    jobTitle: string;
+    location?: {
+      locationId: number;
+      name: string;
+      area?: {
+        areaId: number;
+        name: string;
+      };
+    };
+    company?: {
+      companyId: number;
+      name: string;
+      status?: {
+        statusId: number;
+        name: string;
+        active: boolean;
+        default: boolean;
+      };
+    };
+  };
+  owner?: {
+    userId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  createdBy?: {
+    userId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  createdAt?: string;
+  updatedBy?: {
+    userId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  updatedAt?: string;
+}
+
+interface JobApplicationsResponse {
+  items: JobApplicationCandidate[];
+  totalCount: number;
+  links?: {
+    first?: string;
+    prev?: string;
+    next?: string;
+    last?: string;
+  };
+}
+
+class JobApplicationsAPI {
+  private async getHeaders(): Promise<HeadersInit> {
+    const accessToken = await oauth2Manager.getValidAccessToken();
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    return headers;
+  }
+
+  private async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
+    try {
+      const response = await fetch(url, options);
+
+      // Handle 429 Too Many Requests with retry logic
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, retryCount) * 1000;
+        
+        console.warn(`Rate limited (429). Waiting ${waitTime / 1000} seconds before retry...`);
+        
+        if (retryCount < 3) {
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          return this.makeRequest(url, options, retryCount + 1);
+        } else {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        }
+      }
+
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getJobApplications(jobId: number, params?: {
+    offset?: number;
+    limit?: number;
+  }): Promise<JobApplicationsResponse> {
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.offset) searchParams.append('offset', params.offset.toString());
+      if (params?.limit) searchParams.append('limit', params.limit.toString());
+
+      const url = `https://api.jobadder.com/v2/jobs/${jobId}/applications${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      
+      const headers = await this.getHeaders();
+      const response = await this.makeRequest(url, {
+        method: 'GET',
+        headers: headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching job applications:', error);
+      throw error;
+    }
+  }
+
+  async getActiveJobApplications(jobId: number, params?: {
+    offset?: number;
+    limit?: number;
+  }): Promise<JobApplicationsResponse> {
+    try {
+      const searchParams = new URLSearchParams();
+      if (params?.offset) searchParams.append('offset', params.offset.toString());
+      if (params?.limit) searchParams.append('limit', params.limit.toString());
+
+      const url = `https://api.jobadder.com/v2/jobs/${jobId}/applications/active${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      
+      const headers = await this.getHeaders();
+      const response = await this.makeRequest(url, {
+        method: 'GET',
+        headers: headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching active job applications:', error);
+      throw error;
+    }
+  }
+
+  async getAllJobApplications(params?: {
+    offset?: number;
+    limit?: number;
+    activeOnly?: boolean;
+  }): Promise<JobApplicationCandidate[]> {
+    try {
+      // First, get all jobs to fetch applications from each
+      const jobsResponse = await fetch('https://api.jobadder.com/v2/jobs?limit=100', {
+        headers: await this.getHeaders()
+      });
+
+      if (!jobsResponse.ok) {
+        throw new Error('Failed to fetch jobs');
+      }
+
+      const jobsData = await jobsResponse.json();
+      const jobs = jobsData.items || [];
+
+      // Fetch applications for each job
+      const allApplications: JobApplicationCandidate[] = [];
+      
+      for (const job of jobs.slice(0, 10)) { // Limit to first 10 jobs to avoid too many API calls
+        try {
+          const applications = params?.activeOnly 
+            ? await this.getActiveJobApplications(job.jobId, { limit: 50 })
+            : await this.getJobApplications(job.jobId, { limit: 50 });
+          
+          allApplications.push(...applications.items);
+        } catch (error) {
+          console.warn(`Failed to fetch applications for job ${job.jobId}:`, error);
+          // Continue with other jobs
+        }
+      }
+
+      return allApplications;
+    } catch (error) {
+      console.error('Error fetching all job applications:', error);
+      throw error;
+    }
+  }
+}
+
+// Mock data for fallback
+const mockJobApplications: JobApplicationCandidate[] = [
+  {
+    applicationId: 1001,
+    jobTitle: "Senior Frontend Developer",
+    jobReference: "SFD-2024-001",
+    manual: false,
+    source: "Job Portal Application",
+    rating: 5,
+    status: {
+      statusId: 1,
+      name: "Application Review",
+      active: true,
+      rejected: false,
+      default: true,
+      defaultRejected: false,
+      workflow: {
+        stage: "Initial Review",
+        stageIndex: 0,
+        step: 1,
+        progress: "Started"
+      }
+    },
+    candidate: {
+      candidateId: 5001,
+      firstName: "Sarah",
+      lastName: "Johnson",
+      email: "sarah.johnson@email.com",
+      phone: "+1 (555) 123-4567",
+      mobile: "+1 (555) 123-4567",
+      contactMethod: "Email",
+      salutation: "Ms.",
+      unsubscribed: false,
+      address: {
+        street: ["123 Tech Street"],
+        city: "San Francisco",
+        state: "CA",
+        postalCode: "94105",
+        country: "United States",
+        countryCode: "US"
+      },
+      status: {
+        statusId: 1,
+        name: "Available",
+        active: true,
+        default: true
+      },
+      rating: "4.8",
+      source: "LinkedIn",
+      seeking: "Yes"
+    },
+    job: {
+      jobId: 1,
+      jobTitle: "Senior Frontend Developer",
+      location: {
+        locationId: 201,
+        name: "San Francisco, CA",
+        area: {
+          areaId: 301,
+          name: "Bay Area"
+        }
+      },
+      company: {
+        companyId: 101,
+        name: "Tech Corp",
+        status: {
+          statusId: 1,
+          name: "Active",
+          active: true,
+          default: true
+        }
+      }
+    },
+    createdAt: "2024-01-22T10:30:00Z",
+    updatedAt: "2024-01-22T10:30:00Z"
+  },
+  {
+    applicationId: 1002,
+    jobTitle: "Product Manager",
+    jobReference: "PM-2024-002",
+    manual: false,
+    source: "Company Website",
+    rating: 4,
+    status: {
+      statusId: 2,
+      name: "Interview Scheduled",
+      active: true,
+      rejected: false,
+      default: false,
+      defaultRejected: false,
+      workflow: {
+        stage: "Phone Interview",
+        stageIndex: 1,
+        step: 2,
+        progress: "In Progress"
+      }
+    },
+    candidate: {
+      candidateId: 5002,
+      firstName: "Michael",
+      lastName: "Chen",
+      email: "michael.chen@email.com",
+      phone: "+1 (555) 987-6543",
+      mobile: "+1 (555) 987-6543",
+      contactMethod: "Phone",
+      salutation: "Mr.",
+      unsubscribed: false,
+      address: {
+        street: ["456 Business Ave"],
+        city: "New York",
+        state: "NY",
+        postalCode: "10001",
+        country: "United States",
+        countryCode: "US"
+      },
+      status: {
+        statusId: 2,
+        name: "Interviewing",
+        active: true,
+        default: false
+      },
+      rating: "4.9",
+      source: "Company Website",
+      seeking: "Yes"
+    },
+    job: {
+      jobId: 2,
+      jobTitle: "Product Manager",
+      location: {
+        locationId: 202,
+        name: "New York, NY",
+        area: {
+          areaId: 302,
+          name: "New York Metro"
+        }
+      },
+      company: {
+        companyId: 102,
+        name: "Innovation Inc",
+        status: {
+          statusId: 1,
+          name: "Active",
+          active: true,
+          default: true
+        }
+      }
+    },
+    createdAt: "2024-01-15T14:20:00Z",
+    updatedAt: "2024-01-20T09:15:00Z"
+  },
+  {
+    applicationId: 1003,
+    jobTitle: "UX Designer",
+    jobReference: "UXD-2024-003",
+    manual: true,
+    source: "Referral",
+    rating: 5,
+    status: {
+      statusId: 3,
+      name: "Offer Extended",
+      active: true,
+      rejected: false,
+      default: false,
+      defaultRejected: false,
+      workflow: {
+        stage: "Final Decision",
+        stageIndex: 4,
+        step: 5,
+        progress: "Completed"
+      }
+    },
+    candidate: {
+      candidateId: 5003,
+      firstName: "Emily",
+      lastName: "Rodriguez",
+      email: "emily.rodriguez@email.com",
+      phone: "+1 (555) 456-7890",
+      mobile: "+1 (555) 456-7890",
+      contactMethod: "Email",
+      salutation: "Ms.",
+      unsubscribed: false,
+      address: {
+        street: ["789 Design Lane"],
+        city: "Austin",
+        state: "TX",
+        postalCode: "73301",
+        country: "United States",
+        countryCode: "US"
+      },
+      status: {
+        statusId: 1,
+        name: "Available",
+        active: true,
+        default: true
+      },
+      rating: "4.7",
+      source: "Dribbble",
+      seeking: "Yes"
+    },
+    job: {
+      jobId: 3,
+      jobTitle: "UX Designer",
+      location: {
+        locationId: 203,
+        name: "Remote"
+      },
+      company: {
+        companyId: 103,
+        name: "Design Studio",
+        status: {
+          statusId: 1,
+          name: "Active",
+          active: true,
+          default: true
+        }
+      }
+    },
+    createdAt: "2024-01-19T09:15:00Z",
+    updatedAt: "2024-01-25T16:30:00Z"
+  }
+];
+
+export const jobApplicationsAPI = new JobApplicationsAPI();
+
+export function useJobApplications() {
+  const [applications, setApplications] = useState<JobApplicationCandidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [useMockData, setUseMockData] = useState(false);
+
+  const fetchApplications = async (searchTerm?: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Try to fetch from JobAdder API
+      const response = await jobApplicationsAPI.getAllJobApplications({ 
+        limit: 100,
+        activeOnly: false 
+      });
+      
+      let filteredApplications = response;
+      if (searchTerm) {
+        filteredApplications = response.filter(app => 
+          `${app.candidate.firstName} ${app.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.job.company?.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      
+      setApplications(filteredApplications);
+      setUseMockData(false);
+    } catch (err) {
+      console.warn('JobAdder API unavailable, using mock data:', err);
+      // Fallback to mock data
+      let filteredApplications = mockJobApplications;
+      if (searchTerm) {
+        filteredApplications = mockJobApplications.filter(app => 
+          `${app.candidate.firstName} ${app.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.job.company?.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      setApplications(filteredApplications);
+      setUseMockData(true);
+      setError('Using demo data - API unavailable');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchApplications();
+  }, []);
+
+  return {
+    applications,
+    loading,
+    error,
+    useMockData,
+    refetch: fetchApplications
+  };
+}
