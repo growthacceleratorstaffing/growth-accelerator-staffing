@@ -111,12 +111,17 @@ export function useAuth() {
       const { data: userData } = await supabase.auth.getUser();
       const email = userData.user?.email || '';
       
+      // Set default scopes for regular users
+      const defaultScopes: Array<'read' | 'read_candidate' | 'read_job' | 'read_jobad'> = ['read', 'read_candidate', 'read_job', 'read_jobad'];
+      const isAdmin = email === 'bart@startupaccelerator.nl' || email === 'bart@growthaccelerator.nl';
+      
       const { data, error } = await supabase
         .from('profiles')
         .insert({
           id: userId,
           email,
-          role: email === 'bart@startupaccelerator.nl' || email === 'bart@growthaccelerator.nl' ? 'admin' : 'viewer'
+          role: isAdmin ? 'admin' : 'viewer',
+          jobadder_scopes: defaultScopes
         })
         .select()
         .single();
@@ -205,10 +210,10 @@ export function useAuth() {
   }
 
   const hasRole = (requiredRole: 'admin' | 'recruiter' | 'viewer') => {
-    if (!profile) return false
+    if (!profile?.role) return false
     
     const roleHierarchy = { admin: 3, recruiter: 2, viewer: 1 }
-    return roleHierarchy[profile.role] >= roleHierarchy[requiredRole]
+    return (roleHierarchy as any)[profile.role] >= roleHierarchy[requiredRole]
   }
 
   const hasJobAdderScope = (scope: 'read' | 'write' | 'read_candidate' | 'write_candidate' | 'read_company' | 'write_company' | 'read_contact' | 'write_contact' | 'read_jobad' | 'write_jobad' | 'read_jobapplication' | 'write_jobapplication' | 'read_job' | 'write_job' | 'read_placement' | 'write_placement' | 'read_user' | 'partner_jobboard' | 'offline_access') => {
