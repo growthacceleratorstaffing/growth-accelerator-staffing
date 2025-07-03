@@ -15,6 +15,15 @@ const Landing = () => {
 
       {/* Hero Section */}
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-8 text-center">
+        {/* Logo and Brand */}
+        <div className="flex items-center space-x-3 mb-12">
+          <img 
+            src="/lovable-uploads/1f532f91-9114-4076-931d-e16a868fef79.png" 
+            alt="Startup Accelerator" 
+            className="h-12 w-12"
+          />
+          <span className="font-bold text-2xl text-primary">Startup Accelerator</span>
+        </div>
         <h1 className="text-6xl font-bold mb-8 max-w-5xl leading-tight">
           <span className="text-secondary">A Smarter Way to</span>{" "}
           <span className="text-secondary">Staff</span>
