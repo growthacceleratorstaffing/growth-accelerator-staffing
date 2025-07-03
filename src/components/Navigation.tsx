@@ -11,22 +11,26 @@ const Navigation = () => {
   const isActive = (path: string) => location.pathname === path;
   
   return (
-    <nav className="border-b bg-background">
+    <nav className="border-b bg-background shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           <div className="flex items-center space-x-8">
-            <Link to="/" className="flex items-center space-x-2">
-              <Briefcase className="h-6 w-6" />
-              <span className="font-bold text-xl">Startup Accelerator</span>
+            <Link to="/" className="flex items-center space-x-3">
+              <img 
+                src="/lovable-uploads/1f532f91-9114-4076-931d-e16a868fef79.png" 
+                alt="Startup Accelerator" 
+                className="h-12 w-12"
+              />
+              <span className="font-bold text-2xl text-primary">Startup Accelerator</span>
             </Link>
             
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-2">
               <Link to="/dashboard">
                 <Button 
                   variant={isActive("/dashboard") ? "default" : "ghost"} 
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 h-12 px-6 text-base"
                 >
-                  <Briefcase className="h-4 w-4" />
+                  <Briefcase className="h-5 w-5" />
                   Dashboard
                 </Button>
               </Link>
@@ -34,9 +38,9 @@ const Navigation = () => {
               <Link to="/jobs">
                 <Button 
                   variant={isActive("/jobs") ? "default" : "ghost"}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 h-12 px-6 text-base"
                 >
-                  <Briefcase className="h-4 w-4" />
+                  <Briefcase className="h-5 w-5" />
                   Jobs
                   <Badge variant="secondary">23</Badge>
                 </Button>
@@ -45,9 +49,9 @@ const Navigation = () => {
               <Link to="/applications">
                 <Button 
                   variant={isActive("/applications") ? "default" : "ghost"}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 h-12 px-6 text-base"
                 >
-                  <User className="h-4 w-4" />
+                  <User className="h-5 w-5" />
                   Applications
                   <Badge variant="secondary">45</Badge>
                 </Button>
@@ -56,9 +60,9 @@ const Navigation = () => {
               <Link to="/candidates">
                 <Button 
                   variant={isActive("/candidates") ? "default" : "ghost"}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 h-12 px-6 text-base"
                 >
-                  <User className="h-4 w-4" />
+                  <User className="h-5 w-5" />
                   Candidates
                   <Badge variant="secondary">156</Badge>
                 </Button>
@@ -67,9 +71,9 @@ const Navigation = () => {
               <Link to="/matches">
                 <Button 
                   variant={isActive("/matches") ? "default" : "ghost"}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 h-12 px-6 text-base"
                 >
-                  <UserCheck className="h-4 w-4" />
+                  <UserCheck className="h-5 w-5" />
                   Matches
                   <Badge variant="secondary">12</Badge>
                 </Button>
