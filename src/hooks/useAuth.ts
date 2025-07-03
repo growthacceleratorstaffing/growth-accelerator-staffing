@@ -111,8 +111,10 @@ export function useAuth() {
       const { data: userData } = await supabase.auth.getUser();
       const email = userData.user?.email || '';
       
-      // Set default scopes for regular users
-      const defaultScopes: Array<'read' | 'read_candidate' | 'read_job' | 'read_jobad'> = ['read', 'read_candidate', 'read_job', 'read_jobad'];
+      // Set default scopes for regular users (including write permissions)
+      const defaultScopes: Array<'read' | 'write' | 'read_candidate' | 'write_candidate' | 'read_job' | 'write_job' | 'read_jobad' | 'write_jobad'> = [
+        'read', 'write', 'read_candidate', 'write_candidate', 'read_job', 'write_job', 'read_jobad', 'write_jobad'
+      ];
       const isAdmin = email === 'bart@startupaccelerator.nl' || email === 'bart@growthaccelerator.nl';
       
       const { data, error } = await supabase
