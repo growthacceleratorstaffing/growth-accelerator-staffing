@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navigation from "./components/Navigation";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import Jobs from "./pages/Jobs";
 import Candidates from "./pages/Candidates";
@@ -23,18 +25,52 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <div className="min-h-screen bg-background">
-          <Navigation />
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/jobs" element={<Jobs />} />
-            <Route path="/jobs/:jobId/apply" element={<ApplyJob />} />
-            <Route path="/candidates" element={<Candidates />} />
-            <Route path="/matches" element={<Matches />} />
-            <Route path="/post-job" element={<PostJob />} />
-            <Route path="/auth/login" element={<AuthLogin />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
+            {/* Public routes */}
+            <Route path="/" element={<><Navigation /><Landing /></>} />
+            <Route path="/auth/login" element={<><Navigation /><AuthLogin /></>} />
+            <Route path="/auth/callback" element={<><Navigation /><AuthCallback /></>} />
+            
+            {/* Protected routes */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Navigation />
+                <Index />
+              </ProtectedRoute>
+            } />
+            <Route path="/jobs" element={
+              <ProtectedRoute>
+                <Navigation />
+                <Jobs />
+              </ProtectedRoute>
+            } />
+            <Route path="/jobs/:jobId/apply" element={
+              <ProtectedRoute>
+                <Navigation />
+                <ApplyJob />
+              </ProtectedRoute>
+            } />
+            <Route path="/candidates" element={
+              <ProtectedRoute>
+                <Navigation />
+                <Candidates />
+              </ProtectedRoute>
+            } />
+            <Route path="/matches" element={
+              <ProtectedRoute>
+                <Navigation />
+                <Matches />
+              </ProtectedRoute>
+            } />
+            <Route path="/post-job" element={
+              <ProtectedRoute>
+                <Navigation />
+                <PostJob />
+              </ProtectedRoute>
+            } />
+            
+            {/* Catch-all route */}
+            <Route path="*" element={<><Navigation /><NotFound /></>} />
           </Routes>
         </div>
       </BrowserRouter>

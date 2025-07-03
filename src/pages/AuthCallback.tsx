@@ -42,9 +42,9 @@ const AuthCallback = () => {
           description: `Connected to Startup Accelerator API (Portal: ${tokenResponse.account})`,
         });
 
-        // Redirect to jobs page after successful authentication
+        // Redirect to dashboard after successful authentication
         setTimeout(() => {
-          navigate('/jobs');
+          navigate('/dashboard');
         }, 2000);
         
       } catch (error) {

@@ -32,69 +32,90 @@ const Navigation = () => {
             </Link>
             
             <div className="flex items-center space-x-1">
-              <Link to="/">
-                <Button 
-                  variant={isActive("/") ? "default" : "ghost"} 
-                  className="flex items-center gap-2"
-                >
-                  <Home className="h-4 w-4" />
-                  Dashboard
-                </Button>
-              </Link>
-              
-              <Link to="/jobs">
-                <Button 
-                  variant={isActive("/jobs") ? "default" : "ghost"}
-                  className="flex items-center gap-2"
-                >
-                  <Briefcase className="h-4 w-4" />
-                  Jobs
-                  <Badge variant="secondary">23</Badge>
-                </Button>
-              </Link>
-              
-              <Link to="/candidates">
-                <Button 
-                  variant={isActive("/candidates") ? "default" : "ghost"}
-                  className="flex items-center gap-2"
-                >
-                  <Users className="h-4 w-4" />
-                  Candidates
-                  <Badge variant="secondary">156</Badge>
-                </Button>
-              </Link>
-              
-              <Link to="/matches">
-                <Button 
-                  variant={isActive("/matches") ? "default" : "ghost"}
-                  className="flex items-center gap-2"
-                >
-                  <UserCheck className="h-4 w-4" />
-                  Matches
-                  <Badge variant="secondary">12</Badge>
-                </Button>
-              </Link>
+              {isAuthenticated && (
+                <>
+                  <Link to="/dashboard">
+                    <Button 
+                      variant={isActive("/dashboard") ? "default" : "ghost"} 
+                      className="flex items-center gap-2"
+                    >
+                      <Home className="h-4 w-4" />
+                      Dashboard
+                    </Button>
+                  </Link>
+                  
+                  <Link to="/jobs">
+                    <Button 
+                      variant={isActive("/jobs") ? "default" : "ghost"}
+                      className="flex items-center gap-2"
+                    >
+                      <Briefcase className="h-4 w-4" />
+                      Jobs
+                      <Badge variant="secondary">23</Badge>
+                    </Button>
+                  </Link>
+                  
+                  <Link to="/candidates">
+                    <Button 
+                      variant={isActive("/candidates") ? "default" : "ghost"}
+                      className="flex items-center gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      Candidates
+                      <Badge variant="secondary">156</Badge>
+                    </Button>
+                  </Link>
+                  
+                  <Link to="/matches">
+                    <Button 
+                      variant={isActive("/matches") ? "default" : "ghost"}
+                      className="flex items-center gap-2"
+                    >
+                      <UserCheck className="h-4 w-4" />
+                      Matches
+                      <Badge variant="secondary">12</Badge>
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            <Link to="/auth/login">
-              <Button 
-                variant={isAuthenticated ? "default" : "outline"} 
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Shield className="h-4 w-4" />
-                {isAuthenticated ? "Connected" : "Connect"}
-              </Button>
-            </Link>
-            
-            <Link to="/post-job">
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Post Job
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    oauth2Manager.clearTokens();
+                    window.location.href = '/';
+                  }}
+                >
+                  <Shield className="h-4 w-4" />
+                  Disconnect
+                </Button>
+                
+                <Link to="/post-job">
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Post Job
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <Link to="/auth/login">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Shield className="h-4 w-4" />
+                  Connect with JobAdder
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
