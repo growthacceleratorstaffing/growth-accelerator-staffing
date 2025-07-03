@@ -112,7 +112,9 @@ const Jobs = () => {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline">View Details</Button>
-                    <Button>Apply Now</Button>
+                    <Link to={`/jobs/${job.adId}/apply`}>
+                      <Button>Apply Now</Button>
+                    </Link>
                   </div>
                 </div>
               </CardContent>
