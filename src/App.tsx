@@ -13,7 +13,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Jobs from "./pages/Jobs";
 import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
-import PostJob from "./pages/PostJob";
+
 import ApplyJob from "./pages/ApplyJob";
 import NotFound from "./pages/NotFound";
 
@@ -67,12 +67,6 @@ const App = () => (
               <ProtectedRoute requiredScope="read_placement">
                 <Navigation />
                 <Matches />
-              </ProtectedRoute>
-            } />
-            <Route path="/post-job" element={
-              <ProtectedRoute requiredScope="write_job">
-                <Navigation />
-                <PostJob />
               </ProtectedRoute>
             } />
             
