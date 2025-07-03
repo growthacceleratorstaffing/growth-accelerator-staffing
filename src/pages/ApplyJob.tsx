@@ -40,7 +40,7 @@ const ApplyJob = () => {
   const { toast } = useToast();
   
   const { jobDetail, loading: jobLoading, error: jobError, useMockData } = useJobDetail(
-    jobId ? parseInt(jobId) : 0
+    jobId ? parseInt(jobId, 10) : 0
   );
   
   const { submitApplication, loading: submitting, error: submitError } = useJobApplication();
