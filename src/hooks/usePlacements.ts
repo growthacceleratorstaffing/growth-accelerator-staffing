@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import oauth2Manager from '@/lib/oauth2-manager';
 
-// JobAdder Placement interfaces based on API docs
+// Placement interfaces based on API specification
 export interface JobAdderPlacement {
   placementId: number;
   status: {
@@ -502,7 +502,7 @@ export function usePlacements() {
     setError(null);
 
     try {
-      // Try to fetch from JobAdder API
+      // Try to fetch from API
       const response = await placementsAPI.findPlacements({ 
         limit: 100 
       });
@@ -520,7 +520,7 @@ export function usePlacements() {
       setPlacements(filteredPlacements);
       setUseMockData(false);
     } catch (err) {
-      console.warn('JobAdder API unavailable, using mock data:', err);
+      console.warn('API unavailable, using mock data:', err);
       // Fallback to mock data
       let filteredPlacements = mockPlacements;
       if (searchTerm) {

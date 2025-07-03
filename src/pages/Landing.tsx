@@ -24,10 +24,10 @@ const Landing = () => {
   ];
 
   const benefits = [
-    "Access your JobAdder data seamlessly",
+    "Comprehensive recruitment management system",
     "Streamlined job posting workflow",
     "Real-time candidate application tracking",
-    "Secure OAuth2 authentication",
+    "Secure authentication and data protection",
     "Role-based access control"
   ];
 
@@ -41,8 +41,8 @@ const Landing = () => {
             <h1 className="text-4xl font-bold">Startup Accelerator API</h1>
           </div>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Your comprehensive job board and candidate management platform. 
-            Connect with JobAdder to streamline your recruitment process.
+            Your comprehensive recruitment platform for managing jobs, candidates, and placements. 
+            Streamline your entire hiring process with our integrated solution.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -97,8 +97,8 @@ const Landing = () => {
                 Secure Authentication Required
               </Badge>
               <p className="text-sm text-muted-foreground">
-                Connect your JobAdder account to get started. Your data stays secure 
-                with industry-standard OAuth2 authentication.
+                Secure your account to get started. Your data is protected 
+                with industry-standard security and encryption.
               </p>
             </div>
           </CardContent>
@@ -115,13 +115,13 @@ const Landing = () => {
             
             <div className="max-w-2xl text-sm text-muted-foreground space-y-2">
               <p>
-                <strong>Disclaimer:</strong> This platform integrates with JobAdder's API services for 
-                recruitment management. All job data and applications are processed in accordance 
-                with JobAdder's terms of service and privacy policies.
+                <strong>Disclaimer:</strong> This platform provides comprehensive recruitment 
+                management services including job posting, candidate tracking, and placement management. 
+                All data is processed securely and in accordance with privacy regulations.
               </p>
               <p>
                 By using this platform, you acknowledge that your data may be shared with employers 
-                and recruitment partners through JobAdder's systems. We are committed to protecting 
+                and recruitment partners as part of the hiring process. We are committed to protecting 
                 your privacy and handling your information responsibly.
               </p>
             </div>

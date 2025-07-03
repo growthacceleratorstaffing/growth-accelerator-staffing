@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import oauth2Manager from '@/lib/oauth2-manager';
 
-// JobAdder Job Application interfaces based on API docs
+// Job Application interfaces based on API specification
 export interface JobApplicationCandidate {
   applicationId: number;
   jobTitle?: string;
@@ -494,7 +494,7 @@ export function useJobApplications() {
     setError(null);
 
     try {
-      // Try to fetch from JobAdder API
+      // Try to fetch from API
       const response = await jobApplicationsAPI.getAllJobApplications({ 
         limit: 100,
         activeOnly: false 
@@ -513,7 +513,7 @@ export function useJobApplications() {
       setApplications(filteredApplications);
       setUseMockData(false);
     } catch (err) {
-      console.warn('JobAdder API unavailable, using mock data:', err);
+      console.warn('API unavailable, using mock data:', err);
       // Fallback to mock data
       let filteredApplications = mockJobApplications;
       if (searchTerm) {

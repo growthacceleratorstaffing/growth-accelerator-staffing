@@ -188,12 +188,12 @@ export function useJobDetail(adId: number) {
       setError(null);
 
       try {
-        // Try to fetch from JobAdder API
+        // Try to fetch from API
         const detail = await jobAdderAPI.getJobBoardJobAd(adId);
         setJobDetail(detail);
         setUseMockData(false);
       } catch (err) {
-        console.warn('JobAdder API unavailable, using mock data:', err);
+        console.warn('API unavailable, using mock data:', err);
         // Fallback to mock data
         const mockDetail = mockJobDetails[adId];
         if (mockDetail) {

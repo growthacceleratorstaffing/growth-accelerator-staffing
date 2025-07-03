@@ -1,4 +1,4 @@
-// JobAdder API client for Startup Accelerator Website API
+// External API client for Startup Accelerator Website
 // Job Board: Startup Accelerator Website API (ID: 8734)
 // Portal: Startup Accelerator API (ID: 4809)
 import oauth2Manager from './oauth2-manager';

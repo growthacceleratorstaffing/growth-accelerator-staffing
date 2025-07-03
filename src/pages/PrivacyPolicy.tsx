@@ -84,11 +84,12 @@ const PrivacyPolicy = () => {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-4">6. JobAdder Integration</h2>
+              <h2 className="text-2xl font-semibold mb-4">6. Third-Party Services</h2>
               <p>
-                Our platform integrates with JobAdder's API services. When using these features, 
-                JobAdder's privacy policy also applies to the data processed through their services. 
-                Please review JobAdder's privacy policy for additional information.
+                Our platform may integrate with various recruitment and HR service providers 
+                to enhance functionality. When using these features, the respective third-party 
+                privacy policies may also apply to the data processed through their services. 
+                We ensure all integrations meet our security and privacy standards.
               </p>
             </section>
 

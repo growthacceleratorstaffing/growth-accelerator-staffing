@@ -142,7 +142,7 @@ class JobApplicationAPI {
     try {
       const url = `https://api.jobadder.com/v2/jobboards/8734/jobads/${jobId}/applications`;
       
-      // Prepare the payload according to JobAdder API specification
+      // Prepare the payload according to API specification
       const payload = {
         source: "Job Portal Application",
         firstName: applicationData.firstName,
@@ -234,11 +234,11 @@ export function useJobApplication() {
     setError(null);
 
     try {
-      // Try to submit to JobAdder API first
+      // Try to submit to API first
       const response = await jobApplicationAPI.submitJobApplication(jobId, applicationData);
       return response;
     } catch (apiError) {
-      console.warn('JobAdder API submission failed, using mock submission:', apiError);
+      console.warn('API submission failed, using mock submission:', apiError);
       
       try {
         // Fallback to mock submission

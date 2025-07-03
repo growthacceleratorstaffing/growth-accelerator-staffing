@@ -158,7 +158,7 @@ export function useJobs() {
     setError(null);
 
     try {
-      // Try to fetch from JobAdder API
+      // Try to fetch from API
       const response = await jobAdderAPI.findJobBoardJobAds({
         limit: 50,
         search: searchTerm
@@ -166,7 +166,7 @@ export function useJobs() {
       setJobs(response.items);
       setUseMockData(false);
     } catch (err) {
-      console.warn('JobAdder API unavailable, using mock data:', err);
+      console.warn('API unavailable, using mock data:', err);
       // Fallback to mock data
       let filteredJobs = mockJobs;
       if (searchTerm) {
