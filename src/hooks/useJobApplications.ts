@@ -257,6 +257,71 @@ class JobApplicationsAPI {
       throw error;
     }
   }
+
+  async updateApplicationStage(applicationId: number, statusId: number, notes?: string): Promise<JobApplicationCandidate> {
+    try {
+      // In JobAdder API, you typically update application status via PUT request
+      const url = `https://api.jobadder.com/v2/jobapplications/${applicationId}`;
+      
+      const payload = {
+        statusId: statusId,
+        notes: notes
+      };
+
+      const headers = await this.getHeaders();
+      const response = await this.makeRequest(url, {
+        method: 'PUT',
+        headers: headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error updating application stage:', error);
+      throw error;
+    }
+  }
+
+  async createPlacementFromApplication(applicationId: number, placementData: {
+    startDate?: string;
+    endDate?: string;
+    salary?: {
+      rate: number;
+      currency: string;
+      ratePer: string;
+    };
+    workTypeId?: number;
+    notes?: string;
+  }): Promise<any> {
+    try {
+      // This would be the endpoint to create a placement from an application
+      // In JobAdder, this might be done by updating the application to "Placed" status
+      // and providing additional placement details
+      const url = `https://api.jobadder.com/v2/jobapplications/${applicationId}/placement`;
+      
+      const headers = await this.getHeaders();
+      const response = await this.makeRequest(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(placementData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error creating placement from application:', error);
+      throw error;
+    }
+  }
 }
 
 // Mock data for fallback
@@ -536,11 +601,92 @@ export function useJobApplications() {
     fetchApplications();
   }, []);
 
+  const updateApplicationStage = async (applicationId: number, statusId: number, notes?: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Try API first
+      const response = await jobApplicationsAPI.updateApplicationStage(applicationId, statusId, notes);
+      // Update local state
+      setApplications(prev => prev.map(app => 
+        app.applicationId === applicationId 
+          ? { ...app, status: response.status, updatedAt: new Date().toISOString() }
+          : app
+      ));
+      return response;
+    } catch (apiError) {
+      console.warn('API update failed, using mock update:', apiError);
+      
+      // Mock update for demo
+      setApplications(prev => prev.map(app => {
+        if (app.applicationId === applicationId) {
+          const statusNames: Record<number, string> = {
+            1: "Application Review",
+            2: "Phone Interview", 
+            3: "Technical Interview",
+            4: "Final Interview",
+            5: "Offer Extended",
+            6: "Placed",
+            7: "Rejected",
+            8: "Declined"
+          };
+          
+          return {
+            ...app,
+            status: {
+              ...app.status,
+              statusId: statusId,
+              name: statusNames[statusId] || "Unknown",
+              workflow: {
+                stage: statusNames[statusId] || "Unknown",
+                stageIndex: statusId - 1,
+                step: statusId,
+                progress: statusId === 6 ? "Completed" : "In Progress"
+              }
+            },
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return app;
+      }));
+      
+      setError('Demo mode - Stage updated locally');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createPlacementFromApplication = async (applicationId: number, placementData: any) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Try API first
+      const response = await jobApplicationsAPI.createPlacementFromApplication(applicationId, placementData);
+      
+      // Update application to "Placed" status
+      await updateApplicationStage(applicationId, 6);
+      
+      return response;
+    } catch (apiError) {
+      console.warn('API placement creation failed, using mock:', apiError);
+      
+      // Mock placement creation
+      await updateApplicationStage(applicationId, 6);
+      setError('Demo mode - Placement created locally');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     applications,
     loading,
     error,
     useMockData,
-    refetch: fetchApplications
+    refetch: fetchApplications,
+    updateApplicationStage,
+    createPlacementFromApplication
   };
 }

@@ -42,6 +42,17 @@ const Navigation = () => {
                 </Button>
               </Link>
               
+              <Link to="/applications">
+                <Button 
+                  variant={isActive("/applications") ? "default" : "ghost"}
+                  className="flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  Applications
+                  <Badge variant="secondary">45</Badge>
+                </Button>
+              </Link>
+              
               <Link to="/candidates">
                 <Button 
                   variant={isActive("/candidates") ? "default" : "ghost"}

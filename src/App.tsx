@@ -11,9 +11,9 @@ import Index from "./pages/Index";
 import JobDetail from "./pages/JobDetail";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Jobs from "./pages/Jobs";
+import Applications from "./pages/Applications";
 import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
-
 import ApplyJob from "./pages/ApplyJob";
 import NotFound from "./pages/NotFound";
 
@@ -55,6 +55,12 @@ const App = () => (
               <ProtectedRoute requiredScope="read_jobapplication">
                 <Navigation />
                 <ApplyJob />
+              </ProtectedRoute>
+            } />
+            <Route path="/applications" element={
+              <ProtectedRoute requiredScope="read_jobapplication">
+                <Navigation />
+                <Applications />
               </ProtectedRoute>
             } />
             <Route path="/candidates" element={
