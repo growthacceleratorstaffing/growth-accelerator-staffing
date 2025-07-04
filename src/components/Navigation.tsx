@@ -10,6 +10,11 @@ const Navigation = () => {
   
   const isActive = (path: string) => location.pathname === path;
   
+  const handleOnboardingClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.open("https://www.contractdossier.nl", "_blank");
+  };
+  
   return (
     <nav className="border-b bg-background shadow-sm">
       <div className="container mx-auto px-4">
@@ -79,15 +84,14 @@ const Navigation = () => {
                 </Button>
               </Link>
               
-              <Link to="/onboarding">
-                <Button 
-                  variant={isActive("/onboarding") ? "default" : "ghost"}
-                  className="flex items-center gap-2 h-12 px-6 text-base"
-                >
-                  <Settings className="h-5 w-5" />
-                  Onboarding
-                </Button>
-              </Link>
+              <Button 
+                variant="ghost"
+                className="flex items-center gap-2 h-12 px-6 text-base"
+                onClick={handleOnboardingClick}
+              >
+                <Settings className="h-5 w-5" />
+                Onboarding
+              </Button>
             </div>
           </div>
           
