@@ -53,14 +53,14 @@ const AppSidebar = () => {
       <SidebarContent>
         {/* Jobs Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Jobs</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-pink-500">Vacancies</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/jobs")}>
                   <Link to="/jobs">
                     <Briefcase className="h-4 w-4" />
-                    <span>Jobs</span>
+                    <span className="text-white">Vacancies</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -72,7 +72,7 @@ const AppSidebar = () => {
 
         {/* Staffing Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Staffing</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-pink-500">Staffing</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -99,7 +99,7 @@ const AppSidebar = () => {
 
         {/* Contracting Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Contracting</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-pink-500">Contracting</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
