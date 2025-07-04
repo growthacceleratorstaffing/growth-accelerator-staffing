@@ -91,6 +91,28 @@ async function makeJobAdderRequest(endpoint: string, params?: Record<string, str
   return await response.json();
 }
 
+async function makeJobAdderPostRequest(endpoint: string, body: any): Promise<any> {
+  const accessToken = await getAccessToken();
+  
+  const url = `${JOBADDER_API_URL}${endpoint}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`JobAdder API POST request failed: ${response.status} ${errorText}`);
+  }
+
+  return await response.json();
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -111,7 +133,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`JobAdder API request: ${endpoint}`);
+    console.log(`JobAdder API request: ${endpoint} (${req.method})`);
 
     let data;
     const params: Record<string, string> = { limit, offset };
@@ -166,6 +188,42 @@ serve(async (req) => {
           );
         }
         data = await makeJobAdderRequest(`/placements/${placementId}`);
+        break;
+
+      // POST endpoints for creating data
+      case 'create-job':
+        if (req.method !== 'POST') {
+          return new Response(
+            JSON.stringify({ error: 'create-job requires POST method' }),
+            { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const jobData = await req.json();
+        data = await makeJobAdderPostRequest('/jobs', jobData);
+        break;
+
+      case 'create-candidate':
+        if (req.method !== 'POST') {
+          return new Response(
+            JSON.stringify({ error: 'create-candidate requires POST method' }),
+            { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const candidateData = await req.json();
+        data = await makeJobAdderPostRequest('/candidates', candidateData);
+        break;
+
+      case 'create-placement':
+        if (req.method !== 'POST') {
+          return new Response(
+            JSON.stringify({ error: 'create-placement requires POST method' }),
+            { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const placementData = await req.json();
+        // Note: JobAdder doesn't have direct placement creation, typically involves job application status updates
+        // This would need to be implemented based on your specific workflow
+        data = await makeJobAdderPostRequest('/placements', placementData);
         break;
       
       default:

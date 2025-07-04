@@ -32,6 +32,7 @@ import { usePlacements } from "@/hooks/usePlacements";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Matches = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -103,7 +104,7 @@ const Matches = () => {
     }));
   };
 
-  const handleCreatePlacement = (e: React.FormEvent) => {
+  const handleCreatePlacement = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
@@ -116,115 +117,204 @@ const Matches = () => {
       return;
     }
 
-    // Since JobAdder API doesn't have direct placement creation,
-    // this would typically involve updating a job application status to "placed"
-    // For now, we'll show success and refresh the list
-    toast({
-      title: "Placement Created!",
-      description: "The placement has been successfully created and will appear in the system.",
-    });
-    
-    // Reset form and close modal
-    setPlacementData({
-      candidateId: "",
-      jobId: "", 
-      startDate: "",
-      endDate: "",
-      salaryRate: "",
-      salaryCurrency: "USD",
-      salaryRatePer: "Year",
-      workTypeId: "",
-      statusId: "1",
-      notes: ""
-    });
-    setIsNewPlacementOpen(false);
-    refetch();
-  };
+    try {
+      // Create placement via JobAdder API
+      const placementPayload = {
+        candidateId: parseInt(placementData.candidateId),
+        jobId: parseInt(placementData.jobId),
+        startDate: placementData.startDate,
+        endDate: placementData.endDate || null,
+        salary: placementData.salaryRate ? {
+          ratePer: placementData.salaryRatePer,
+          rate: parseFloat(placementData.salaryRate),
+          currency: placementData.salaryCurrency
+        } : null,
+        workTypeId: placementData.workTypeId ? parseInt(placementData.workTypeId) : null,
+        statusId: parseInt(placementData.statusId),
+        notes: placementData.notes
+      };
 
-  const handleManualPlacement = () => {
-    // Validate based on active tab
-    if (activeTab === "candidate") {
-      if (!newCandidateData.firstName || !newCandidateData.lastName || !newCandidateData.email) {
-        toast({
-          title: "Error",
-          description: "Please fill in all required candidate fields (First Name, Last Name, Email).",
-          variant: "destructive"
-        });
-        return;
-      }
-      // Simulate candidate creation
-      toast({
-        title: "Candidate Created!",
-        description: `${newCandidateData.firstName} ${newCandidateData.lastName} has been added to the system.`,
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'create-placement',
+          ...placementPayload
+        }
       });
-    } else if (activeTab === "job") {
-      if (!newJobData.title || !newJobData.company) {
-        toast({
-          title: "Error",
-          description: "Please fill in all required job fields (Title, Company).",
-          variant: "destructive"
-        });
-        return;
+
+      if (error) {
+        throw new Error(error.message);
       }
-      // Simulate job creation
+
       toast({
-        title: "Job Created!",
-        description: `${newJobData.title} at ${newJobData.company} has been posted.`,
+        title: "Placement Created!",
+        description: "The placement has been successfully created in JobAdder.",
       });
-    } else {
-      if (!placementData.candidateId || !placementData.jobId || !placementData.startDate) {
-        toast({
-          title: "Error",
-          description: "Please fill in all required placement fields.",
-          variant: "destructive"
-        });
-        return;
-      }
-      // Create placement
+      
+      // Reset form and close modal
+      setPlacementData({
+        candidateId: "",
+        jobId: "", 
+        startDate: "",
+        endDate: "",
+        salaryRate: "",
+        salaryCurrency: "USD",
+        salaryRatePer: "Year",
+        workTypeId: "",
+        statusId: "1",
+        notes: ""
+      });
+      setIsNewPlacementOpen(false);
+      refetch();
+    } catch (error) {
+      console.error('Error creating placement:', error);
       toast({
-        title: "Manual Placement Created!",
-        description: "The placement has been successfully created with new candidate/job data.",
+        title: "Error",
+        description: "Failed to create placement. Please try again.",
+        variant: "destructive"
       });
     }
-    
-    // Reset all forms and close modal
-    setNewCandidateData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      currentRole: "",
-      currentCompany: "",
-      skills: "",
-      experienceYears: "",
-      location: ""
-    });
-    setNewJobData({
-      title: "",
-      company: "",
-      location: "",
-      workType: "Full-time",
-      salaryLow: "",
-      salaryHigh: "",
-      currency: "USD",
-      description: "",
-      requirements: ""
-    });
-    setPlacementData({
-      candidateId: "",
-      jobId: "", 
-      startDate: "",
-      endDate: "",
-      salaryRate: "",
-      salaryCurrency: "USD",
-      salaryRatePer: "Year",
-      workTypeId: "",
-      statusId: "1",
-      notes: ""
-    });
-    setIsManualPlacementOpen(false);
-    setActiveTab("placement");
-    refetch();
+  };
+
+  const handleManualPlacement = async () => {
+    try {
+      // Validate based on active tab
+      if (activeTab === "candidate") {
+        if (!newCandidateData.firstName || !newCandidateData.lastName || !newCandidateData.email) {
+          toast({
+            title: "Error",
+            description: "Please fill in all required candidate fields (First Name, Last Name, Email).",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Create candidate via JobAdder API
+        const candidatePayload = {
+          firstName: newCandidateData.firstName,
+          lastName: newCandidateData.lastName,
+          email: newCandidateData.email,
+          phone: newCandidateData.phone,
+          currentRole: newCandidateData.currentRole,
+          company: newCandidateData.currentCompany,
+          skills: newCandidateData.skills.split(',').map(s => s.trim()).filter(Boolean),
+          experienceYears: newCandidateData.experienceYears ? parseInt(newCandidateData.experienceYears) : null,
+          location: newCandidateData.location
+        };
+
+        const { data, error } = await supabase.functions.invoke('jobadder-api', {
+          body: { 
+            endpoint: 'create-candidate',
+            ...candidatePayload
+          }
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        toast({
+          title: "Candidate Created!",
+          description: `${newCandidateData.firstName} ${newCandidateData.lastName} has been added to JobAdder.`,
+        });
+      } else if (activeTab === "job") {
+        if (!newJobData.title || !newJobData.company) {
+          toast({
+            title: "Error",
+            description: "Please fill in all required job fields (Title, Company).",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Create job via JobAdder API
+        const jobPayload = {
+          jobTitle: newJobData.title,
+          companyId: 1, // Default company ID - would need to be mapped properly
+          locationId: 1, // Default location ID - would need to be mapped properly
+          workType: newJobData.workType,
+          salaryLow: newJobData.salaryLow ? parseFloat(newJobData.salaryLow) : null,
+          salaryHigh: newJobData.salaryHigh ? parseFloat(newJobData.salaryHigh) : null,
+          currency: newJobData.currency,
+          jobDescription: newJobData.description,
+          requirements: newJobData.requirements
+        };
+
+        const { data, error } = await supabase.functions.invoke('jobadder-api', {
+          body: { 
+            endpoint: 'create-job',
+            ...jobPayload
+          }
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        toast({
+          title: "Job Created!",
+          description: `${newJobData.title} at ${newJobData.company} has been posted to JobAdder.`,
+        });
+      } else {
+        if (!placementData.candidateId || !placementData.jobId || !placementData.startDate) {
+          toast({
+            title: "Error",
+            description: "Please fill in all required placement fields.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Handle placement creation (same as handleCreatePlacement)
+        await handleCreatePlacement(new Event('submit') as any);
+        return;
+      }
+      
+      // Reset all forms and close modal
+      setNewCandidateData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        currentRole: "",
+        currentCompany: "",
+        skills: "",
+        experienceYears: "",
+        location: ""
+      });
+      setNewJobData({
+        title: "",
+        company: "",
+        location: "",
+        workType: "Full-time",
+        salaryLow: "",
+        salaryHigh: "",
+        currency: "USD",
+        description: "",
+        requirements: ""
+      });
+      setPlacementData({
+        candidateId: "",
+        jobId: "", 
+        startDate: "",
+        endDate: "",
+        salaryRate: "",
+        salaryCurrency: "USD",
+        salaryRatePer: "Year",
+        workTypeId: "",
+        statusId: "1",
+        notes: ""
+      });
+      setIsManualPlacementOpen(false);
+      setActiveTab("placement");
+      refetch();
+    } catch (error) {
+      console.error('Error in manual placement:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create entry. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {

@@ -122,7 +122,7 @@ const Jobs = () => {
     }));
   };
 
-  const handlePostJobSubmit = (e: React.FormEvent) => {
+  const handlePostJobSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
@@ -135,29 +135,68 @@ const Jobs = () => {
       return;
     }
 
-    // Here you would typically send the data to your backend
-    toast({
-      title: "Success!",
-      description: "Job posting created successfully.",
-    });
-    
-    // Reset form and close
-    setFormData({
-      jobTitle: "",
-      companyId: "",
-      locationId: "",
-      workTypeId: "",
-      categoryId: "",
-      subCategoryId: "",
-      salaryRatePer: "Year",
-      salaryRateLow: "",
-      salaryRateHigh: "",
-      salaryCurrency: "USD",
-      jobDescription: "",
-      skillTags: "",
-      source: ""
-    });
-    refetch();
+    try {
+      // Create job payload for JobAdder API
+      const jobPayload = {
+        jobTitle: formData.jobTitle,
+        companyId: parseInt(formData.companyId),
+        locationId: parseInt(formData.locationId),
+        workTypeId: parseInt(formData.workTypeId),
+        categoryId: formData.categoryId ? parseInt(formData.categoryId) : null,
+        subCategoryId: formData.subCategoryId ? parseInt(formData.subCategoryId) : null,
+        salary: {
+          ratePer: formData.salaryRatePer,
+          rateLow: formData.salaryRateLow ? parseFloat(formData.salaryRateLow) : null,
+          rateHigh: formData.salaryRateHigh ? parseFloat(formData.salaryRateHigh) : null,
+          currency: formData.salaryCurrency
+        },
+        jobDescription: formData.jobDescription,
+        skillTags: formData.skillTags.split(',').map(tag => tag.trim()).filter(Boolean),
+        source: formData.source || 'Website'
+      };
+
+      // Send to JobAdder API via edge function
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'create-job',
+          ...jobPayload
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      toast({
+        title: "Success!",
+        description: "Job posting created successfully in JobAdder.",
+      });
+      
+      // Reset form and refresh
+      setFormData({
+        jobTitle: "",
+        companyId: "",
+        locationId: "",
+        workTypeId: "",
+        categoryId: "",
+        subCategoryId: "",
+        salaryRatePer: "Year",
+        salaryRateLow: "",
+        salaryRateHigh: "",
+        salaryCurrency: "USD",
+        jobDescription: "",
+        skillTags: "",
+        source: ""
+      });
+      refetch();
+    } catch (error) {
+      console.error('Error creating job:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create job posting. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSearch = (value: string) => {
