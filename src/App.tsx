@@ -46,7 +46,7 @@ const AppSidebar = () => {
             alt="Growth Accelerator" 
             className="h-8 w-8"
           />
-          <span className="font-bold text-lg text-primary">Growth Accelerator</span>
+          <span className="font-bold text-xl text-primary">Growth Accelerator</span>
         </Link>
       </SidebarHeader>
 
@@ -129,10 +129,10 @@ const AppSidebar = () => {
               <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
                 <User className="h-4 w-4" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">
+                  <div className="text-base font-medium truncate">
                     {profile?.full_name || profile?.email || 'User'}
                   </div>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-sm">
                     {profile?.role || 'viewer'}
                   </Badge>
                 </div>
