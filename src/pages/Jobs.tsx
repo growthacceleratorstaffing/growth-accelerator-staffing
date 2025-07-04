@@ -287,8 +287,8 @@ const Jobs = () => {
                 placeholder="e.g., Senior React Developer for a fintech startup, remote work, 5+ years experience, TypeScript expertise..."
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                rows={4}
-                className="min-h-[120px] resize-none"
+                rows={6}
+                className="min-h-[180px] resize-none"
               />
             </div>
             
