@@ -15,14 +15,34 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true;
     let profileCache = new Map<string, UserProfile>();
+    let loadingTimeout: NodeJS.Timeout;
+
+    // Set a maximum loading time of 5 seconds
+    const setLoadingTimeout = () => {
+      loadingTimeout = setTimeout(() => {
+        if (mounted) {
+          console.warn('Auth loading timeout reached');
+          setLoading(false);
+        }
+      }, 5000);
+    };
+
+    const clearLoadingTimeout = () => {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
+    };
 
     // Get initial session
     const getInitialSession = async () => {
       try {
+        setLoadingTimeout();
         const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (error) {
           console.error('Session error:', error);
           if (mounted) {
+            clearLoadingTimeout();
             setLoading(false);
           }
           return;
@@ -31,8 +51,12 @@ export function useAuth() {
         if (mounted) {
           setUser(session?.user ?? null);
           if (session?.user) {
-            await fetchProfile(session.user.id);
+            // Don't wait for profile, set user immediately and fetch profile in background
+            clearLoadingTimeout();
+            setLoading(false);
+            setTimeout(() => fetchProfile(session.user.id), 0);
           } else {
+            clearLoadingTimeout();
             setLoading(false);
           }
         }
@@ -41,6 +65,7 @@ export function useAuth() {
         if (mounted) {
           setUser(null);
           setProfile(null);
+          clearLoadingTimeout();
           setLoading(false);
         }
       }
@@ -60,10 +85,11 @@ export function useAuth() {
         const cachedProfile = profileCache.get(session.user.id);
         if (cachedProfile) {
           setProfile(cachedProfile);
-          setLoading(false);
         } else {
-          await fetchProfile(session.user.id);
+          // Fetch profile in background, don't block auth
+          setTimeout(() => fetchProfile(session.user.id), 0);
         }
+        setLoading(false);
       } else {
         setProfile(null);
         setLoading(false);
@@ -77,7 +103,6 @@ export function useAuth() {
         const cachedProfile = profileCache.get(userId);
         if (cachedProfile) {
           setProfile(cachedProfile);
-          setLoading(false);
           return;
         }
 
@@ -89,21 +114,18 @@ export function useAuth() {
 
         if (error && error.code !== 'PGRST116') {
           console.error('Profile fetch error:', error);
-          setLoading(false);
           return;
         }
 
         if (data) {
           profileCache.set(userId, data);
           setProfile(data);
-          setLoading(false);
         } else {
-          // Profile doesn't exist, create one
-          await createProfile(userId);
+          // Profile doesn't exist, create one in background
+          setTimeout(() => createProfile(userId), 0);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
-        setLoading(false);
       }
     };
 
@@ -131,16 +153,13 @@ export function useAuth() {
 
         if (error) {
           console.error('Error creating profile:', error);
-          setLoading(false);
           return;
         }
         
         profileCache.set(userId, data);
         setProfile(data);
-        setLoading(false);
       } catch (error) {
         console.error('Error creating profile:', error);
-        setLoading(false);
       }
     };
 
@@ -148,6 +167,7 @@ export function useAuth() {
 
     return () => {
       mounted = false;
+      clearLoadingTimeout();
       subscription.unsubscribe();
     };
   }, []); // Remove loading from dependencies to prevent loops

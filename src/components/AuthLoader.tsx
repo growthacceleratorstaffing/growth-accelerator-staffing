@@ -16,7 +16,7 @@ const AuthLoader = ({ children }: AuthLoaderProps) => {
             <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
             <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <p className="text-muted-foreground animate-pulse">Loading...</p>
+          <p className="text-muted-foreground animate-pulse">Checking authentication...</p>
         </div>
       </div>
     );
