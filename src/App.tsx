@@ -60,7 +60,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/jobs")}>
                   <Link to="/jobs">
                     <Briefcase className="h-4 w-4" />
-                    <span className="text-white">Vacancies</span>
+                    <span className="text-white text-base">Vacancies</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -79,7 +79,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/candidates")}>
                   <Link to="/candidates">
                     <User className="h-4 w-4" />
-                    <span>Candidates</span>
+                    <span className="text-base">Candidates</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -87,7 +87,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/applications")}>
                   <Link to="/applications">
                     <User className="h-4 w-4" />
-                    <span>Talent Pool</span>
+                    <span className="text-base">Talent Pool</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -106,7 +106,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/matches")}>
                   <Link to="/matches">
                     <UserCheck className="h-4 w-4" />
-                    <span>Matches</span>
+                    <span className="text-base">Matches</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -114,7 +114,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild onClick={handleOnboardingClick}>
                   <button>
                     <Settings className="h-4 w-4" />
-                    <span>Onboarding</span>
+                    <span className="text-base">Onboarding</span>
                   </button>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -140,7 +140,7 @@ const AppSidebar = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="w-full flex items-center gap-2"
+                className="w-full flex items-center gap-2 text-base"
                 onClick={signOut}
               >
                 <LogOut className="h-4 w-4" />
@@ -152,7 +152,7 @@ const AppSidebar = () => {
               <Button 
                 variant="default" 
                 size="sm"
-                className="w-full flex items-center gap-2"
+                className="w-full flex items-center gap-2 text-base"
               >
                 <User className="h-4 w-4" />
                 Sign In
