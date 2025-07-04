@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,8 @@ import {
   Plus
 } from "lucide-react";
 import { usePlacements } from "@/hooks/usePlacements";
+import { useCandidates } from "@/hooks/useCandidates";
+import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
 
 const Matches = () => {
@@ -46,6 +48,8 @@ const Matches = () => {
     notes: ""
   });
   const { placements, loading, error, useMockData, refetch } = usePlacements();
+  const { candidates, loading: candidatesLoading } = useCandidates();
+  const { jobs, loading: jobsLoading } = useJobs();
   const { toast } = useToast();
 
   const handleSearch = (value: string) => {
@@ -195,25 +199,43 @@ const Matches = () => {
               <form onSubmit={handleCreatePlacement} className="space-y-6 mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="candidateId">Candidate ID *</Label>
-                    <Input
-                      id="candidateId"
-                      placeholder="e.g. 5001"
-                      value={placementData.candidateId}
-                      onChange={(e) => handleInputChange("candidateId", e.target.value)}
-                      required
-                    />
+                    <Label htmlFor="candidateId">Candidate *</Label>
+                    <Select value={placementData.candidateId} onValueChange={(value) => handleInputChange("candidateId", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={candidatesLoading ? "Loading candidates..." : "Select a candidate"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {candidates.map((candidate) => (
+                          <SelectItem key={candidate.candidateId} value={candidate.candidateId.toString()}>
+                            <div className="flex flex-col">
+                              <span>{candidate.firstName} {candidate.lastName}</span>
+                              <span className="text-xs text-muted-foreground">{candidate.email}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="jobId">Job ID *</Label>
-                    <Input
-                      id="jobId"
-                      placeholder="e.g. 1001"
-                      value={placementData.jobId}
-                      onChange={(e) => handleInputChange("jobId", e.target.value)}
-                      required
-                    />
+                    <Label htmlFor="jobId">Job *</Label>
+                    <Select value={placementData.jobId} onValueChange={(value) => handleInputChange("jobId", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={jobsLoading ? "Loading jobs..." : "Select a job"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {jobs.map((job) => (
+                          <SelectItem key={job.adId} value={job.adId.toString()}>
+                            <div className="flex flex-col">
+                              <span>{job.title}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {job.company.name} - {job.location.name}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
