@@ -82,9 +82,9 @@ Be helpful, concise, and guide users to the right features. If they ask about te
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Azure OpenAI API error:', response.status, response.statusText, errorData);
+      console.error('OpenAI API error:', response.status, response.statusText, errorData);
       return new Response(
-        JSON.stringify({ error: `Azure OpenAI API error: ${response.status} ${response.statusText}` }),
+        JSON.stringify({ error: `OpenAI API error: ${response.status} ${response.statusText}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
