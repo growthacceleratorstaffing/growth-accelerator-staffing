@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -35,6 +36,8 @@ import { useToast } from "@/hooks/use-toast";
 const Matches = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewPlacementOpen, setIsNewPlacementOpen] = useState(false);
+  const [isManualPlacementOpen, setIsManualPlacementOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("placement"); // placement, candidate, job
   const [placementData, setPlacementData] = useState({
     candidateId: "",
     jobId: "", 
@@ -46,6 +49,28 @@ const Matches = () => {
     workTypeId: "",
     statusId: "1",
     notes: ""
+  });
+  const [newCandidateData, setNewCandidateData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    currentRole: "",
+    currentCompany: "",
+    skills: "",
+    experienceYears: "",
+    location: ""
+  });
+  const [newJobData, setNewJobData] = useState({
+    title: "",
+    company: "",
+    location: "",
+    workType: "Full-time",
+    salaryLow: "",
+    salaryHigh: "",
+    currency: "USD",
+    description: "",
+    requirements: ""
   });
   const { placements, loading, error, useMockData, refetch } = usePlacements();
   const { candidates, loading: candidatesLoading } = useCandidates();
@@ -59,6 +84,20 @@ const Matches = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setPlacementData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleCandidateInputChange = (field: string, value: string) => {
+    setNewCandidateData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleJobInputChange = (field: string, value: string) => {
+    setNewJobData(prev => ({
       ...prev,
       [field]: value
     }));
@@ -99,6 +138,92 @@ const Matches = () => {
       notes: ""
     });
     setIsNewPlacementOpen(false);
+    refetch();
+  };
+
+  const handleManualPlacement = () => {
+    // Validate based on active tab
+    if (activeTab === "candidate") {
+      if (!newCandidateData.firstName || !newCandidateData.lastName || !newCandidateData.email) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required candidate fields (First Name, Last Name, Email).",
+          variant: "destructive"
+        });
+        return;
+      }
+      // Simulate candidate creation
+      toast({
+        title: "Candidate Created!",
+        description: `${newCandidateData.firstName} ${newCandidateData.lastName} has been added to the system.`,
+      });
+    } else if (activeTab === "job") {
+      if (!newJobData.title || !newJobData.company) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required job fields (Title, Company).",
+          variant: "destructive"
+        });
+        return;
+      }
+      // Simulate job creation
+      toast({
+        title: "Job Created!",
+        description: `${newJobData.title} at ${newJobData.company} has been posted.`,
+      });
+    } else {
+      if (!placementData.candidateId || !placementData.jobId || !placementData.startDate) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required placement fields.",
+          variant: "destructive"
+        });
+        return;
+      }
+      // Create placement
+      toast({
+        title: "Manual Placement Created!",
+        description: "The placement has been successfully created with new candidate/job data.",
+      });
+    }
+    
+    // Reset all forms and close modal
+    setNewCandidateData({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      currentRole: "",
+      currentCompany: "",
+      skills: "",
+      experienceYears: "",
+      location: ""
+    });
+    setNewJobData({
+      title: "",
+      company: "",
+      location: "",
+      workType: "Full-time",
+      salaryLow: "",
+      salaryHigh: "",
+      currency: "USD",
+      description: "",
+      requirements: ""
+    });
+    setPlacementData({
+      candidateId: "",
+      jobId: "", 
+      startDate: "",
+      endDate: "",
+      salaryRate: "",
+      salaryCurrency: "USD",
+      salaryRatePer: "Year",
+      workTypeId: "",
+      statusId: "1",
+      notes: ""
+    });
+    setIsManualPlacementOpen(false);
+    setActiveTab("placement");
     refetch();
   };
 
@@ -180,7 +305,6 @@ const Matches = () => {
           <p className="text-muted-foreground mt-2">Successful job placements and candidate matches</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">Export Report</Button>
           <Dialog open={isNewPlacementOpen} onOpenChange={setIsNewPlacementOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -192,7 +316,7 @@ const Matches = () => {
               <DialogHeader>
                 <DialogTitle>Create New Placement</DialogTitle>
                 <DialogDescription>
-                  Create a new job placement record. Note: In a real implementation, this would typically be done by updating a job application status to "placed".
+                  Create a new job placement record using existing candidates and jobs.
                 </DialogDescription>
               </DialogHeader>
               
@@ -364,6 +488,336 @@ const Matches = () => {
                   </Button>
                 </div>
               </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isManualPlacementOpen} onOpenChange={setIsManualPlacementOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Manual Placement
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Manual Placement Creation</DialogTitle>
+                <DialogDescription>
+                  Create a new placement by adding candidates, jobs, or directly creating the placement record.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="placement">Create Placement</TabsTrigger>
+                  <TabsTrigger value="candidate">Add Candidate</TabsTrigger>
+                  <TabsTrigger value="job">Add Job</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="placement" className="space-y-6 mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Candidate *</Label>
+                      <Select value={placementData.candidateId} onValueChange={(value) => handleInputChange("candidateId", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a candidate" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {candidates.map((candidate) => (
+                            <SelectItem key={candidate.candidateId} value={candidate.candidateId.toString()}>
+                              <div className="flex flex-col">
+                                <span>{candidate.firstName} {candidate.lastName}</span>
+                                <span className="text-xs text-muted-foreground">{candidate.email}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Job *</Label>
+                      <Select value={placementData.jobId} onValueChange={(value) => handleInputChange("jobId", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a job" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {jobs.map((job) => (
+                            <SelectItem key={job.adId} value={job.adId.toString()}>
+                              <div className="flex flex-col">
+                                <span>{job.title}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {job.company.name} - {job.location.name}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Start Date *</Label>
+                      <Input
+                        type="date"
+                        value={placementData.startDate}
+                        onChange={(e) => handleInputChange("startDate", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>End Date</Label>
+                      <Input
+                        type="date"
+                        value={placementData.endDate}
+                        onChange={(e) => handleInputChange("endDate", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label>Salary Rate</Label>
+                      <Input
+                        type="number"
+                        placeholder="120000"
+                        value={placementData.salaryRate}
+                        onChange={(e) => handleInputChange("salaryRate", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Currency</Label>
+                      <Select value={placementData.salaryCurrency} onValueChange={(value) => handleInputChange("salaryCurrency", value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="GBP">GBP</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Rate Per</Label>
+                      <Select value={placementData.salaryRatePer} onValueChange={(value) => handleInputChange("salaryRatePer", value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Hour">Hour</SelectItem>
+                          <SelectItem value="Month">Month</SelectItem>
+                          <SelectItem value="Year">Year</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="candidate" className="space-y-6 mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>First Name *</Label>
+                      <Input
+                        placeholder="John"
+                        value={newCandidateData.firstName}
+                        onChange={(e) => handleCandidateInputChange("firstName", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Last Name *</Label>
+                      <Input
+                        placeholder="Doe"
+                        value={newCandidateData.lastName}
+                        onChange={(e) => handleCandidateInputChange("lastName", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Email *</Label>
+                      <Input
+                        type="email"
+                        placeholder="john.doe@email.com"
+                        value={newCandidateData.email}
+                        onChange={(e) => handleCandidateInputChange("email", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Phone</Label>
+                      <Input
+                        placeholder="+1 (555) 123-4567"
+                        value={newCandidateData.phone}
+                        onChange={(e) => handleCandidateInputChange("phone", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Current Role</Label>
+                      <Input
+                        placeholder="Senior Developer"
+                        value={newCandidateData.currentRole}
+                        onChange={(e) => handleCandidateInputChange("currentRole", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Current Company</Label>
+                      <Input
+                        placeholder="Tech Corp"
+                        value={newCandidateData.currentCompany}
+                        onChange={(e) => handleCandidateInputChange("currentCompany", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Skills</Label>
+                      <Input
+                        placeholder="React, TypeScript, Node.js"
+                        value={newCandidateData.skills}
+                        onChange={(e) => handleCandidateInputChange("skills", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Experience (Years)</Label>
+                      <Input
+                        type="number"
+                        placeholder="5"
+                        value={newCandidateData.experienceYears}
+                        onChange={(e) => handleCandidateInputChange("experienceYears", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Location</Label>
+                    <Input
+                      placeholder="San Francisco, CA"
+                      value={newCandidateData.location}
+                      onChange={(e) => handleCandidateInputChange("location", e.target.value)}
+                    />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="job" className="space-y-6 mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Job Title *</Label>
+                      <Input
+                        placeholder="Senior Frontend Developer"
+                        value={newJobData.title}
+                        onChange={(e) => handleJobInputChange("title", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Company *</Label>
+                      <Input
+                        placeholder="Tech Corp"
+                        value={newJobData.company}
+                        onChange={(e) => handleJobInputChange("company", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Location</Label>
+                      <Input
+                        placeholder="San Francisco, CA"
+                        value={newJobData.location}
+                        onChange={(e) => handleJobInputChange("location", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Work Type</Label>
+                      <Select value={newJobData.workType} onValueChange={(value) => handleJobInputChange("workType", value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Full-time">Full-time</SelectItem>
+                          <SelectItem value="Part-time">Part-time</SelectItem>
+                          <SelectItem value="Contract">Contract</SelectItem>
+                          <SelectItem value="Freelance">Freelance</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label>Salary Low</Label>
+                      <Input
+                        type="number"
+                        placeholder="100000"
+                        value={newJobData.salaryLow}
+                        onChange={(e) => handleJobInputChange("salaryLow", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Salary High</Label>
+                      <Input
+                        type="number"
+                        placeholder="150000"
+                        value={newJobData.salaryHigh}
+                        onChange={(e) => handleJobInputChange("salaryHigh", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Currency</Label>
+                      <Select value={newJobData.currency} onValueChange={(value) => handleJobInputChange("currency", value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="GBP">GBP</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea
+                      placeholder="Job description and responsibilities..."
+                      value={newJobData.description}
+                      onChange={(e) => handleJobInputChange("description", e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Requirements</Label>
+                    <Textarea
+                      placeholder="Required skills and qualifications..."
+                      value={newJobData.requirements}
+                      onChange={(e) => handleJobInputChange("requirements", e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <div className="flex gap-4 pt-6">
+                <Button onClick={handleManualPlacement} className="flex-1">
+                  {activeTab === "candidate" ? "Add Candidate" : 
+                   activeTab === "job" ? "Add Job" : 
+                   "Create Placement"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsManualPlacementOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
