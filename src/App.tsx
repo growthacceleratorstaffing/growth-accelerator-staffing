@@ -53,14 +53,14 @@ const AppSidebar = () => {
       <SidebarContent>
         {/* Jobs Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-pink-500">Vacancies</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-pink-500">Jobs</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/jobs")}>
                   <Link to="/jobs">
                     <Briefcase className="h-4 w-4" />
-                    <span className="text-white">Vacancies</span>
+                    <span className="text-pink-500">Jobs</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
