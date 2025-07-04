@@ -78,6 +78,9 @@ export function useAuth() {
       console.log('Auth state change:', event, session?.user?.email);
       if (!mounted) return;
       
+      // Clear loading immediately for any auth state change
+      clearLoadingTimeout();
+      setLoading(false);
       setUser(session?.user ?? null);
       
       if (session?.user) {
@@ -89,10 +92,8 @@ export function useAuth() {
           // Fetch profile in background, don't block auth
           setTimeout(() => fetchProfile(session.user.id), 0);
         }
-        setLoading(false);
       } else {
         setProfile(null);
-        setLoading(false);
       }
     });
 
@@ -182,11 +183,15 @@ export function useAuth() {
 
       if (error) throw error
 
+      // Immediately clear loading state on successful sign in
+      setLoading(false)
+
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       })
     } catch (error) {
+      setLoading(false)
       toast({
         title: "Sign in failed",
         description: error instanceof Error ? error.message : "Please try again.",
