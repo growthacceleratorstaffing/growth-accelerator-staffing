@@ -1,5 +1,52 @@
 import { useState, useEffect } from 'react';
-import { jobAdderAPI, type JobAdderJob } from '@/lib/jobadder-api';
+import { supabase } from "@/integrations/supabase/client";
+
+export interface JobAdderJob {
+  adId: number;
+  state: string;
+  title: string;
+  reference?: string;
+  summary?: string;
+  bulletPoints?: string[];
+  company: {
+    companyId: number;
+    name: string;
+  };
+  location: {
+    locationId: number;
+    name: string;
+    area?: {
+      areaId: number;
+      name: string;
+    };
+  };
+  workType?: {
+    workTypeId: number;
+    name: string;
+  };
+  salary?: {
+    ratePer: string;
+    rateLow?: number;
+    rateHigh?: number;
+    currency: string;
+  };
+  category?: {
+    categoryId: number;
+    name: string;
+    subCategory?: {
+      subCategoryId: number;
+      name: string;
+    };
+  };
+  postAt?: string;
+  expireAt?: string;
+  owner?: {
+    userId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
 
 // Mock data as fallback
 const mockJobs: JobAdderJob[] = [
@@ -158,12 +205,20 @@ export function useJobs() {
     setError(null);
 
     try {
-      // Try to fetch from API
-      const response = await jobAdderAPI.findJobBoardJobAds({
-        limit: 50,
-        search: searchTerm
+      // Try to fetch from edge function
+      const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'jobs',
+          limit: 50,
+          search: searchTerm
+        }
       });
-      setJobs(response.items);
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      setJobs(data.items || data);
       setUseMockData(false);
     } catch (err) {
       console.warn('API unavailable, using mock data:', err);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import oauth2Manager from '@/lib/oauth2-manager';
+import { supabase } from "@/integrations/supabase/client";
 
 // Candidate interfaces based on JobAdder API specification
 export interface JobAdderCandidate {
@@ -38,111 +38,6 @@ export interface JobAdderCandidate {
   availability?: string;
   created?: string;
   updated?: string;
-}
-
-interface CandidatesResponse {
-  items: JobAdderCandidate[];
-  totalCount: number;
-  links?: {
-    first?: string;
-    prev?: string;
-    next?: string;
-    last?: string;
-  };
-}
-
-class CandidatesAPI {
-  private async getHeaders(): Promise<HeadersInit> {
-    const accessToken = await oauth2Manager.getValidAccessToken();
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
-
-    return headers;
-  }
-
-  private async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
-    try {
-      const response = await fetch(url, options);
-
-      // Handle 429 Too Many Requests with retry logic
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, retryCount) * 1000;
-        
-        console.warn(`Rate limited (429). Waiting ${waitTime / 1000} seconds before retry...`);
-        
-        if (retryCount < 3) {
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return this.makeRequest(url, options, retryCount + 1);
-        } else {
-          throw new Error('Rate limit exceeded. Please try again later.');
-        }
-      }
-
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async findCandidates(params?: {
-    offset?: number;
-    limit?: number;
-    search?: string;
-  }): Promise<CandidatesResponse> {
-    try {
-      const searchParams = new URLSearchParams();
-      if (params?.offset) searchParams.append('offset', params.offset.toString());
-      if (params?.limit) searchParams.append('limit', params.limit.toString());
-      if (params?.search) searchParams.append('search', params.search);
-
-      const url = `https://api.jobadder.com/v2/candidates${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'GET',
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching candidates:', error);
-      throw error;
-    }
-  }
-
-  async getCandidate(candidateId: number): Promise<JobAdderCandidate> {
-    try {
-      const url = `https://api.jobadder.com/v2/candidates/${candidateId}`;
-      
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'GET',
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching candidate details:', error);
-      throw error;
-    }
-  }
 }
 
 // Mock data for fallback
@@ -251,8 +146,6 @@ const mockCandidates: JobAdderCandidate[] = [
   }
 ];
 
-export const candidatesAPI = new CandidatesAPI();
-
 export function useCandidates() {
   const [candidates, setCandidates] = useState<JobAdderCandidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -264,12 +157,20 @@ export function useCandidates() {
     setError(null);
 
     try {
-      // Try to fetch from API
-      const response = await candidatesAPI.findCandidates({
-        limit: 100,
-        search: searchTerm
+      // Try to fetch from edge function
+      const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'candidates',
+          limit: 100,
+          search: searchTerm
+        }
       });
-      setCandidates(response.items);
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      setCandidates(data.items || data);
       setUseMockData(false);
     } catch (err) {
       console.warn('API unavailable, using mock data:', err);

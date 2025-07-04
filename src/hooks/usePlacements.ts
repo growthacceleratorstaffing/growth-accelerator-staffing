@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import oauth2Manager from '@/lib/oauth2-manager';
+import { supabase } from "@/integrations/supabase/client";
 
 // Placement interfaces based on API specification
 export interface JobAdderPlacement {
@@ -151,98 +151,6 @@ interface PlacementsResponse {
     next?: string;
     last?: string;
   };
-}
-
-class PlacementsAPI {
-  private async getHeaders(): Promise<HeadersInit> {
-    const accessToken = await oauth2Manager.getValidAccessToken();
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
-
-    return headers;
-  }
-
-  private async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
-    try {
-      const response = await fetch(url, options);
-
-      // Handle 429 Too Many Requests with retry logic
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, retryCount) * 1000;
-        
-        console.warn(`Rate limited (429). Waiting ${waitTime / 1000} seconds before retry...`);
-        
-        if (retryCount < 3) {
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return this.makeRequest(url, options, retryCount + 1);
-        } else {
-          throw new Error('Rate limit exceeded. Please try again later.');
-        }
-      }
-
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async findPlacements(params?: {
-    offset?: number;
-    limit?: number;
-  }): Promise<PlacementsResponse> {
-    try {
-      const searchParams = new URLSearchParams();
-      if (params?.offset) searchParams.append('offset', params.offset.toString());
-      if (params?.limit) searchParams.append('limit', params.limit.toString());
-
-      const url = `https://api.jobadder.com/v2/placements${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'GET',
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching placements:', error);
-      throw error;
-    }
-  }
-
-  async getPlacement(placementId: number): Promise<JobAdderPlacement> {
-    try {
-      const url = `https://api.jobadder.com/v2/placements/${placementId}`;
-      
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'GET',
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching placement details:', error);
-      throw error;
-    }
-  }
 }
 
 // Mock data for fallback
@@ -489,8 +397,6 @@ const mockPlacements: JobAdderPlacement[] = [
   }
 ];
 
-export const placementsAPI = new PlacementsAPI();
-
 export function usePlacements() {
   const [placements, setPlacements] = useState<JobAdderPlacement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -502,14 +408,21 @@ export function usePlacements() {
     setError(null);
 
     try {
-      // Try to fetch from API
-      const response = await placementsAPI.findPlacements({ 
-        limit: 100 
+      // Try to fetch from edge function
+      const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'placements',
+          limit: 100
+        }
       });
-      
-      let filteredPlacements = response.items;
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      let filteredPlacements = data.items || data;
       if (searchTerm) {
-        filteredPlacements = response.items.filter(placement => 
+        filteredPlacements = filteredPlacements.filter((placement: JobAdderPlacement) => 
           `${placement.candidate.firstName} ${placement.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
           placement.job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
           placement.job.company?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
