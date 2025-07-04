@@ -16,12 +16,27 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== AZURE OPENAI DEBUG START ===');
+    console.log('Azure OpenAI Key available:', !!azureOpenAIKey);
+    console.log('Azure OpenAI Endpoint available:', !!azureOpenAIEndpoint);
+    console.log('Azure OpenAI Endpoint:', azureOpenAIEndpoint);
+    
     const { prompt } = await req.json();
+    console.log('Received prompt:', prompt);
 
     if (!prompt) {
+      console.log('ERROR: No prompt provided');
       return new Response(
         JSON.stringify({ error: 'Prompt is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!azureOpenAIKey || !azureOpenAIEndpoint) {
+      console.log('ERROR: Missing Azure OpenAI credentials');
+      return new Response(
+        JSON.stringify({ error: 'Azure OpenAI credentials not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
