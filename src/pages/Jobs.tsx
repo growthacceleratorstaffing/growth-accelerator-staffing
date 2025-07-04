@@ -210,7 +210,7 @@ const Jobs = () => {
         <div className="flex justify-center items-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading jobs...</p>
+            <p className="text-muted-foreground">Loading vacancies...</p>
           </div>
         </div>
       </div>
@@ -221,7 +221,7 @@ const Jobs = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Job Listings</h1>
+          <h1 className="text-3xl font-bold">Vacancies</h1>
           <p className="text-muted-foreground mt-2">Find your next opportunity</p>
         </div>
       </div>
@@ -241,7 +241,7 @@ const Jobs = () => {
         <div className="relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search jobs, companies, or locations..."
+            placeholder="Search vacancies, companies, or locations..."
             value={searchTerm}
             onChange={(e) => handleSearch(e.target.value)}
             className="pl-10"
@@ -252,7 +252,7 @@ const Jobs = () => {
       <div className="grid gap-6">
         {jobs.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No jobs found matching your search.</p>
+            <p className="text-muted-foreground">No vacancies found matching your search.</p>
           </div>
         ) : (
           jobs.map((job) => (
