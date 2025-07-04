@@ -33,6 +33,7 @@ import { useCandidates } from "@/hooks/useCandidates";
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import JobAdderAPIExplorer from "@/components/JobAdderAPIExplorer";
 
 const Matches = () => {
   const [searchTerm, setSearchTerm] = useState("");
