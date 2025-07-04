@@ -82,17 +82,6 @@ const Landing = () => {
           ))}
         </div>
 
-        {/* Client Portal Button */}
-        <div className="text-center">
-          <Link to="/auth">
-            <Button 
-              size="lg" 
-              className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-3 text-lg"
-            >
-              CLIENT PORTAL
-            </Button>
-          </Link>
-        </div>
 
         {/* Footer with Privacy Policy */}
         <footer className="mt-16 pt-8 border-t border-gray-600">
