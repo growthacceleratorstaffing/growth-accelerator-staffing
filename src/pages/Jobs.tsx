@@ -270,7 +270,7 @@ const Jobs = () => {
 
       {/* AI Job Creator */}
       <div className="mt-16">
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-dashed border-primary/30">
+        <Card className="bg-primary/10 border-2 border-dashed border-primary/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-pink-500" />
@@ -303,8 +303,7 @@ const Jobs = () => {
               </Button>
               <Button 
                 type="button"
-                variant="outline" 
-                className="flex-1"
+                className="flex-1 bg-pink-500 hover:bg-pink-600"
                 onClick={() => {
                   // Scroll to the manual form below
                   document.getElementById('manual-job-form')?.scrollIntoView({ behavior: 'smooth' });
