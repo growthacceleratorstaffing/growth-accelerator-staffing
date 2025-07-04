@@ -38,7 +38,7 @@ const Landing = () => {
         <div className="text-center mb-16">
           <div className="flex items-center justify-center gap-2 mb-6">
             <Briefcase className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold">Startup Accelerator API</h1>
+            <h1 className="text-4xl font-bold">Growth Accelerator API</h1>
           </div>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Your comprehensive recruitment platform for managing jobs, candidates, and placements. 
@@ -127,7 +127,7 @@ const Landing = () => {
             </div>
             
             <p className="text-xs text-muted-foreground">
-              © 2025 Startup Accelerator. All rights reserved.
+              © 2025 Growth Accelerator. All rights reserved.
             </p>
           </div>
         </footer>

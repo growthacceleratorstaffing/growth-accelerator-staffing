@@ -17,11 +17,11 @@ const Navigation = () => {
           <div className="flex items-center space-x-12">
             <Link to="/" className="flex items-center space-x-3 mr-8">
               <img 
-                src="/lovable-uploads/1f532f91-9114-4076-931d-e16a868fef79.png" 
-                alt="Startup Accelerator" 
+                src="/lovable-uploads/b703692d-f11f-419a-a31b-7c24887ef1b9.png" 
+                alt="Growth Accelerator" 
                 className="h-12 w-12"
               />
-              <span className="font-bold text-2xl text-primary">Startup Accelerator</span>
+              <span className="font-bold text-2xl text-primary">Growth Accelerator</span>
             </Link>
             
             <div className="flex items-center space-x-2">
