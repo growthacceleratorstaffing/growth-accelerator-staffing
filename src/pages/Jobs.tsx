@@ -108,12 +108,10 @@ const Jobs = () => {
           <h1 className="text-3xl font-bold">Job Listings</h1>
           <p className="text-muted-foreground mt-2">Find your next opportunity</p>
         </div>
-        {canPostJobs() && (
-          <Button onClick={() => setShowPostJobForm(!showPostJobForm)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Post a Job
-          </Button>
-        )}
+        <Button onClick={() => setShowPostJobForm(!showPostJobForm)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Post a Job
+        </Button>
       </div>
 
       {error && useMockData && (
