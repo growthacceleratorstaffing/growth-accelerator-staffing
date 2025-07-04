@@ -205,11 +205,12 @@ export function useJobs() {
     setError(null);
 
     try {
-      // Try to fetch from edge function
+      // Try to fetch jobs from JobAdder job board
       const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
         body: { 
-          endpoint: 'jobs',
+          endpoint: 'jobboards',
           limit: 50,
+          offset: 0,
           search: searchTerm
         }
       });
@@ -218,10 +219,13 @@ export function useJobs() {
         throw new Error(supabaseError.message);
       }
 
-      setJobs(data.items || data);
+      // JobAdder returns jobs in the items array
+      const jobsData = data?.items || [];
+      setJobs(jobsData);
       setUseMockData(false);
+      console.log('Fetched jobs from JobAdder:', jobsData);
     } catch (err) {
-      console.warn('API unavailable, using mock data:', err);
+      console.warn('JobAdder API unavailable, using mock data:', err);
       // Fallback to mock data
       let filteredJobs = mockJobs;
       if (searchTerm) {
@@ -233,7 +237,7 @@ export function useJobs() {
       }
       setJobs(filteredJobs);
       setUseMockData(true);
-      setError('Using demo data - API unavailable');
+      setError('Using demo data - JobAdder API unavailable');
     } finally {
       setLoading(false);
     }
