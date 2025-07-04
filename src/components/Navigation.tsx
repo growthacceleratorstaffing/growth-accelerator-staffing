@@ -47,7 +47,6 @@ const Navigation = () => {
                 >
                   <Briefcase className="h-5 w-5" />
                   Jobs
-                  <Badge variant="secondary">23</Badge>
                 </Button>
               </Link>
               
@@ -58,7 +57,6 @@ const Navigation = () => {
                 >
                   <User className="h-5 w-5" />
                   Candidates
-                  <Badge variant="secondary">156</Badge>
                 </Button>
               </Link>
               
@@ -69,7 +67,6 @@ const Navigation = () => {
                 >
                   <User className="h-5 w-5" />
                   Talent Pool
-                  <Badge variant="secondary">45</Badge>
                 </Button>
               </Link>
               
@@ -80,7 +77,6 @@ const Navigation = () => {
                 >
                   <UserCheck className="h-5 w-5" />
                   Matches
-                  <Badge variant="secondary">12</Badge>
                 </Button>
               </Link>
               
