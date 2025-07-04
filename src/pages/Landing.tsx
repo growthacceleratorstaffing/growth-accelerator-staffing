@@ -29,21 +29,21 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       <div className="container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold mb-8">
             <span className="text-pink-500">Growth Accelerator Staffing Services</span>
           </h1>
-          <p className="text-xl text-white mb-12 max-w-4xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-12 max-w-4xl mx-auto">
             Four ways to attract, match, onboard and hire your new (external) employees. Everything you 
             need into one platform, or separate if you prefer.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link to="/auth">
-              <Button size="lg" className="bg-white text-slate-900 hover:bg-gray-100 px-8 py-3 text-lg">
+              <Button size="lg" className="px-8 py-3 text-lg">
                 Sign in to get started
               </Button>
             </Link>
@@ -53,17 +53,17 @@ const Landing = () => {
         {/* Services Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
           {services.map((service, index) => (
-            <Card key={index} className="bg-white hover:shadow-lg transition-shadow h-full">
+            <Card key={index} className="hover:shadow-lg transition-shadow h-full">
               <CardHeader>
                 <CardTitle className="text-xl text-pink-500 mb-4">{service.title}</CardTitle>
-                <CardDescription className="text-gray-700 text-base leading-relaxed mb-6">
+                <CardDescription className="text-base leading-relaxed mb-6">
                   {service.description}
                 </CardDescription>
               </CardHeader>
               <CardContent className="mt-auto">
                 <Button 
                   variant="ghost" 
-                  className="text-gray-700 hover:text-pink-500 p-0 h-auto font-normal mb-4"
+                  className="text-muted-foreground hover:text-pink-500 p-0 h-auto font-normal mb-4"
                   asChild
                 >
                   <Link to="/auth" className="flex items-center gap-2">
@@ -71,7 +71,7 @@ const Landing = () => {
                   </Link>
                 </Button>
                 
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   <p className="mb-2">Suitable for</p>
                   <p className="font-medium">
                     {service.roles.join(" | ")}
@@ -82,19 +82,18 @@ const Landing = () => {
           ))}
         </div>
 
-
         {/* Footer with Privacy Policy */}
-        <footer className="mt-16 pt-8 border-t border-gray-600">
+        <footer className="mt-16 pt-8 border-t border-border">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="flex items-center gap-4">
               <Link to="/privacy">
-                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                <Button variant="ghost" size="sm">
                   Privacy Policy
                 </Button>
               </Link>
             </div>
             
-            <div className="max-w-2xl text-sm text-gray-400 space-y-2">
+            <div className="max-w-2xl text-sm text-muted-foreground space-y-2">
               <p>
                 <strong>Disclaimer:</strong> This platform provides comprehensive recruitment 
                 management services including job posting, candidate tracking, and placement management. 
@@ -107,7 +106,7 @@ const Landing = () => {
               </p>
             </div>
             
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               © 2025 Growth Accelerator. All rights reserved.
             </p>
           </div>
