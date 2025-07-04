@@ -69,7 +69,10 @@ const Jobs = () => {
 
       const { jobData } = data;
       
-      // Map AI response to form fields
+      // Show the generated job description in the AI text area
+      setAiPrompt(jobData.jobDescription || "");
+      
+      // Map AI response to form fields  
       setFormData({
         jobTitle: jobData.jobTitle || "",
         companyId: "1", // Default company ID
@@ -90,8 +93,6 @@ const Jobs = () => {
         title: "Success!",
         description: "Job posting generated with AI. Review and adjust as needed.",
       });
-      
-      setAiPrompt(""); // Clear the AI prompt
     } catch (error) {
       console.error('Error generating job with AI:', error);
       toast({
