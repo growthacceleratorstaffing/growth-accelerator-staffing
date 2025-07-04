@@ -52,7 +52,7 @@ const Auth = () => {
               <h1 className="text-2xl font-bold">Growth Accelerator</h1>
             </div>
             <p className="text-muted-foreground">
-              Sign in to access your recruitment dashboard
+              Sign in to access your staffing platform
             </p>
           </div>
 
