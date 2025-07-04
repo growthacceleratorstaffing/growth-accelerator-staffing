@@ -1,119 +1,103 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, User, TrendingUp, UserCheck, ArrowRight, CheckCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Landing = () => {
-  const features = [
+  const services = [
     {
-      icon: Briefcase,
-      title: "Job Management",
-      description: "Post and manage job opportunities with ease"
+      title: "Growth Accelerator Staffing",
+      description: "Eliminate all administration concerns with full risk coverage—plus, offer contract-to-perm solutions as an intermediary. Enjoy the benefits of staffing without the burdens of being an employer.",
+      roles: ["INTERMEDIARIES", "PRE-FINANCING", "HIRING MANAGERS", "FREELANCERS"]
     },
     {
-      icon: User,
-      title: "Candidate Tracking",
-      description: "Track applications and candidate progress"
+      title: "Growth Accelerator Contracting",
+      description: "Your back office in our hands, in collaboration with The Compliance Factory. Why pay a lot of money for your own outsourced back office? Get full coverage at the lowest price in the market.",
+      roles: ["INTERMEDIARIES", "PRE-FINANCING", "RISK COVERAGE", "HIRING MANAGERS", "FREELANCERS"]
     },
     {
-      icon: TrendingUp,
-      title: "Placement Matching",
-      description: "Connect the right candidates with the right jobs"
+      title: "Growth Accelerator Services",
+      description: "We also provide freelance and contract-to-perm solutions to our partner companies. Work through our staffing agency as an intermediary or freelancer.",
+      roles: ["HIRING MANAGERS", "FULL-TIME EMPLOYEES", "FREELANCERS"]
+    },
+    {
+      title: "Growth Accelerator Jobs",
+      description: "Fill vacancies quickly and easily. Bring job openings to the attention of millions of people through our sponsored partnership with LinkedIn and our job boards.",
+      roles: ["INTERMEDIARIES", "HIRING MANAGERS", "FREELANCERS"]
     }
   ];
 
-  const benefits = [
-    "Comprehensive recruitment management system",
-    "Streamlined job posting workflow",
-    "Real-time candidate application tracking",
-    "Secure authentication and data protection",
-    "Role-based access control"
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+    <div className="min-h-screen bg-slate-900">
       <div className="container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <Briefcase className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold">Growth Accelerator API</h1>
-          </div>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Your comprehensive recruitment platform for managing jobs, candidates, and placements. 
-            Streamline your entire hiring process with our integrated solution.
+          <h1 className="text-5xl font-bold mb-8">
+            <span className="text-pink-500">Growth Accelerator Staffing Services</span>
+          </h1>
+          <p className="text-xl text-white mb-12 max-w-4xl mx-auto">
+            Four ways to attract, match, onboard and hire your new (external) employees. Everything you 
+            need into one platform, or separate if you prefer.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth">
-              <Button size="lg" className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Sign In to Get Started
-              </Button>
-            </Link>
-          </div>
         </div>
 
-        {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          {features.map((feature, index) => (
-            <Card key={index} className="text-center hover:shadow-lg transition-shadow">
+        {/* Services Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          {services.map((service, index) => (
+            <Card key={index} className="bg-white hover:shadow-lg transition-shadow h-full">
               <CardHeader>
-                <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <feature.icon className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-base">
-                  {feature.description}
+                <CardTitle className="text-xl text-pink-500 mb-4">{service.title}</CardTitle>
+                <CardDescription className="text-gray-700 text-base leading-relaxed mb-6">
+                  {service.description}
                 </CardDescription>
+              </CardHeader>
+              <CardContent className="mt-auto">
+                <Button 
+                  variant="ghost" 
+                  className="text-gray-700 hover:text-pink-500 p-0 h-auto font-normal mb-4"
+                  asChild
+                >
+                  <Link to="/auth" className="flex items-center gap-2">
+                    MORE INFORMATION <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                
+                <div className="text-sm text-gray-600">
+                  <p className="mb-2">Suitable for</p>
+                  <p className="font-medium">
+                    {service.roles.join(" | ")}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Benefits Section */}
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Why Choose Our Platform?</CardTitle>
-            <CardDescription>
-              Built specifically for recruitment agencies and HR teams
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              {benefits.map((benefit, index) => (
-                <li key={index} className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                  <span>{benefit}</span>
-                </li>
-              ))}
-            </ul>
-            
-            <div className="mt-8 pt-6 border-t text-center">
-              <Badge variant="secondary" className="mb-4">
-                Secure Authentication Required
-              </Badge>
-              <p className="text-sm text-muted-foreground">
-                Secure your account to get started. Your data is protected 
-                with industry-standard security and encryption.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Client Portal Button */}
+        <div className="text-center">
+          <Link to="/auth">
+            <Button 
+              size="lg" 
+              className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-3 text-lg"
+            >
+              CLIENT PORTAL
+            </Button>
+          </Link>
+        </div>
 
-        {/* Footer with Privacy Policy and Disclaimer */}
-        <footer className="mt-16 pt-8 border-t border-border">
+        {/* Footer with Privacy Policy */}
+        <footer className="mt-16 pt-8 border-t border-gray-600">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="flex items-center gap-4">
               <Link to="/privacy">
-                <Button variant="ghost" size="sm">Privacy Policy</Button>
+                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                  Privacy Policy
+                </Button>
               </Link>
             </div>
             
-            <div className="max-w-2xl text-sm text-muted-foreground space-y-2">
+            <div className="max-w-2xl text-sm text-gray-400 space-y-2">
               <p>
                 <strong>Disclaimer:</strong> This platform provides comprehensive recruitment 
                 management services including job posting, candidate tracking, and placement management. 
@@ -126,7 +110,7 @@ const Landing = () => {
               </p>
             </div>
             
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500">
               © 2025 Growth Accelerator. All rights reserved.
             </p>
           </div>
