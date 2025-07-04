@@ -17,6 +17,17 @@ serve(async (req) => {
   try {
     const { prompt } = await req.json();
 
+    console.log('Received prompt:', prompt);
+    console.log('OpenAI API Key present:', !!openAIApiKey);
+
+    if (!openAIApiKey) {
+      console.error('OpenAI API key is missing');
+      return new Response(
+        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!prompt) {
       return new Response(
         JSON.stringify({ error: 'Prompt is required' }),
@@ -59,9 +70,9 @@ Make the salary estimates realistic for the role and location. Keep descriptions
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('OpenAI API error:', response.status, errorData);
+      console.error('OpenAI API error:', response.status, response.statusText, errorData);
       return new Response(
-        JSON.stringify({ error: 'AI service unavailable' }),
+        JSON.stringify({ error: `OpenAI API error: ${response.status} ${response.statusText}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -86,7 +97,11 @@ Make the salary estimates realistic for the role and location. Keep descriptions
     });
   } catch (error) {
     console.error('Error in generate-job-with-ai function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Error stack:', error.stack);
+    return new Response(JSON.stringify({ 
+      error: `Function error: ${error.message}`,
+      details: error.stack
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
