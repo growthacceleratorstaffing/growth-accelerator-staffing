@@ -14,15 +14,7 @@ export function useAuth() {
 
   useEffect(() => {
     let mounted = true;
-    let timeoutId: NodeJS.Timeout;
-
-    // Fallback timeout to prevent infinite loading
-    timeoutId = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn('Auth timeout - setting loading to false');
-        setLoading(false);
-      }
-    }, 10000); // 10 second timeout
+    let profileCache = new Map<string, UserProfile>();
 
     // Get initial session
     const getInitialSession = async () => {
@@ -54,93 +46,112 @@ export function useAuth() {
       }
     };
 
-    getInitialSession();
-
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.email);
-      if (mounted) {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
+      if (!mounted) return;
+      
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Check cache first
+        const cachedProfile = profileCache.get(session.user.id);
+        if (cachedProfile) {
+          setProfile(cachedProfile);
           setLoading(false);
+        } else {
+          await fetchProfile(session.user.id);
         }
+      } else {
+        setProfile(null);
+        setLoading(false);
       }
     });
 
-    return () => {
-      mounted = false;
-      clearTimeout(timeoutId);
-      subscription.unsubscribe();
-    };
-  }, [loading]);
+    // Optimized profile fetch with caching
+    const fetchProfile = async (userId: string) => {
+      try {
+        // Check cache first
+        const cachedProfile = profileCache.get(userId);
+        if (cachedProfile) {
+          setProfile(cachedProfile);
+          setLoading(false);
+          return;
+        }
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Profile fetch error:', error);
+        if (error && error.code !== 'PGRST116') {
+          console.error('Profile fetch error:', error);
+          setLoading(false);
+          return;
+        }
+
+        if (data) {
+          profileCache.set(userId, data);
+          setProfile(data);
+          setLoading(false);
+        } else {
+          // Profile doesn't exist, create one
+          await createProfile(userId);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
         setLoading(false);
-        return;
       }
+    };
 
-      if (data) {
+    const createProfile = async (userId: string) => {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const email = userData.user?.email || '';
+        
+        // Set default scopes for regular users (including write permissions)
+        const defaultScopes: Array<'read' | 'write' | 'read_candidate' | 'write_candidate' | 'read_job' | 'write_job' | 'read_jobad' | 'write_jobad'> = [
+          'read', 'write', 'read_candidate', 'write_candidate', 'read_job', 'write_job', 'read_jobad', 'write_jobad'
+        ];
+        const isAdmin = email === 'bart@startupaccelerator.nl' || email === 'bart@growthaccelerator.nl';
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email,
+            role: isAdmin ? 'admin' : 'viewer',
+            jobadder_scopes: defaultScopes
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating profile:', error);
+          setLoading(false);
+          return;
+        }
+        
+        profileCache.set(userId, data);
         setProfile(data);
         setLoading(false);
-      } else {
-        // Profile doesn't exist, create one
-        await createProfile(userId);
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      setLoading(false);
-    }
-  };
-
-  const createProfile = async (userId: string) => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const email = userData.user?.email || '';
-      
-      // Set default scopes for regular users (including write permissions)
-      const defaultScopes: Array<'read' | 'write' | 'read_candidate' | 'write_candidate' | 'read_job' | 'write_job' | 'read_jobad' | 'write_jobad'> = [
-        'read', 'write', 'read_candidate', 'write_candidate', 'read_job', 'write_job', 'read_jobad', 'write_jobad'
-      ];
-      const isAdmin = email === 'bart@startupaccelerator.nl' || email === 'bart@growthaccelerator.nl';
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          email,
-          role: isAdmin ? 'admin' : 'viewer',
-          jobadder_scopes: defaultScopes
-        })
-        .select()
-        .single();
-
-      if (error) {
+      } catch (error) {
         console.error('Error creating profile:', error);
         setLoading(false);
-        return;
       }
-      
-      setProfile(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error creating profile:', error);
-      setLoading(false);
-    }
-  };
+    };
+
+    getInitialSession();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []); // Remove loading from dependencies to prevent loops
+
 
   const signIn = async (email: string, password: string) => {
     try {
