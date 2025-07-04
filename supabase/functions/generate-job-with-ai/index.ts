@@ -16,14 +16,21 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Function called with request method:', req.method);
     const { prompt } = await req.json();
+    console.log('Received prompt:', prompt);
 
     if (!prompt) {
+      console.log('No prompt provided');
       return new Response(
         JSON.stringify({ error: 'Prompt is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Azure OpenAI Key available:', !!azureOpenAIKey);
+    console.log('Azure OpenAI Endpoint available:', !!azureOpenAIEndpoint);
+    console.log('Azure OpenAI Endpoint value:', azureOpenAIEndpoint);
 
     const response = await fetch(`${azureOpenAIEndpoint}/openai/deployments/gpt-4o/chat/completions?api-version=2024-08-01-preview`, {
       method: 'POST',
