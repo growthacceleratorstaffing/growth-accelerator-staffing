@@ -9,22 +9,27 @@ const Landing = () => {
     {
       title: "Growth Accelerator Staffing",
       description: "Eliminate all administration concerns with full risk coverage—plus, offer contract-to-perm solutions as an intermediary. Enjoy the benefits of staffing without the burdens of being an employer.",
-      roles: ["INTERMEDIARIES", "PRE-FINANCING", "HIRING MANAGERS", "FREELANCERS"]
+      roles: ["INTERMEDIARIES", "PRE-FINANCING", "HIRING MANAGERS", "FREELANCERS"],
+      link: "/candidates"
     },
     {
       title: "Growth Accelerator Contracting",
       description: "Your back office in our hands, in collaboration with The Compliance Factory. Why pay a lot of money for your own outsourced back office? Get full coverage at the lowest price in the market.",
-      roles: ["INTERMEDIARIES", "PRE-FINANCING", "HIRING MANAGERS", "FREELANCERS"]
+      roles: ["INTERMEDIARIES", "PRE-FINANCING", "HIRING MANAGERS", "FREELANCERS"],
+      link: "/matches"
     },
     {
       title: "Growth Accelerator Services",
       description: "We also provide freelance and contract-to-perm solutions to our partner companies. Work through our staffing agency as an intermediary or freelancer.",
-      roles: ["HIRING MANAGERS", "FULL-TIME EMPLOYEES", "FREELANCERS"]
+      roles: ["HIRING MANAGERS", "FULL-TIME EMPLOYEES", "FREELANCERS"],
+      link: "https://www.growthaccelerator.nl",
+      external: true
     },
     {
       title: "Growth Accelerator Jobs",
       description: "Fill vacancies quickly and easily. Bring job openings to the attention of millions of people through our sponsored partnership with LinkedIn and our job boards.",
-      roles: ["INTERMEDIARIES", "HIRING MANAGERS", "FREELANCERS"]
+      roles: ["INTERMEDIARIES", "HIRING MANAGERS", "FREELANCERS"],
+      link: "/jobs"
     }
   ];
 
@@ -66,9 +71,15 @@ const Landing = () => {
                   className="text-muted-foreground hover:text-pink-500 p-0 h-auto font-normal mb-4"
                   asChild
                 >
-                  <Link to="/auth" className="flex items-center gap-2">
-                    MORE INFORMATION <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  {service.external ? (
+                    <a href={service.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      MORE INFORMATION <ArrowRight className="h-4 w-4" />
+                    </a>
+                  ) : (
+                    <Link to={service.link} className="flex items-center gap-2">
+                      MORE INFORMATION <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  )}
                 </Button>
                 
                 <div className="text-sm text-muted-foreground">
