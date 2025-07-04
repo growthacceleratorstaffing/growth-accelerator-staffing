@@ -40,6 +40,14 @@ const Landing = () => {
             Four ways to attract, match, onboard and hire your new (external) employees. Everything you 
             need into one platform, or separate if you prefer.
           </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link to="/auth">
+              <Button size="lg" className="bg-white text-slate-900 hover:bg-gray-100 px-8 py-3 text-lg">
+                Sign in to get started
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Services Grid */}
