@@ -14,7 +14,7 @@ const Landing = () => {
     {
       title: "Growth Accelerator Contracting",
       description: "Your back office in our hands, in collaboration with The Compliance Factory. Why pay a lot of money for your own outsourced back office? Get full coverage at the lowest price in the market.",
-      roles: ["INTERMEDIARIES", "PRE-FINANCING", "RISK COVERAGE", "HIRING MANAGERS", "FREELANCERS"]
+      roles: ["INTERMEDIARIES", "PRE-FINANCING", "HIRING MANAGERS", "FREELANCERS"]
     },
     {
       title: "Growth Accelerator Services",
