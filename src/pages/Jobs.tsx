@@ -58,7 +58,13 @@ const Jobs = () => {
 
       if (error) {
         console.error('Supabase function error:', error);
-        throw new Error('Failed to generate job posting');
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        throw new Error(`Failed to generate job posting: ${error.message || 'Unknown error'}`);
+      }
+
+      if (!data) {
+        console.error('No data returned from function');
+        throw new Error('No data returned from AI service');
       }
 
       const { jobData } = data;
