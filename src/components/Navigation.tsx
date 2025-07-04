@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, User, LogOut, UserCheck } from "lucide-react";
+import { Briefcase, User, LogOut, UserCheck, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const Navigation = () => {
@@ -76,6 +76,16 @@ const Navigation = () => {
                   <UserCheck className="h-5 w-5" />
                   Matches
                   <Badge variant="secondary">12</Badge>
+                </Button>
+              </Link>
+              
+              <Link to="/onboarding">
+                <Button 
+                  variant={isActive("/onboarding") ? "default" : "ghost"}
+                  className="flex items-center gap-2 h-12 px-6 text-base"
+                >
+                  <Settings className="h-5 w-5" />
+                  Onboarding
                 </Button>
               </Link>
             </div>
