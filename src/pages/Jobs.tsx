@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { MapPin, Building, Clock, DollarSign, Search, AlertCircle, Plus, ChevronDown } from "lucide-react";
+import { MapPin, Building, Clock, DollarSign, Search, AlertCircle, Plus, ChevronDown, Sparkles, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +16,8 @@ import { useAuth } from "@/hooks/useAuth";
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [showPostJobForm, setShowPostJobForm] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [generatingWithAI, setGeneratingWithAI] = useState(false);
   const [formData, setFormData] = useState({
     jobTitle: "",
     companyId: "",
@@ -36,6 +37,79 @@ const Jobs = () => {
   const { jobs, loading, error, useMockData, refetch } = useJobs();
   const { toast } = useToast();
   const { canPostJobs } = useAuth();
+
+  const generateWithAI = async () => {
+    if (!aiPrompt.trim()) {
+      toast({
+        title: "Error",
+        description: "Please describe the position you want to create.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setGeneratingWithAI(true);
+    
+    try {
+      const response = await fetch('/functions/v1/generate-job-with-ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate job posting');
+      }
+
+      const { jobData } = await response.json();
+      
+      // Map AI response to form fields
+      setFormData({
+        jobTitle: jobData.jobTitle || "",
+        companyId: "1", // Default company ID
+        locationId: "1", // Default location ID  
+        workTypeId: getWorkTypeId(jobData.workType),
+        categoryId: "",
+        subCategoryId: "",
+        salaryRatePer: "Year",
+        salaryRateLow: jobData.salaryLow?.toString() || "",
+        salaryRateHigh: jobData.salaryHigh?.toString() || "",
+        salaryCurrency: "USD",
+        jobDescription: jobData.jobDescription || "",
+        skillTags: jobData.skillTags || "",
+        source: "AI Generated"
+      });
+
+      toast({
+        title: "Success!",
+        description: "Job posting generated with AI. Review and adjust as needed.",
+      });
+      
+      setAiPrompt(""); // Clear the AI prompt
+    } catch (error) {
+      console.error('Error generating job with AI:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate job posting. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingWithAI(false);
+    }
+  };
+
+  const getWorkTypeId = (workType: string) => {
+    const workTypeMap: { [key: string]: string } = {
+      "Full-time": "1",
+      "Part-time": "2", 
+      "Contract": "3",
+      "Freelance": "4",
+      "Internship": "5"
+    };
+    return workTypeMap[workType] || "1";
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -79,7 +153,6 @@ const Jobs = () => {
       skillTags: "",
       source: ""
     });
-    setShowPostJobForm(false);
     refetch();
   };
 
@@ -195,13 +268,63 @@ const Jobs = () => {
         )}
       </div>
 
-      {/* Post Job Form - Integrated into page */}
+      {/* AI Job Creator */}
       <div className="mt-16">
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-dashed border-primary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-6 w-6 text-pink-500" />
+              Create Your Vacancy with AI, or write it yourself
+            </CardTitle>
+            <CardDescription>
+              Describe the position you want to create a vacancy for
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Textarea
+                placeholder="e.g., Senior React Developer for a fintech startup, remote work, 5+ years experience, TypeScript expertise..."
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                rows={4}
+                className="min-h-[120px] resize-none"
+              />
+            </div>
+            
+            <div className="flex gap-4">
+              <Button 
+                onClick={generateWithAI}
+                disabled={generatingWithAI || !aiPrompt.trim()}
+                className="flex-1 bg-pink-500 hover:bg-pink-600"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {generatingWithAI ? "Generating..." : "Generate with AI"}
+              </Button>
+              <Button 
+                type="button"
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  // Scroll to the manual form below
+                  document.getElementById('manual-job-form')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Manual Entry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Manual Job Posting Form */}
+      <div className="mt-16" id="manual-job-form">
         <Card>
           <CardHeader>
-            <CardTitle>Post a New Job</CardTitle>
+            <CardTitle>Manual Job Posting</CardTitle>
             <CardDescription>
-              Fill out the details to create your job posting
+              Fill out the details to create your job posting manually
             </CardDescription>
           </CardHeader>
           
