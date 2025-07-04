@@ -2,8 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Navigation from "./components/Navigation";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { SidebarProvider, SidebarInset, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from "@/components/ui/sidebar";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Briefcase, User, LogOut, UserCheck, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformChatbot from "./components/PlatformChatbot";
 import Landing from "./pages/Landing";
@@ -21,74 +26,246 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const AppSidebar = () => {
+  const location = useLocation();
+  const { isAuthenticated, profile, signOut } = useAuth();
+  
+  const isActive = (path: string) => location.pathname === path;
+  
+  const handleOnboardingClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.open("https://www.contractdossier.nl", "_blank");
+  };
+
+  return (
+    <Sidebar>
+      <SidebarHeader>
+        <Link to="/" className="flex items-center space-x-3 p-4">
+          <img 
+            src="/lovable-uploads/b703692d-f11f-419a-a31b-7c24887ef1b9.png" 
+            alt="Growth Accelerator" 
+            className="h-8 w-8"
+          />
+          <span className="font-bold text-lg text-primary">Growth Accelerator</span>
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {/* Jobs Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Jobs</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/jobs")}>
+                  <Link to="/jobs">
+                    <Briefcase className="h-4 w-4" />
+                    <span>Jobs</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        {/* Staffing Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Staffing</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/candidates")}>
+                  <Link to="/candidates">
+                    <User className="h-4 w-4" />
+                    <span>Candidates</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/applications")}>
+                  <Link to="/applications">
+                    <User className="h-4 w-4" />
+                    <span>Talent Pool</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        {/* Contracting Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Contracting</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/matches")}>
+                  <Link to="/matches">
+                    <UserCheck className="h-4 w-4" />
+                    <span>Matches</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild onClick={handleOnboardingClick}>
+                  <button>
+                    <Settings className="h-4 w-4" />
+                    <span>Onboarding</span>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* User Section */}
+        <div className="mt-auto p-4">
+          {isAuthenticated ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
+                <User className="h-4 w-4" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">
+                    {profile?.full_name || profile?.email || 'User'}
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {profile?.role || 'viewer'}
+                  </Badge>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="w-full flex items-center gap-2"
+                onClick={signOut}
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </div>
+          ) : (
+            <Link to="/auth">
+              <Button 
+                variant="default" 
+                size="sm"
+                className="w-full flex items-center gap-2"
+              >
+                <User className="h-4 w-4" />
+                Sign In
+              </Button>
+            </Link>
+          )}
+        </div>
+      </SidebarContent>
+    </Sidebar>
+  );
+};
+
+const AppLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <SidebarInset className="flex-1">
+          {children}
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="min-h-screen bg-background">
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<><Navigation /><Landing /></>} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/privacy" element={<><Navigation /><PrivacyPolicy /></>} />
-            
-            {/* Protected routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Navigation />
+        <Routes>
+          {/* Public routes without sidebar */}
+          <Route path="/auth" element={<Auth />} />
+          
+          {/* Routes with sidebar */}
+          <Route path="/" element={
+            <AppLayout>
+              <Landing />
+            </AppLayout>
+          } />
+          <Route path="/privacy" element={
+            <AppLayout>
+              <PrivacyPolicy />
+            </AppLayout>
+          } />
+          
+          {/* Protected routes with sidebar */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <AppLayout>
                 <Index />
-              </ProtectedRoute>
-            } />
-            <Route path="/jobs" element={
-              <ProtectedRoute requiredScope="read_job">
-                <Navigation />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/jobs" element={
+            <ProtectedRoute requiredScope="read_job">
+              <AppLayout>
                 <Jobs />
-              </ProtectedRoute>
-            } />
-            <Route path="/jobs/:jobId" element={
-              <ProtectedRoute requiredScope="read_job">
-                <Navigation />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/jobs/:jobId" element={
+            <ProtectedRoute requiredScope="read_job">
+              <AppLayout>
                 <JobDetail />
-              </ProtectedRoute>
-            } />
-            <Route path="/jobs/:jobId/apply" element={
-              <ProtectedRoute requiredScope="read_jobapplication">
-                <Navigation />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/jobs/:jobId/apply" element={
+            <ProtectedRoute requiredScope="read_jobapplication">
+              <AppLayout>
                 <ApplyJob />
-              </ProtectedRoute>
-            } />
-            <Route path="/applications" element={
-              <ProtectedRoute requiredScope="read_jobapplication">
-                <Navigation />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/applications" element={
+            <ProtectedRoute requiredScope="read_jobapplication">
+              <AppLayout>
                 <Applications />
-              </ProtectedRoute>
-            } />
-            <Route path="/candidates" element={
-              <ProtectedRoute requiredScope="read_candidate">
-                <Navigation />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/candidates" element={
+            <ProtectedRoute requiredScope="read_candidate">
+              <AppLayout>
                 <Candidates />
-              </ProtectedRoute>
-            } />
-            <Route path="/matches" element={
-              <ProtectedRoute requiredScope="read_placement">
-                <Navigation />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/matches" element={
+            <ProtectedRoute requiredScope="read_placement">
+              <AppLayout>
                 <Matches />
-              </ProtectedRoute>
-            } />
-            <Route path="/onboarding" element={
-              <ProtectedRoute>
-                <Navigation />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/onboarding" element={
+            <ProtectedRoute>
+              <AppLayout>
                 <Onboarding />
-              </ProtectedRoute>
-            } />
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<><Navigation /><NotFound /></>} />
-          </Routes>
-          <PlatformChatbot />
-        </div>
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          
+          {/* Catch-all route */}
+          <Route path="*" element={
+            <AppLayout>
+              <NotFound />
+            </AppLayout>
+          } />
+        </Routes>
+        <PlatformChatbot />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
