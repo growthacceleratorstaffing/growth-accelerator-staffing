@@ -15,6 +15,7 @@ import Applications from "./pages/Applications";
 import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
 import ApplyJob from "./pages/ApplyJob";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,6 +74,12 @@ const App = () => (
               <ProtectedRoute requiredScope="read_placement">
                 <Navigation />
                 <Matches />
+              </ProtectedRoute>
+            } />
+            <Route path="/onboarding" element={
+              <ProtectedRoute>
+                <Navigation />
+                <Onboarding />
               </ProtectedRoute>
             } />
             
