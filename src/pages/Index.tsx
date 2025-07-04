@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { Briefcase, Users, TrendingUp, Clock, Plus, ArrowRight } from "lucide-react";
+import { Briefcase, Users, TrendingUp, Clock, Plus, ArrowRight, UserCheck, User } from "lucide-react";
 
 const Index = () => {
   const stats = [
@@ -22,6 +22,18 @@ const Index = () => {
     { id: "1", name: "Sarah Johnson", title: "Senior Frontend Developer", status: "Available" },
     { id: "2", name: "Michael Chen", title: "Product Manager", status: "Interviewing" },
     { id: "3", name: "Emily Rodriguez", title: "UX Designer", status: "Available" }
+  ];
+
+  const talentPool = [
+    { id: "1", name: "Alex Thompson", role: "Full Stack Developer", experience: "5 years", availability: "Immediate" },
+    { id: "2", name: "Jessica Wang", role: "Data Scientist", experience: "3 years", availability: "2 weeks notice" },
+    { id: "3", name: "David Kumar", role: "DevOps Engineer", experience: "7 years", availability: "1 month" }
+  ];
+
+  const recentMatches = [
+    { id: "1", candidate: "Sarah Johnson", job: "Senior Frontend Developer", company: "Tech Corp", status: "Interview Scheduled" },
+    { id: "2", candidate: "Michael Chen", job: "Product Manager", company: "Innovation Inc", status: "Offer Extended" },
+    { id: "3", candidate: "Emily Rodriguez", job: "UX Designer", company: "Design Studio", status: "Reference Check" }
   ];
 
   return (
@@ -111,6 +123,68 @@ const Index = () => {
                     variant={candidate.status === "Available" ? "default" : "secondary"}
                   >
                     {candidate.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Talent Pool */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Talent Pool</CardTitle>
+              <Link to="/applications">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+            <CardDescription>Available talent in your network</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {talentPool.map((talent) => (
+                <div key={talent.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <h4 className="font-medium">{talent.name}</h4>
+                    <p className="text-sm text-muted-foreground">{talent.role} • {talent.experience}</p>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant="outline">{talent.availability}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Matches */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Recent Matches</CardTitle>
+              <Link to="/matches">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+            <CardDescription>Latest candidate-job matches and progress</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentMatches.map((match) => (
+                <div key={match.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <h4 className="font-medium">{match.candidate}</h4>
+                    <p className="text-sm text-muted-foreground">{match.job} at {match.company}</p>
+                  </div>
+                  <Badge 
+                    variant={match.status === "Offer Extended" ? "default" : "secondary"}
+                  >
+                    {match.status}
                   </Badge>
                 </div>
               ))}
