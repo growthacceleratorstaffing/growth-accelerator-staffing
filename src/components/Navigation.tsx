@@ -32,7 +32,7 @@ const Navigation = () => {
             <div className="flex items-center space-x-2">
               <Link to="/dashboard">
                 <Button 
-                  variant={isActive("/dashboard") ? "secondary" : "default"} 
+                  variant={isActive("/dashboard") ? "outline" : "default"} 
                   className="flex items-center gap-2 h-12 px-6 text-base"
                 >
                   <Briefcase className="h-5 w-5" />
@@ -42,7 +42,7 @@ const Navigation = () => {
               
               <Link to="/jobs">
                 <Button 
-                  variant={isActive("/jobs") ? "secondary" : "default"}
+                  variant={isActive("/jobs") ? "outline" : "default"}
                   className="flex items-center gap-2 h-12 px-6 text-base"
                 >
                   <Briefcase className="h-5 w-5" />
@@ -52,7 +52,7 @@ const Navigation = () => {
               
               <Link to="/candidates">
                 <Button 
-                  variant={isActive("/candidates") ? "secondary" : "default"}
+                  variant={isActive("/candidates") ? "outline" : "default"}
                   className="flex items-center gap-2 h-12 px-6 text-base"
                 >
                   <User className="h-5 w-5" />
@@ -62,7 +62,7 @@ const Navigation = () => {
               
               <Link to="/applications">
                 <Button 
-                  variant={isActive("/applications") ? "secondary" : "default"}
+                  variant={isActive("/applications") ? "outline" : "default"}
                   className="flex items-center gap-2 h-12 px-6 text-base"
                 >
                   <User className="h-5 w-5" />
@@ -72,7 +72,7 @@ const Navigation = () => {
               
               <Link to="/matches">
                 <Button 
-                  variant={isActive("/matches") ? "secondary" : "default"}
+                  variant={isActive("/matches") ? "outline" : "default"}
                   className="flex items-center gap-2 h-12 px-6 text-base"
                 >
                   <UserCheck className="h-5 w-5" />
