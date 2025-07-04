@@ -191,7 +191,7 @@ const App = () => (
           {/* Routes with sidebar */}
           <Route path="/" element={
             <AppLayout>
-              <Index />
+              <Landing />
             </AppLayout>
           } />
           <Route path="/privacy" element={
