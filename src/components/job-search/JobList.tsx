@@ -2,19 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, MapPin, Calendar, Building } from "lucide-react";
-
-export interface JobListing {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  salary?: string;
-  description: string;
-  type: "full-time" | "part-time" | "contract" | "remote";
-  postedDate: string;
-  url: string;
-  source: string;
-}
+import { JobListing } from "@/pages/CareerPage";
 
 interface JobListProps {
   jobs: JobListing[];

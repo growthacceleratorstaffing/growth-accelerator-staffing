@@ -3,6 +3,27 @@ import { SearchStats } from "@/components/job-search/SearchStats";
 import { CrawlJobsButton } from "@/components/job-search/CrawlJobsButton";
 import { useJobSearch } from "@/hooks/useJobSearch";
 
+export interface JobListing {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  salary?: string;
+  description: string;
+  type: "full-time" | "part-time" | "contract" | "remote";
+  postedDate: string;
+  url: string;
+  source: string;
+}
+
+export interface SearchFilters {
+  location: string;
+  jobType: string;
+  salaryMin: string;
+  remote: boolean;
+  datePosted: string;
+}
+
 const CareerPage = () => {
   const {
     jobs,
