@@ -17,6 +17,7 @@ import Index from "./pages/Index";
 import JobDetail from "./pages/JobDetail";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Jobs from "./pages/Jobs";
+import JobPosting from "./pages/JobPosting";
 import Applications from "./pages/Applications";
 import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
@@ -61,6 +62,14 @@ const AppSidebar = () => {
                   <Link to="/jobs">
                     <Briefcase className="h-4 w-4" />
                     <span className="text-white text-base">Vacancies</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/job-posting")}>
+                  <Link to="/job-posting">
+                    <Briefcase className="h-4 w-4" />
+                    <span className="text-base">Job Posting</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -212,6 +221,13 @@ const App = () => (
             <ProtectedRoute requiredScope="read_job">
               <AppLayout>
                 <Jobs />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/job-posting" element={
+            <ProtectedRoute requiredScope="write_job">
+              <AppLayout>
+                <JobPosting />
               </AppLayout>
             </ProtectedRoute>
           } />
