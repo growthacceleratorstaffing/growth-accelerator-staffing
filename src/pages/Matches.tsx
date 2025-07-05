@@ -26,9 +26,12 @@ import {
   CheckCircle2,
   UserCheck,
   Briefcase,
-  Plus
+  Plus,
+  Eye,
+  Settings
 } from "lucide-react";
 import { usePlacements } from "@/hooks/usePlacements";
+import { usePlacementDetails } from "@/hooks/usePlacementDetails";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +42,9 @@ const Matches = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewPlacementOpen, setIsNewPlacementOpen] = useState(false);
   const [isManualPlacementOpen, setIsManualPlacementOpen] = useState(false);
+  const [isPlacementDetailsOpen, setIsPlacementDetailsOpen] = useState(false);
+  const [isManagePlacementOpen, setIsManagePlacementOpen] = useState(false);
+  const [selectedPlacement, setSelectedPlacement] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("placement"); // placement, candidate, job
   const [placementData, setPlacementData] = useState({
     candidateId: "",
@@ -75,6 +81,7 @@ const Matches = () => {
     requirements: ""
   });
   const { placements, loading, error, useMockData, refetch } = usePlacements();
+  const { placementDetails, loading: placementLoading, fetchPlacementDetails, updatePlacementStatus, clearPlacementDetails } = usePlacementDetails();
   const { candidates, loading: candidatesLoading } = useCandidates();
   const { jobs, loading: jobsLoading } = useJobs();
   const { toast } = useToast();
@@ -375,6 +382,22 @@ const Matches = () => {
     return `Starts in ${diffDays} days`;
   };
 
+  const handleViewDetails = async (placement: any) => {
+    setSelectedPlacement(placement);
+    setIsPlacementDetailsOpen(true);
+    
+    try {
+      await fetchPlacementDetails(placement.placementId);
+    } catch (error) {
+      console.error('Failed to fetch placement details:', error);
+    }
+  };
+
+  const handleManagePlacement = (placement: any) => {
+    setSelectedPlacement(placement);
+    setIsManagePlacementOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -398,7 +421,7 @@ const Matches = () => {
         <div className="flex gap-2">
           <Dialog open={isNewPlacementOpen} onOpenChange={setIsNewPlacementOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-pink-500 hover:bg-pink-600 text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 New Placement
               </Button>
@@ -584,7 +607,7 @@ const Matches = () => {
 
           <Dialog open={isManualPlacementOpen} onOpenChange={setIsManualPlacementOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="bg-pink-500 hover:bg-pink-600 text-white border-pink-500">
                 <Plus className="h-4 w-4 mr-2" />
                 Manual Placement
               </Button>
@@ -1110,11 +1133,23 @@ const Matches = () => {
                     )}
                   </div>
                   
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">View Details</Button>
-                    <Button variant="outline" size="sm">Generate Report</Button>
-                    <Button size="sm">Manage Placement</Button>
-                  </div>
+                   <div className="flex gap-2">
+                     <Button 
+                       variant="outline" 
+                       size="sm"
+                       onClick={() => handleViewDetails(placement)}
+                     >
+                       <Eye className="h-4 w-4 mr-1" />
+                       View Details
+                     </Button>
+                     <Button 
+                       size="sm"
+                       onClick={() => handleManagePlacement(placement)}
+                     >
+                       <Settings className="h-4 w-4 mr-1" />
+                       Manage Placement
+                     </Button>
+                   </div>
                 </div>
               </CardContent>
             </Card>
