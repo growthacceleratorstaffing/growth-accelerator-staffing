@@ -309,12 +309,11 @@ class JobAdderOAuth2Manager {
   }
 }
 
-// Create singleton instance
-// Note: In production, move these to environment variables
+// Create singleton instance with JobAdder credentials
 const oauth2Manager = new JobAdderOAuth2Manager(
-  import.meta.env.VITE_JOBADDER_CLIENT_ID || 'your_client_id',
-  import.meta.env.VITE_JOBADDER_CLIENT_SECRET || 'your_client_secret',
-  import.meta.env.VITE_JOBADDER_REDIRECT_URI || `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080'}/auth/callback`
+  'ldyp7mapnxdevgowsnmr34o2j4',
+  'ruhqysfa2zaulmsuukhjfokiwmjnpwkzkcs2durgxjezubqqesba',
+  `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080'}/auth/callback`
 );
 
 export default oauth2Manager;
