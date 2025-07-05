@@ -229,8 +229,13 @@ serve(async (req) => {
         break;
       
       case 'jobboards':
-        const jobboardId = url.searchParams.get('jobboardId') || requestBody?.boardId || '8734';
+        const jobboardId = url.searchParams.get('jobboardId') || url.searchParams.get('boardId') || requestBody?.boardId || '8734';
+        console.log(`Fetching jobboard ${jobboardId} ads with params:`, params);
         data = await makeJobAdderRequest(`/jobboards/${jobboardId}/ads`, params);
+        break;
+        
+      case 'current-user':
+        data = await makeJobAdderRequest('/users/current');
         break;
       
       case 'job':
@@ -524,10 +529,6 @@ serve(async (req) => {
           );
         }
         data = await makeJobAdderRequest(`/users/${userId}`);
-        break;
-
-      case 'current-user':
-        data = await makeJobAdderRequest('/users/current');
         break;
 
       // ===== FOLDERS API =====
