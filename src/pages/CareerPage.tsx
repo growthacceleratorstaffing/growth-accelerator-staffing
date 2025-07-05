@@ -1,17 +1,18 @@
-import { JobAdderJobList } from "@/components/job-search/JobAdderJobList";
-import { JobAdderSearchStats } from "@/components/job-search/JobAdderSearchStats";
-import { JobAdderSearchBar } from "@/components/job-search/JobAdderSearchBar";
-import { useJobs } from "@/hooks/useJobs";
-import { useState } from "react";
+import { JobList } from "@/components/job-search/JobList";
+import { SearchStats } from "@/components/job-search/SearchStats";
+import { CrawlJobsButton } from "@/components/job-search/CrawlJobsButton";
+import { useJobSearch } from "@/hooks/useJobSearch";
 
 const CareerPage = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const { jobs, loading, error, useMockData, refetch } = useJobs();
-
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    refetch(term);
-  };
+  const {
+    jobs,
+    isLoading,
+    searchQuery,
+    filters,
+    setFilters,
+    crawlJobs,
+    totalResults,
+  } = useJobSearch();
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,31 +23,25 @@ const CareerPage = () => {
               Career Opportunities
             </h1>
             <p className="text-xl text-white">
-              Discover your next career move with top companies via JobAdder
+              Discover your next career move with top companies
             </p>
-            {useMockData && (
-              <p className="text-sm text-yellow-400">
-                ⚠️ Showing demo data - JobAdder API unavailable
-              </p>
-            )}
           </div>
         </div>
         
-        <div className="max-w-2xl mx-auto mb-8">
-          <JobAdderSearchBar onSearch={handleSearch} />
+        <div className="flex justify-center mt-6">
+          <CrawlJobsButton onCrawl={crawlJobs} />
         </div>
         
         <div className="mt-8">
-          <JobAdderSearchStats 
-            query={searchTerm}
-            totalResults={jobs.length}
-            isLoading={loading}
-            error={error}
+          <SearchStats 
+            query={searchQuery}
+            totalResults={totalResults}
+            isLoading={isLoading}
           />
           
-          <JobAdderJobList 
+          <JobList 
             jobs={jobs}
-            isLoading={loading}
+            isLoading={isLoading}
           />
         </div>
       </div>
