@@ -25,6 +25,8 @@ import ApplyJob from "./pages/ApplyJob";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
 import NotFound from "./pages/NotFound";
+import AuthCallback from "./pages/AuthCallback";
+import AuthLogin from "./pages/AuthLogin";
 
 const queryClient = new QueryClient();
 
@@ -245,6 +247,8 @@ const App = () => (
         <Routes>
           {/* Public routes without sidebar */}
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth/login" element={<AuthLogin />} />
           
           {/* Routes with sidebar */}
           <Route path="/" element={

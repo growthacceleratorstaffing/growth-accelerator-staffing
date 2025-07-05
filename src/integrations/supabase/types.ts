@@ -356,6 +356,45 @@ export type Database = {
           },
         ]
       }
+      jobadder_tokens: {
+        Row: {
+          access_token: string
+          api_base_url: string
+          created_at: string
+          expires_at: string
+          id: string
+          refresh_token: string | null
+          scopes: string[]
+          token_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          api_base_url?: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          refresh_token?: string | null
+          scopes?: string[]
+          token_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          api_base_url?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          refresh_token?: string | null
+          scopes?: string[]
+          token_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       jobadder_user_permissions: {
         Row: {
           created_at: string | null
@@ -397,6 +436,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      jobadder_users: {
+        Row: {
+          assigned_jobs: string[] | null
+          created_at: string | null
+          id: string
+          jobadder_email: string
+          jobadder_role: Database["public"]["Enums"]["jobadder_scope"]
+          jobadder_user_id: string
+          permissions: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_jobs?: string[] | null
+          created_at?: string | null
+          id?: string
+          jobadder_email: string
+          jobadder_role?: Database["public"]["Enums"]["jobadder_scope"]
+          jobadder_user_id: string
+          permissions?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_jobs?: string[] | null
+          created_at?: string | null
+          id?: string
+          jobadder_email?: string
+          jobadder_role?: Database["public"]["Enums"]["jobadder_scope"]
+          jobadder_user_id?: string
+          permissions?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       linkedin_ad_accounts: {
         Row: {
@@ -730,6 +805,10 @@ export type Database = {
       trigger_workable_sync: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      validate_jobadder_email: {
+        Args: { email_to_check: string }
+        Returns: boolean
       }
       validate_workable_email: {
         Args: { email_to_check: string }
