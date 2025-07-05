@@ -58,14 +58,6 @@ const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
-                  <Link to="/dashboard">
-                    <Settings className="h-4 w-4" />
-                    <span className="text-white text-base">Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <a 
                     href="https://startup-accelerator.hiringmanager.com/Account/login" 
@@ -76,6 +68,14 @@ const AppSidebar = () => {
                     <ExternalLink className="h-4 w-4" />
                     <span className="text-base">Hiring Manager Portal</span>
                   </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
+                  <Link to="/dashboard">
+                    <Settings className="h-4 w-4" />
+                    <span className="text-white text-base">Dashboard</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
