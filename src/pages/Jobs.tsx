@@ -8,9 +8,12 @@ import { MapPin, Building, Clock, DollarSign, Search, AlertCircle, ExternalLink 
 import { Link } from "react-router-dom";
 import { useJobs } from "@/hooks/useJobs";
 import { JobSyncStatus } from "@/components/job-search/JobSyncStatus";
+import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
   
   const { jobs, loading, error, useMockData, refetch } = useJobs();
 
@@ -18,6 +21,16 @@ const Jobs = () => {
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     refetch(value);
+  };
+
+  const handleApplyClick = (job) => {
+    setSelectedJob(job);
+    setShowApplicationForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowApplicationForm(false);
+    setSelectedJob(null);
   };
 
   if (loading) {
@@ -123,14 +136,12 @@ const Jobs = () => {
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Link to={`/jobs/${job.adId}`}>
-                      <Button variant="outline">View Details</Button>
-                    </Link>
-                    <Link to={`/jobs/${job.adId}/apply`}>
-                      <Button>Apply Now</Button>
-                    </Link>
-                  </div>
+                   <div className="flex gap-2">
+                     <Link to={`/jobs/${job.adId}`}>
+                       <Button variant="outline">View Details</Button>
+                     </Link>
+                     <Button onClick={() => handleApplyClick(job)}>Apply Now</Button>
+                   </div>
                 </div>
               </CardContent>
             </Card>
@@ -138,6 +149,11 @@ const Jobs = () => {
         )}
       </div>
 
+      <JobApplicationForm
+        job={selectedJob}
+        isOpen={showApplicationForm}
+        onClose={handleCloseForm}
+      />
     </div>
   );
 };
