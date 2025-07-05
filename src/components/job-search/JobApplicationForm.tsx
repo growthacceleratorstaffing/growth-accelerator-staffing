@@ -75,11 +75,33 @@ export const JobApplicationForm = ({ job, isOpen, onClose }: JobApplicationFormP
     if (!job) return;
 
     try {
+      // Send email notification
+      const emailResponse = await fetch('/functions/v1/send-job-application-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicantName: `${formData.firstName} ${formData.lastName}`,
+          applicantEmail: formData.email,
+          jobTitle: job.title,
+          companyName: job.company?.name || 'Unknown Company',
+          applicationData: formData
+        })
+      });
+
+      if (emailResponse.ok) {
+        console.log('Email notification sent successfully');
+      } else {
+        console.warn('Failed to send email notification');
+      }
+
+      // Submit to JobAdder
       const response = await submitApplication(job.adId, formData);
       
       toast({
         title: "Application Submitted",
-        description: `Your application for ${job.title} has been submitted successfully!`,
+        description: `Your application for ${job.title} has been submitted successfully! A notification has been sent to the hiring team.`,
       });
       
       onClose();

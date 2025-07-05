@@ -9,7 +9,6 @@ export interface JobAdderJob {
   bulletPoints?: string[];
   description?: string;
   portal?: {
-    hotJob?: boolean;
     salary?: {
       ratePer: string;
       rateLow?: number;
@@ -75,7 +74,6 @@ const mockJobs: JobAdderJob[] = [
       "Growth opportunities"
     ],
     portal: {
-      hotJob: true,
       salary: {
         ratePer: "Year",
         rateLow: 120000,
@@ -115,7 +113,6 @@ const mockJobs: JobAdderJob[] = [
       "Data-driven decision making"
     ],
     portal: {
-      hotJob: false,
       salary: {
         ratePer: "Year",
         rateLow: 140000,
@@ -153,7 +150,6 @@ const mockJobs: JobAdderJob[] = [
       "Prototype and test designs"
     ],
     portal: {
-      hotJob: true,
       salary: {
         ratePer: "Year", 
         rateLow: 80000,

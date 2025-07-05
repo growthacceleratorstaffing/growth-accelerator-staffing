@@ -113,11 +113,6 @@ export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
                 <Badge variant="outline" className="text-xs">
                   Job Board ID: {job.adId}
                 </Badge>
-                {job.portal?.hotJob && (
-                  <Badge variant="destructive" className="text-xs">
-                    Hot Job 🔥
-                  </Badge>
-                )}
               </div>
               <div className="flex gap-2">
                 {job.category && (
