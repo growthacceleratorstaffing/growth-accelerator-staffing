@@ -62,7 +62,35 @@ export function useJobApplication() {
     setError(null);
 
     try {
-      // Use Supabase edge function to submit the job application
+      // Step 1: Store candidate locally in the database
+      const candidateData = {
+        name: `${applicationData.firstName} ${applicationData.lastName}`,
+        email: applicationData.email,
+        phone: applicationData.phone || null,
+        location: applicationData.address ? 
+          `${applicationData.address.city || ''}, ${applicationData.address.state || ''}`.trim().replace(/^,\s*/, '') : null,
+        current_position: applicationData.employment?.current?.position || null,
+        company: applicationData.employment?.current?.employer || null,
+        education: applicationData.education || [],
+        skills: applicationData.skillTags || [],
+        source_platform: 'job_application'
+      };
+
+      const { data: candidateResult, error: candidateError } = await supabase
+        .from('candidates')
+        .upsert(candidateData, { 
+          onConflict: 'email',
+          ignoreDuplicates: false 
+        })
+        .select()
+        .single();
+
+      if (candidateError) {
+        console.error('Failed to store candidate locally:', candidateError);
+        // Continue with JobAdder submission even if local storage fails
+      }
+
+      // Step 2: Submit candidate and application to JobAdder
       const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
         body: { 
           endpoint: 'jobApplications',
@@ -79,7 +107,7 @@ export function useJobApplication() {
 
       return data;
     } catch (apiError) {
-      console.warn('API submission failed, using mock submission:', apiError);
+      console.warn('JobAdder API submission failed, using mock submission:', apiError);
       
       try {
         // Fallback to mock submission
@@ -94,7 +122,7 @@ export function useJobApplication() {
           }
         };
         
-        setError('Demo mode - Application recorded locally');
+        setError('Demo mode - Application recorded locally and in database');
         return mockResponse;
       } catch (mockError) {
         setError('Failed to submit application');
