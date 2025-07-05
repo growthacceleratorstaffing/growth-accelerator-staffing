@@ -23,6 +23,7 @@ import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
 import ApplyJob from "./pages/ApplyJob";
 import Onboarding from "./pages/Onboarding";
+import CareerPage from "./pages/CareerPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -88,6 +89,14 @@ const AppSidebar = () => {
                   <Link to="/job-posting">
                     <Briefcase className="h-4 w-4" />
                     <span className="text-base">Job Posting</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/career-page")}>
+                  <Link to="/career-page">
+                    <User className="h-4 w-4" />
+                    <span className="text-base">Career Page</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -290,6 +299,11 @@ const App = () => (
                 <Onboarding />
               </AppLayout>
             </ProtectedRoute>
+          } />
+          <Route path="/career-page" element={
+            <AppLayout>
+              <CareerPage />
+            </AppLayout>
           } />
           
           {/* Catch-all route */}
