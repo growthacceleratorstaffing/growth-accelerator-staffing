@@ -196,6 +196,25 @@ serve(async (req) => {
     if (search) params.search = search;
 
     switch (endpoint) {
+      case 'jobApplications':
+        if (req.method !== 'POST') {
+          return new Response(
+            JSON.stringify({ error: 'jobApplications requires POST method' }),
+            { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const appData = requestBody;
+        const boardId = url.searchParams.get('boardId') || appData.boardId || '8734';
+        const adId = url.searchParams.get('adId') || appData.adId;
+        if (!adId) {
+          return new Response(
+            JSON.stringify({ error: 'adId parameter is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        data = await makeJobAdderPostRequest(`/jobboards/${boardId}/ads/${adId}/applications`, appData.applicationData);
+        break;
+        
       // ===== EXISTING ENDPOINTS =====
       case 'jobs':
         data = await makeJobAdderRequest('/jobs', params);

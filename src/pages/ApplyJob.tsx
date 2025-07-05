@@ -120,19 +120,11 @@ const ApplyJob = () => {
           current: {
             employer: formData.currentEmployer,
             position: formData.currentPosition,
-            workTypeId: 1, // Default work type
-            salary: {
-              ratePer: "Year",
-              rate: formData.expectedSalary ? parseInt(formData.expectedSalary) : 0,
-              currency: "USD"
-            }
+            workTypeId: 1 // Default work type
           }
         },
         availability: {
           date: formData.availableDate || new Date().toISOString().split('T')[0]
-        },
-        custom: {
-          coverLetter: formData.coverLetter
         }
       });
 

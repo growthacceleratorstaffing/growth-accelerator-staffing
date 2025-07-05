@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, MapPin, Calendar, Building, DollarSign } from "lucide-react";
 import { JobAdderJob } from "@/hooks/useJobs";
+import { JobApplicationForm } from "./JobApplicationForm";
 
 interface JobAdderJobListProps {
   jobs: JobAdderJob[];
@@ -10,6 +12,18 @@ interface JobAdderJobListProps {
 }
 
 export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
+  const [selectedJob, setSelectedJob] = useState<JobAdderJob | null>(null);
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
+
+  const handleApplyClick = (job: JobAdderJob) => {
+    setSelectedJob(job);
+    setShowApplicationForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowApplicationForm(false);
+    setSelectedJob(null);
+  };
   if (isLoading) {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -111,7 +125,7 @@ export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
                     {job.category.name}
                   </Badge>
                 )}
-                <Button size="sm" className="gap-1">
+                <Button size="sm" className="gap-1" onClick={() => handleApplyClick(job)}>
                   Apply Now
                   <ExternalLink className="h-4 w-4" />
                 </Button>
@@ -120,6 +134,12 @@ export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
           </CardContent>
         </Card>
       ))}
+      
+      <JobApplicationForm
+        job={selectedJob}
+        isOpen={showApplicationForm}
+        onClose={handleCloseForm}
+      />
     </div>
   );
 };
