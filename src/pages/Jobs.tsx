@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, Building, Clock, DollarSign, Search, AlertCircle } from "lucide-react";
+import { MapPin, Building, Clock, DollarSign, Search, AlertCircle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useJobs } from "@/hooks/useJobs";
+import { JobSyncStatus } from "@/components/job-search/JobSyncStatus";
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,8 +38,13 @@ const Jobs = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Vacancies</h1>
-          <p className="text-muted-foreground mt-2">Find your next opportunity</p>
+          <p className="text-muted-foreground mt-2">Find your next opportunity - synced with JobAdder</p>
         </div>
+      </div>
+
+      {/* Sync Status */}
+      <div className="mb-8">
+        <JobSyncStatus />
       </div>
 
       {error && useMockData && (
@@ -99,7 +105,7 @@ const Jobs = () => {
               <CardContent>
                 <p className="text-muted-foreground mb-4">{job.summary}</p>
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1 font-semibold">
                       <DollarSign className="h-4 w-4" />
                       {job.salary 
@@ -107,9 +113,15 @@ const Jobs = () => {
                         : 'Competitive'
                       }
                     </span>
-                    <span className="text-sm text-muted-foreground">
-                      Ref: {job.reference}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Ref: {job.reference}
+                      </span>
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <ExternalLink className="h-3 w-3" />
+                        JobAdder
+                      </Badge>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Link to={`/jobs/${job.adId}`}>

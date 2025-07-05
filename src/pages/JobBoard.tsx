@@ -4,6 +4,7 @@ import { CrawlJobsButton } from "@/components/job-search/CrawlJobsButton";
 import { JobAdderJobList } from "@/components/job-search/JobAdderJobList";
 import { JobAdderSearchBar } from "@/components/job-search/JobAdderSearchBar";
 import { JobAdderSearchStats } from "@/components/job-search/JobAdderSearchStats";
+import { JobSyncStatus } from "@/components/job-search/JobSyncStatus";
 import { useJobSearch } from "@/hooks/useJobSearch";
 import { useJobs } from "@/hooks/useJobs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,15 +70,20 @@ const JobBoard = () => {
               Job Board
             </h1>
             <p className="text-xl text-white">
-              Discover your next career move with top companies
+              Discover your next career move with top companies - powered by JobAdder
             </p>
           </div>
         </div>
         
-        <Tabs defaultValue="crawled" className="mt-8">
+        {/* Sync Status */}
+        <div className="mb-8">
+          <JobSyncStatus />
+        </div>
+        
+        <Tabs defaultValue="jobadder" className="mt-8">
           <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="jobadder">JobAdder Jobs</TabsTrigger>
             <TabsTrigger value="crawled">Career Page</TabsTrigger>
-            <TabsTrigger value="jobadder">Jobs</TabsTrigger>
           </TabsList>
           
           <TabsContent value="crawled" className="space-y-6">

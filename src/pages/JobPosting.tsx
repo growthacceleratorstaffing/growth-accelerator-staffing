@@ -180,7 +180,8 @@ const JobPosting = () => {
 
       toast({
         title: "Success!",
-        description: "Job posting created successfully in JobAdder.",
+        description: "Job posting created successfully in JobAdder and will appear in the Jobs section.",
+        className: "bg-green-500 text-white border-green-600",
       });
       
       // Reset form and refresh
@@ -217,7 +218,7 @@ const JobPosting = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Job Posting</h1>
-          <p className="text-muted-foreground mt-2">Create and post new job opportunities</p>
+          <p className="text-muted-foreground mt-2">Create and post new job opportunities - automatically synced to JobAdder</p>
         </div>
       </div>
 
@@ -245,27 +246,31 @@ const JobPosting = () => {
               />
             </div>
             
-            <div className="flex gap-4">
-              <Button 
-                onClick={generateWithAI}
-                disabled={generatingWithAI || !aiPrompt.trim()}
-                className="flex-1 bg-pink-500 hover:bg-pink-600"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                {generatingWithAI ? "Generating..." : "Generate with AI"}
-              </Button>
-              <Button 
-                type="button"
-                className="flex-1 bg-pink-500 hover:bg-pink-600"
-                onClick={() => {
-                  // Scroll to the manual form below
-                  document.getElementById('manual-job-form')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Manual Entry
-              </Button>
-            </div>
+              <div className="flex gap-4">
+                <Button 
+                  onClick={generateWithAI}
+                  disabled={generatingWithAI || !aiPrompt.trim()}
+                  className="flex-1 bg-pink-500 hover:bg-pink-600"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {generatingWithAI ? "Generating..." : "Generate with AI"}
+                </Button>
+                <Button 
+                  type="button"
+                  className="flex-1 bg-pink-500 hover:bg-pink-600"
+                  onClick={() => {
+                    // Scroll to the manual form below
+                    document.getElementById('manual-job-form')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Manual Entry
+                </Button>
+              </div>
+              
+              <div className="text-xs text-muted-foreground bg-primary/5 p-3 rounded-lg border border-primary/20">
+                <strong>✨ Bi-directional Sync:</strong> Jobs created here are automatically posted to JobAdder and will be visible in the Jobs section.
+              </div>
           </CardContent>
         </Card>
       </div>
@@ -455,7 +460,7 @@ const JobPosting = () => {
 
               <div className="flex gap-4 pt-6">
                 <Button type="submit" className="flex-1">
-                  Post Job
+                  Post Job to JobAdder
                 </Button>
                 <Button 
                   type="button" 
