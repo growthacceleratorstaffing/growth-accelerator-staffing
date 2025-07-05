@@ -17,7 +17,9 @@ const JobPosting = () => {
   const [formData, setFormData] = useState({
     jobTitle: "",
     companyId: "",
+    contactId: "",
     locationId: "",
+    areaId: "",
     workTypeId: "",
     categoryId: "",
     subCategoryId: "",
@@ -68,7 +70,9 @@ const JobPosting = () => {
       setFormData({
         jobTitle: jobData.jobTitle || "",
         companyId: "1", // Default company ID
-        locationId: "1", // Default location ID  
+        contactId: "",
+        locationId: "1", // Default location ID
+        areaId: "",
         workTypeId: getWorkTypeId(jobData.workType),
         categoryId: "",
         subCategoryId: "",
@@ -131,31 +135,42 @@ const JobPosting = () => {
     }
 
     try {
-      // Create job payload for JobAdder API
+      // Create job payload according to JobAdder API format
       const jobPayload = {
+        endpoint: 'create-job',
         jobTitle: formData.jobTitle,
         companyId: parseInt(formData.companyId),
-        locationId: parseInt(formData.locationId),
+        contactId: formData.contactId ? parseInt(formData.contactId) : null,
+        jobDescription: formData.jobDescription,
+        location: {
+          locationId: parseInt(formData.locationId),
+          areaId: formData.areaId ? parseInt(formData.areaId) : null
+        },
         workTypeId: parseInt(formData.workTypeId),
-        categoryId: formData.categoryId ? parseInt(formData.categoryId) : null,
-        subCategoryId: formData.subCategoryId ? parseInt(formData.subCategoryId) : null,
-        salary: {
+        category: formData.categoryId ? {
+          categoryId: parseInt(formData.categoryId),
+          subCategoryId: formData.subCategoryId ? parseInt(formData.subCategoryId) : null
+        } : null,
+        salary: (formData.salaryRateLow || formData.salaryRateHigh) ? {
           ratePer: formData.salaryRatePer,
           rateLow: formData.salaryRateLow ? parseFloat(formData.salaryRateLow) : null,
           rateHigh: formData.salaryRateHigh ? parseFloat(formData.salaryRateHigh) : null,
-          currency: formData.salaryCurrency
-        },
-        jobDescription: formData.jobDescription,
-        skillTags: formData.skillTags.split(',').map(tag => tag.trim()).filter(Boolean),
-        source: formData.source || 'Website'
+          currency: formData.salaryCurrency,
+          timePerWeek: null // Optional field
+        } : null,
+        skillTags: formData.skillTags ? {
+          matchAll: false, // Set to false for OR matching
+          tags: formData.skillTags.split(',').map(tag => tag.trim()).filter(Boolean)
+        } : null,
+        source: formData.source || 'Website',
+        numberOfJobs: 1, // Default to 1
+        ownerUserId: null, // Will be set by JobAdder based on authenticated user
+        recruiterUserId: null // Optional
       };
 
       // Send to JobAdder API via edge function
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
-        body: { 
-          endpoint: 'create-job',
-          ...jobPayload
-        }
+        body: jobPayload
       });
 
       if (error) {
@@ -171,7 +186,9 @@ const JobPosting = () => {
       setFormData({
         jobTitle: "",
         companyId: "",
+        contactId: "",
         locationId: "",
+        areaId: "",
         workTypeId: "",
         categoryId: "",
         subCategoryId: "",
@@ -290,19 +307,63 @@ const JobPosting = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
+                  <Label htmlFor="contactId">Contact ID</Label>
+                  <Input
+                    id="contactId"
+                    placeholder="e.g. 201 (optional)"
+                    value={formData.contactId}
+                    onChange={(e) => handleInputChange("contactId", e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
                   <Label htmlFor="locationId">Location ID *</Label>
                   <Input
                     id="locationId"
-                    placeholder="e.g. 201"
+                    placeholder="e.g. 301"
                     value={formData.locationId}
                     onChange={(e) => handleInputChange("locationId", e.target.value)}
                     required
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="areaId">Area ID</Label>
+                  <Input
+                    id="areaId"
+                    placeholder="e.g. 401 (optional)"
+                    value={formData.areaId}
+                    onChange={(e) => handleInputChange("areaId", e.target.value)}
+                  />
+                </div>
                 
                 <div className="space-y-2">
+                  <Label htmlFor="categoryId">Category ID</Label>
+                  <Input
+                    id="categoryId"
+                    placeholder="e.g. 1 (optional)"
+                    value={formData.categoryId}
+                    onChange={(e) => handleInputChange("categoryId", e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="subCategoryId">Sub-Category ID</Label>
+                  <Input
+                    id="subCategoryId"
+                    placeholder="e.g. 11 (optional)"
+                    value={formData.subCategoryId}
+                    onChange={(e) => handleInputChange("subCategoryId", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
                   <Label htmlFor="workTypeId">Work Type ID *</Label>
-                  <Select onValueChange={(value) => handleInputChange("workTypeId", value)}>
+                  <Select value={formData.workTypeId} onValueChange={(value) => handleInputChange("workTypeId", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select work type" />
                     </SelectTrigger>
@@ -403,7 +464,9 @@ const JobPosting = () => {
                     setFormData({
                       jobTitle: "",
                       companyId: "",
+                      contactId: "",
                       locationId: "",
+                      areaId: "",
                       workTypeId: "",
                       categoryId: "",
                       subCategoryId: "",
