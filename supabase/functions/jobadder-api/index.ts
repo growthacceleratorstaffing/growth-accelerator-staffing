@@ -42,7 +42,7 @@ async function getAccessToken(): Promise<string> {
         grant_type: 'client_credentials',
         client_id: JOBADDER_CLIENT_ID,
         client_secret: JOBADDER_CLIENT_SECRET,
-        scope: 'read write'
+        scope: 'read write offline_access'
       })
     });
 
