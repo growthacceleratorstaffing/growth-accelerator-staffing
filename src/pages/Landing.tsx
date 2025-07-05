@@ -64,7 +64,7 @@ const Landing = () => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2"
               >
-                Client Portal
+                Hiring Manager Portal
                 <ExternalLink className="h-4 w-4" />
               </a>
             </Button>

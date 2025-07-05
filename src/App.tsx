@@ -74,7 +74,7 @@ const AppSidebar = () => {
                     className="flex items-center gap-2"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    <span className="text-base">Client Portal</span>
+                    <span className="text-base">Hiring Manager Portal</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
