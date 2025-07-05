@@ -460,7 +460,7 @@ const JobPosting = () => {
 
               <div className="flex gap-4 pt-6">
                 <Button type="submit" className="flex-1">
-                  Post Job to JobAdder
+                  Publish Job
                 </Button>
                 <Button 
                   type="button" 
