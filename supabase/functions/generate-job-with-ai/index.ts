@@ -62,7 +62,7 @@ Format your response clearly with these sections.`;
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 2000,
       }),
     });
 
@@ -86,7 +86,7 @@ Format your response clearly with these sections.`;
       workType: extractField(generatedContent, 'type') || "Full-time",
       salaryLow: 80000,
       salaryHigh: 120000,
-      jobDescription: generatedContent.substring(0, 1000),
+      jobDescription: generatedContent, // Use full content instead of truncating
       skillTags: extractField(generatedContent, 'skills') || "Data Engineering, SQL, Python",
       category: extractField(generatedContent, 'category') || "Technology"
     };
