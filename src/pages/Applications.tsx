@@ -30,11 +30,13 @@ import {
   Edit
 } from "lucide-react";
 import { useJobApplications, type JobApplicationCandidate } from "@/hooks/useJobApplications";
+import { useCandidateDetails } from "@/hooks/useCandidateDetails";
 import { useToast } from "@/hooks/use-toast";
 
 const Applications = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isUpdateStageOpen, setIsUpdateStageOpen] = useState(false);
+  const [isCandidateDetailsOpen, setIsCandidateDetailsOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<JobApplicationCandidate | null>(null);
   const [stageUpdateData, setStageUpdateData] = useState({
     statusId: "",
@@ -44,6 +46,7 @@ const Applications = () => {
   });
   
   const { applications, loading, error, useMockData, refetch, updateApplicationStage } = useJobApplications();
+  const { candidateDetails, loading: candidateLoading, fetchCandidateDetails, clearCandidateDetails } = useCandidateDetails();
   const { toast } = useToast();
 
   const handleSearch = (value: string) => {
@@ -141,6 +144,17 @@ const Applications = () => {
     }
   };
 
+  const handleViewDetails = async (application: JobApplicationCandidate) => {
+    setSelectedApplication(application);
+    setIsCandidateDetailsOpen(true);
+    
+    try {
+      await fetchCandidateDetails(application.candidate.candidateId);
+    } catch (error) {
+      console.error('Failed to fetch candidate details:', error);
+    }
+  };
+
   const applicationStages = [
     { id: "1", name: "Application Review", description: "Initial review of application" },
     { id: "2", name: "Phone Interview", description: "Phone screening with candidate" },
@@ -169,8 +183,8 @@ const Applications = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Job Applications</h1>
-          <p className="text-muted-foreground mt-2">Manage and track all job applications through their stages</p>
+          <h1 className="text-3xl font-bold">Talent Pool</h1>
+          <p className="text-muted-foreground mt-2">Manage and track all talent applications and candidate details</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">Export Applications</Button>
@@ -353,20 +367,25 @@ const Applications = () => {
                     {application.manual && <Badge variant="outline">Manual Entry</Badge>}
                   </div>
                   
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Details
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleUpdateStage(application)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Update Stage
-                    </Button>
-                  </div>
+                   <div className="flex gap-2">
+                     <Button 
+                       variant="outline" 
+                       size="sm"
+                       onClick={() => handleViewDetails(application)}
+                       className="bg-pink-500 hover:bg-pink-600 text-white border-pink-500"
+                     >
+                       <Eye className="h-4 w-4 mr-1" />
+                       View Details
+                     </Button>
+                     <Button 
+                       size="sm"
+                       onClick={() => handleUpdateStage(application)}
+                       className="bg-pink-500 hover:bg-pink-600 text-white"
+                     >
+                       <Edit className="h-4 w-4 mr-1" />
+                       Update Stage
+                     </Button>
+                   </div>
                 </div>
               </CardContent>
             </Card>
@@ -451,6 +470,217 @@ const Applications = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Candidate Details Dialog */}
+      <Dialog open={isCandidateDetailsOpen} onOpenChange={(open) => {
+        setIsCandidateDetailsOpen(open);
+        if (!open) {
+          clearCandidateDetails();
+          setSelectedApplication(null);
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedApplication && 
+                `${selectedApplication.candidate.firstName} ${selectedApplication.candidate.lastName} - Candidate Details`
+              }
+            </DialogTitle>
+            <DialogDescription>
+              Detailed candidate information from JobAdder
+            </DialogDescription>
+          </DialogHeader>
+          
+          {candidateLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : candidateDetails ? (
+            <div className="space-y-6 mt-4">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Email</Label>
+                      <p className="text-sm text-muted-foreground">{candidateDetails.email}</p>
+                    </div>
+                    {candidateDetails.phone && (
+                      <div>
+                        <Label className="text-sm font-medium">Phone</Label>
+                        <p className="text-sm text-muted-foreground">{candidateDetails.phone}</p>
+                      </div>
+                    )}
+                    {candidateDetails.mobile && (
+                      <div>
+                        <Label className="text-sm font-medium">Mobile</Label>
+                        <p className="text-sm text-muted-foreground">{candidateDetails.mobile}</p>
+                      </div>
+                    )}
+                    {candidateDetails.rating && (
+                      <div>
+                        <Label className="text-sm font-medium">Rating</Label>
+                        <p className="text-sm text-muted-foreground">{candidateDetails.rating}/5</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {candidateDetails.address && (
+                    <div>
+                      <Label className="text-sm font-medium">Address</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {candidateDetails.address.street?.join(', ')}<br />
+                        {candidateDetails.address.city}, {candidateDetails.address.state} {candidateDetails.address.postalCode}<br />
+                        {candidateDetails.address.country}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Employment History */}
+              {candidateDetails.employment && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Employment</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {candidateDetails.employment.current && (
+                      <div>
+                        <Label className="text-sm font-medium">Current Position</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {candidateDetails.employment.current.position} at {candidateDetails.employment.current.employer}
+                          {candidateDetails.employment.current.startDate && 
+                            ` (Since ${new Date(candidateDetails.employment.current.startDate).toLocaleDateString()})`
+                          }
+                        </p>
+                      </div>
+                    )}
+
+                    {candidateDetails.employment.history && candidateDetails.employment.history.length > 0 && (
+                      <div>
+                        <Label className="text-sm font-medium">Employment History</Label>
+                        <div className="space-y-2 mt-2">
+                          {candidateDetails.employment.history.map((job, index) => (
+                            <div key={index} className="border-l-2 border-muted pl-4">
+                              <p className="text-sm font-medium">{job.position}</p>
+                              <p className="text-sm text-muted-foreground">{job.employer}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {job.startDate && new Date(job.startDate).toLocaleDateString()} - 
+                                {job.endDate ? new Date(job.endDate).toLocaleDateString() : 'Present'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Education */}
+              {candidateDetails.education && candidateDetails.education.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Education</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {candidateDetails.education.map((edu, index) => (
+                        <div key={index} className="border-l-2 border-muted pl-4">
+                          <p className="text-sm font-medium">{edu.course}</p>
+                          <p className="text-sm text-muted-foreground">{edu.institution}</p>
+                          {edu.level && <p className="text-xs text-muted-foreground">{edu.level}</p>}
+                          {edu.date && <p className="text-xs text-muted-foreground">Graduated: {edu.date}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Skills */}
+              {candidateDetails.skills && candidateDetails.skills.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Skills</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {candidateDetails.skills.map((skill, index) => (
+                        <Badge key={index} variant="secondary">{skill}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Notes */}
+              {candidateDetails.notes && candidateDetails.notes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {candidateDetails.notes.map((note) => (
+                        <div key={note.noteId} className="border rounded-lg p-3">
+                          <p className="text-sm">{note.text}</p>
+                          <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
+                            <span>
+                              {note.createdBy && 
+                                `${note.createdBy.firstName} ${note.createdBy.lastName}`
+                              }
+                            </span>
+                            <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Attachments */}
+              {candidateDetails.attachments && candidateDetails.attachments.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Attachments</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {candidateDetails.attachments.map((attachment) => (
+                        <div key={attachment.attachmentId} className="flex items-center justify-between p-2 border rounded">
+                          <div>
+                            <p className="text-sm font-medium">{attachment.fileName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Uploaded: {new Date(attachment.uploadedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          {attachment.url && (
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                                Download
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No candidate details available</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
