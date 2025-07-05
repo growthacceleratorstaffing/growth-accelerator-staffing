@@ -164,14 +164,27 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const endpoint = url.searchParams.get('endpoint');
+    let endpoint = url.searchParams.get('endpoint');
     const limit = url.searchParams.get('limit') || '50';
     const offset = url.searchParams.get('offset') || '0';
     const search = url.searchParams.get('search');
 
+    // For POST requests, check if endpoint is in the request body
+    let requestBody = null;
+    if (req.method === 'POST' && !endpoint) {
+      try {
+        requestBody = await req.json();
+        if (requestBody.endpoint) {
+          endpoint = requestBody.endpoint;
+        }
+      } catch (error) {
+        console.error('Error parsing request body:', error);
+      }
+    }
+
     if (!endpoint) {
       return new Response(
-        JSON.stringify({ error: 'Endpoint parameter is required' }),
+        JSON.stringify({ error: 'Endpoint parameter is required (in URL params or request body)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -578,8 +591,14 @@ serve(async (req) => {
             { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        const jobData = await req.json();
-        data = await makeJobAdderPostRequest('/jobs', jobData);
+        // Use the already parsed request body if available
+        const jobData = requestBody || await req.json();
+        
+        // Remove the endpoint field from the job data before sending to JobAdder
+        const { endpoint: _, ...cleanJobData } = jobData;
+        
+        console.log('Creating job with data:', cleanJobData);
+        data = await makeJobAdderPostRequest('/jobs', cleanJobData);
         break;
 
       case 'create-candidate':
