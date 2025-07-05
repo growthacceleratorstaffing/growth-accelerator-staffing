@@ -23,7 +23,7 @@ import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
 import ApplyJob from "./pages/ApplyJob";
 import Onboarding from "./pages/Onboarding";
-import CareerPage from "./pages/CareerPage";
+import JobBoard from "./pages/JobBoard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -93,10 +93,10 @@ const AppSidebar = () => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/career-page")}>
-                  <Link to="/career-page">
+                <SidebarMenuButton asChild isActive={isActive("/job-board")}>
+                  <Link to="/job-board">
                     <User className="h-4 w-4" />
-                    <span className="text-base">Career Page</span>
+                    <span className="text-base">Job Board</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -300,9 +300,9 @@ const App = () => (
               </AppLayout>
             </ProtectedRoute>
           } />
-          <Route path="/career-page" element={
+          <Route path="/job-board" element={
             <AppLayout>
-              <CareerPage />
+              <JobBoard />
             </AppLayout>
           } />
           

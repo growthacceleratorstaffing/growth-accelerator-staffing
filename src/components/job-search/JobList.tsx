@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, MapPin, Calendar, Building } from "lucide-react";
-import { JobListing } from "@/pages/CareerPage";
+import { JobListing } from "@/pages/JobBoard";
 import { CrawledJobApplicationForm } from "./CrawledJobApplicationForm";
 
 interface JobListProps {

@@ -30,7 +30,7 @@ export interface SearchFilters {
   datePosted: string;
 }
 
-const CareerPage = () => {
+const JobBoard = () => {
   const {
     jobs,
     isLoading,
@@ -65,8 +65,8 @@ const CareerPage = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center space-y-6 mb-8">
           <div className="space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight text-secondary">
-              Career Opportunities
+            <h1 className="text-4xl font-bold tracking-tight text-pink-500">
+              Job Board
             </h1>
             <p className="text-xl text-white">
               Discover your next career move with top companies
@@ -76,7 +76,7 @@ const CareerPage = () => {
         
         <Tabs defaultValue="crawled" className="mt-8">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="crawled">Crawled Jobs</TabsTrigger>
+            <TabsTrigger value="crawled">Vacancies</TabsTrigger>
             <TabsTrigger value="jobadder">JobAdder API</TabsTrigger>
           </TabsList>
           
@@ -128,4 +128,4 @@ const CareerPage = () => {
   );
 };
 
-export default CareerPage;
+export default JobBoard;
