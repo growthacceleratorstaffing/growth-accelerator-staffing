@@ -1,7 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+const azureApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
+const azureEndpoint = 'https://aistudioaiservices773784968662.openai.azure.com';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,12 +19,12 @@ serve(async (req) => {
     const { prompt } = await req.json();
 
     console.log('Received prompt:', prompt);
-    console.log('OpenAI API Key present:', !!openaiApiKey);
+    console.log('Azure API Key present:', !!azureApiKey);
 
-    if (!openaiApiKey) {
-      console.error('OpenAI API key is missing');
+    if (!azureApiKey) {
+      console.error('Azure OpenAI API key is missing');
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: 'Azure OpenAI API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -51,14 +52,13 @@ serve(async (req) => {
 
 Make the salary estimates realistic for the role and location. Keep descriptions professional and comprehensive. Only return the JSON object, nothing else.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`${azureEndpoint}/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
+        'api-key': azureApiKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
@@ -70,9 +70,9 @@ Make the salary estimates realistic for the role and location. Keep descriptions
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('OpenAI API error:', response.status, response.statusText, errorData);
+      console.error('Azure OpenAI API error:', response.status, response.statusText, errorData);
       return new Response(
-        JSON.stringify({ error: `OpenAI API error: ${response.status} ${response.statusText}` }),
+        JSON.stringify({ error: `Azure OpenAI API error: ${response.status} ${response.statusText}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
