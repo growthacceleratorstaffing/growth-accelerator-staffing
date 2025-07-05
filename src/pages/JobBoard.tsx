@@ -76,8 +76,8 @@ const JobBoard = () => {
         
         <Tabs defaultValue="crawled" className="mt-8">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="crawled">Vacancies</TabsTrigger>
-            <TabsTrigger value="jobadder">JobAdder API</TabsTrigger>
+            <TabsTrigger value="crawled">Career Page</TabsTrigger>
+            <TabsTrigger value="jobadder">Jobs</TabsTrigger>
           </TabsList>
           
           <TabsContent value="crawled" className="space-y-6">
