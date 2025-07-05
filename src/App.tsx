@@ -95,16 +95,16 @@ const AppSidebar = () => {
 
         <SidebarSeparator />
 
-        {/* Jobs Section */}
+        {/* Vacancies Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-pink-500 text-xl font-semibold">Jobs</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-pink-500 text-xl font-semibold">Vacancies</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/jobs")}>
                   <Link to="/jobs">
                     <Briefcase className="h-4 w-4" />
-                    <span className="text-white text-base">Jobs</span>
+                    <span className="text-white text-base">Vacancies</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -139,7 +139,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/candidates")}>
                   <Link to="/candidates">
                     <User className="h-4 w-4" />
-                    <span className="text-base">Candidates</span>
+                    <span className="text-base">Applicants</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -147,7 +147,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/applications")}>
                   <Link to="/applications">
                     <User className="h-4 w-4" />
-                    <span className="text-base">Applications</span>
+                    <span className="text-base">Talent Pool</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
