@@ -1137,6 +1137,7 @@ const Matches = () => {
                      <Button 
                        variant="outline" 
                        size="sm"
+                       className="bg-pink-500 hover:bg-pink-600 text-white border-pink-500"
                        onClick={() => handleViewDetails(placement)}
                      >
                        <Eye className="h-4 w-4 mr-1" />
@@ -1144,12 +1145,316 @@ const Matches = () => {
                      </Button>
                      <Button 
                        size="sm"
+                       className="bg-pink-500 hover:bg-pink-600 text-white"
                        onClick={() => handleManagePlacement(placement)}
                      >
                        <Settings className="h-4 w-4 mr-1" />
                        Manage Placement
                      </Button>
                    </div>
+
+                   {/* Placement Details Modal */}
+                   <Dialog open={isPlacementDetailsOpen} onOpenChange={setIsPlacementDetailsOpen}>
+                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                       <DialogHeader>
+                         <DialogTitle>Placement Details</DialogTitle>
+                         <DialogDescription>
+                           Detailed information about this placement from JobAdder
+                         </DialogDescription>
+                       </DialogHeader>
+                       
+                       {placementLoading ? (
+                         <div className="flex justify-center items-center py-8">
+                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                         </div>
+                       ) : placementDetails ? (
+                         <div className="space-y-6">
+                           {/* Candidate Details */}
+                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                             <Card>
+                               <CardHeader>
+                                 <CardTitle className="flex items-center gap-2">
+                                   <User className="h-5 w-5" />
+                                   Candidate Information
+                                 </CardTitle>
+                               </CardHeader>
+                               <CardContent className="space-y-4">
+                                 <div>
+                                   <h3 className="font-semibold text-lg">
+                                     {placementDetails.candidate.firstName} {placementDetails.candidate.lastName}
+                                   </h3>
+                                   <div className="space-y-2 text-sm text-muted-foreground mt-2">
+                                     <p className="flex items-center gap-2">
+                                       <Mail className="h-4 w-4" />
+                                       {placementDetails.candidate.email}
+                                     </p>
+                                     {placementDetails.candidate.phone && (
+                                       <p className="flex items-center gap-2">
+                                         <Phone className="h-4 w-4" />
+                                         {placementDetails.candidate.phone}
+                                       </p>
+                                     )}
+                                     {placementDetails.candidate.address && (
+                                       <p className="flex items-center gap-2">
+                                         <MapPin className="h-4 w-4" />
+                                         {[
+                                           placementDetails.candidate.address.street?.[0],
+                                           placementDetails.candidate.address.city,
+                                           placementDetails.candidate.address.state,
+                                           placementDetails.candidate.address.postalCode,
+                                           placementDetails.candidate.address.country
+                                         ].filter(Boolean).join(', ')}
+                                       </p>
+                                     )}
+                                   </div>
+                                 </div>
+                                 
+                                 {placementDetails.candidate.status && (
+                                   <div>
+                                     <Label className="text-sm font-medium">Status</Label>
+                                     <Badge className={`ml-2 ${placementDetails.candidate.status.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                       {placementDetails.candidate.status.name}
+                                     </Badge>
+                                   </div>
+                                 )}
+                                 
+                                 {placementDetails.candidate.skills && placementDetails.candidate.skills.length > 0 && (
+                                   <div>
+                                     <Label className="text-sm font-medium">Skills</Label>
+                                     <div className="flex flex-wrap gap-1 mt-1">
+                                       {placementDetails.candidate.skills.map((skill, index) => (
+                                         <Badge key={index} variant="outline" className="text-xs">
+                                           {skill}
+                                         </Badge>
+                                       ))}
+                                     </div>
+                                   </div>
+                                 )}
+                                 
+                                 {placementDetails.candidate.employment?.current?.[0] && (
+                                   <div>
+                                     <Label className="text-sm font-medium">Current Employment</Label>
+                                     <p className="text-sm text-muted-foreground">
+                                       {placementDetails.candidate.employment.current[0].position} at {placementDetails.candidate.employment.current[0].employer}
+                                     </p>
+                                   </div>
+                                 )}
+                               </CardContent>
+                             </Card>
+
+                             {/* Job Details */}
+                             <Card>
+                               <CardHeader>
+                                 <CardTitle className="flex items-center gap-2">
+                                   <Briefcase className="h-5 w-5" />
+                                   Job Information
+                                 </CardTitle>
+                               </CardHeader>
+                               <CardContent className="space-y-4">
+                                 <div>
+                                   <h3 className="font-semibold text-lg">{placementDetails.job.jobTitle}</h3>
+                                   <div className="space-y-2 text-sm text-muted-foreground mt-2">
+                                     {placementDetails.job.company && (
+                                       <p className="flex items-center gap-2">
+                                         <Building className="h-4 w-4" />
+                                         {placementDetails.job.company.name}
+                                       </p>
+                                     )}
+                                     {placementDetails.job.location && (
+                                       <p className="flex items-center gap-2">
+                                         <MapPin className="h-4 w-4" />
+                                         {placementDetails.job.location.name}
+                                       </p>
+                                     )}
+                                   </div>
+                                 </div>
+                                 
+                                 {placementDetails.job.contact && (
+                                   <div>
+                                     <Label className="text-sm font-medium">Contact Person</Label>
+                                     <p className="text-sm text-muted-foreground">
+                                       {placementDetails.job.contact.firstName} {placementDetails.job.contact.lastName}
+                                       {placementDetails.job.contact.position && ` - ${placementDetails.job.contact.position}`}
+                                     </p>
+                                     <p className="text-sm text-muted-foreground">{placementDetails.job.contact.email}</p>
+                                   </div>
+                                 )}
+                               </CardContent>
+                             </Card>
+                           </div>
+
+                           {/* Placement Details */}
+                           <Card>
+                             <CardHeader>
+                               <CardTitle className="flex items-center gap-2">
+                                 <CheckCircle2 className="h-5 w-5" />
+                                 Placement Details
+                               </CardTitle>
+                             </CardHeader>
+                             <CardContent>
+                               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                 <div>
+                                   <Label className="text-sm font-medium">Status</Label>
+                                   <Badge className={`ml-2 ${getStatusColor(placementDetails.status.name)}`}>
+                                     {placementDetails.status.name}
+                                   </Badge>
+                                 </div>
+                                 
+                                 {placementDetails.workType && (
+                                   <div>
+                                     <Label className="text-sm font-medium">Work Type</Label>
+                                     <Badge variant="outline" className={`ml-2 ${getWorkTypeColor(placementDetails.workType.name)}`}>
+                                       {placementDetails.workType.name}
+                                     </Badge>
+                                   </div>
+                                 )}
+                                 
+                                 {placementDetails.salary && (
+                                   <div>
+                                     <Label className="text-sm font-medium">Salary</Label>
+                                     <p className="text-sm text-muted-foreground">
+                                       {formatSalary(placementDetails.salary)}
+                                     </p>
+                                   </div>
+                                 )}
+                               </div>
+                               
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                 <div>
+                                   <Label className="text-sm font-medium">Start Date</Label>
+                                   <p className="text-sm text-muted-foreground">
+                                     {placementDetails.startDate ? new Date(placementDetails.startDate).toLocaleDateString() : 'Not specified'}
+                                   </p>
+                                 </div>
+                                 
+                                 <div>
+                                   <Label className="text-sm font-medium">End Date</Label>
+                                   <p className="text-sm text-muted-foreground">
+                                     {placementDetails.endDate ? new Date(placementDetails.endDate).toLocaleDateString() : 'Permanent'}
+                                   </p>
+                                 </div>
+                               </div>
+                               
+                               {placementDetails.notes && (
+                                 <div className="mt-4">
+                                   <Label className="text-sm font-medium">Notes</Label>
+                                   <p className="text-sm text-muted-foreground mt-1">{placementDetails.notes}</p>
+                                 </div>
+                               )}
+                               
+                               {placementDetails.owner && (
+                                 <div className="mt-4">
+                                   <Label className="text-sm font-medium">Placement Owner</Label>
+                                   <p className="text-sm text-muted-foreground">
+                                     {placementDetails.owner.firstName} {placementDetails.owner.lastName} ({placementDetails.owner.email})
+                                   </p>
+                                 </div>
+                               )}
+                               
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 text-xs text-muted-foreground">
+                                 <div>
+                                   <Label className="text-sm font-medium">Created</Label>
+                                   <p>{placementDetails.createdAt ? new Date(placementDetails.createdAt).toLocaleString() : 'Unknown'}</p>
+                                 </div>
+                                 <div>
+                                   <Label className="text-sm font-medium">Last Updated</Label>
+                                   <p>{placementDetails.updatedAt ? new Date(placementDetails.updatedAt).toLocaleString() : 'Unknown'}</p>
+                                 </div>
+                               </div>
+                             </CardContent>
+                           </Card>
+                         </div>
+                       ) : (
+                         <div className="text-center py-8">
+                           <p className="text-muted-foreground">No placement details available</p>
+                         </div>
+                       )}
+                     </DialogContent>
+                   </Dialog>
+
+                   {/* Manage Placement Modal */}
+                   <Dialog open={isManagePlacementOpen} onOpenChange={setIsManagePlacementOpen}>
+                     <DialogContent className="max-w-2xl">
+                       <DialogHeader>
+                         <DialogTitle>Manage Placement</DialogTitle>
+                         <DialogDescription>
+                           Update placement status and add notes (synced to JobAdder)
+                         </DialogDescription>
+                       </DialogHeader>
+                       
+                       {selectedPlacement && (
+                         <div className="space-y-6">
+                           <div className="p-4 bg-muted rounded-lg">
+                             <h3 className="font-semibold">
+                               {selectedPlacement.candidate.firstName} {selectedPlacement.candidate.lastName}
+                             </h3>
+                             <p className="text-sm text-muted-foreground">
+                               {selectedPlacement.job.jobTitle} at {selectedPlacement.job.company?.name}
+                             </p>
+                           </div>
+                           
+                           <div className="space-y-4">
+                             <div>
+                               <Label htmlFor="status">Update Status</Label>
+                               <Select defaultValue={selectedPlacement.status.statusId.toString()}>
+                                 <SelectTrigger>
+                                   <SelectValue />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                   <SelectItem value="1">Active</SelectItem>
+                                   <SelectItem value="2">Pending Start</SelectItem>
+                                   <SelectItem value="3">Completed</SelectItem>
+                                   <SelectItem value="4">Cancelled</SelectItem>
+                                 </SelectContent>
+                               </Select>
+                             </div>
+                             
+                             <div>
+                               <Label htmlFor="notes">Add Notes</Label>
+                               <Textarea
+                                 id="notes"
+                                 placeholder="Add notes about this placement..."
+                                 rows={4}
+                               />
+                             </div>
+                           </div>
+                           
+                           <div className="flex gap-4">
+                             <Button 
+                               className="bg-pink-500 hover:bg-pink-600 text-white flex-1"
+                               onClick={async () => {
+                                 // Update placement status via JobAdder API
+                                 try {
+                                   await updatePlacementStatus(selectedPlacement.placementId, 1, "Status updated");
+                                   toast({
+                                     title: "Placement Updated",
+                                     description: "Placement status has been updated in JobAdder."
+                                   });
+                                   setIsManagePlacementOpen(false);
+                                   refetch();
+                                 } catch (error) {
+                                   toast({
+                                     title: "Error",
+                                     description: "Failed to update placement status.",
+                                     variant: "destructive"
+                                   });
+                                 }
+                               }}
+                             >
+                               Update Placement
+                             </Button>
+                             <Button 
+                               variant="outline" 
+                               onClick={() => setIsManagePlacementOpen(false)}
+                               className="flex-1"
+                             >
+                               Cancel
+                             </Button>
+                           </div>
+                         </div>
+                       )}
+                     </DialogContent>
+                   </Dialog>
                 </div>
               </CardContent>
             </Card>
