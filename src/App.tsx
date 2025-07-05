@@ -52,6 +52,24 @@ const AppSidebar = () => {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Dashboard Section */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
+                  <Link to="/dashboard">
+                    <Settings className="h-4 w-4" />
+                    <span className="text-white text-base">Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
         {/* Jobs Section */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-pink-500 text-xl font-semibold">Jobs</SidebarGroupLabel>
