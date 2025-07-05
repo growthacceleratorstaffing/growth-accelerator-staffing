@@ -210,8 +210,8 @@ serve(async (req) => {
         break;
       
       case 'jobboards':
-        const jobboardId = url.searchParams.get('jobboardId') || '8734';
-        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/jobads`, params);
+        const jobboardId = url.searchParams.get('jobboardId') || requestBody?.boardId || '8734';
+        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/ads`, params);
         break;
       
       case 'job':

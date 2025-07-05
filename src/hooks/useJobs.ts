@@ -3,16 +3,30 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface JobAdderJob {
   adId: number;
-  state: string;
   title: string;
   reference?: string;
   summary?: string;
   bulletPoints?: string[];
-  company: {
+  description?: string;
+  portal?: {
+    hotJob?: boolean;
+    salary?: {
+      ratePer: string;
+      rateLow?: number;
+      rateHigh?: number;
+      details?: string;
+    };
+    template?: string;
+  };
+  postedAt?: string;
+  updatedAt?: string;
+  expiresAt?: string;
+  // Legacy structure for compatibility
+  company?: {
     companyId: number;
     name: string;
   };
-  location: {
+  location?: {
     locationId: number;
     name: string;
     area?: {
@@ -48,11 +62,10 @@ export interface JobAdderJob {
   };
 }
 
-// Mock data as fallback
+// Mock data as fallback - updated to match Job Board API structure
 const mockJobs: JobAdderJob[] = [
   {
     adId: 1,
-    state: "Published",
     title: "Senior Frontend Developer",
     reference: "SFD-2024-001",
     summary: "Join our innovative team building cutting-edge web applications",
@@ -61,6 +74,19 @@ const mockJobs: JobAdderJob[] = [
       "Collaborative team environment",
       "Growth opportunities"
     ],
+    portal: {
+      hotJob: true,
+      salary: {
+        ratePer: "Year",
+        rateLow: 120000,
+        rateHigh: 160000,
+        details: "Competitive salary with benefits"
+      },
+      template: "Premium"
+    },
+    postedAt: "2024-01-22T10:30:00Z",
+    expiresAt: "2024-03-22T23:59:59Z",
+    // Legacy fields for compatibility
     company: {
       companyId: 101,
       name: "Tech Corp"
@@ -76,33 +102,10 @@ const mockJobs: JobAdderJob[] = [
     workType: {
       workTypeId: 1,
       name: "Full-time"
-    },
-    salary: {
-      ratePer: "Year",
-      rateLow: 120000,
-      rateHigh: 160000,
-      currency: "USD"
-    },
-    category: {
-      categoryId: 1,
-      name: "Technology",
-      subCategory: {
-        subCategoryId: 11,
-        name: "Software Development"
-      }
-    },
-    postAt: "2024-01-22T10:30:00Z",
-    expireAt: "2024-03-22T23:59:59Z",
-    owner: {
-      userId: 1001,
-      firstName: "John",
-      lastName: "Smith",
-      email: "john.smith@techcorp.com"
     }
   },
   {
     adId: 2,
-    state: "Published",
     title: "Product Manager",
     reference: "PM-2024-002",
     summary: "Lead product strategy for our core platform",
@@ -111,6 +114,17 @@ const mockJobs: JobAdderJob[] = [
       "Work with cross-functional teams",
       "Data-driven decision making"
     ],
+    portal: {
+      hotJob: false,
+      salary: {
+        ratePer: "Year",
+        rateLow: 140000,
+        rateHigh: 180000,
+        details: "Base salary plus equity"
+      }
+    },
+    postedAt: "2024-01-15T14:20:00Z",
+    expiresAt: "2024-03-15T23:59:59Z",
     company: {
       companyId: 102,
       name: "Innovation Inc"
@@ -126,29 +140,10 @@ const mockJobs: JobAdderJob[] = [
     workType: {
       workTypeId: 1,
       name: "Full-time"
-    },
-    salary: {
-      ratePer: "Year",
-      rateLow: 140000,
-      rateHigh: 180000,
-      currency: "USD"
-    },
-    category: {
-      categoryId: 2,
-      name: "Product Management"
-    },
-    postAt: "2024-01-15T14:20:00Z",
-    expireAt: "2024-03-15T23:59:59Z",
-    owner: {
-      userId: 1002,
-      firstName: "Sarah",
-      lastName: "Johnson",
-      email: "sarah.johnson@innovation.com"
     }
   },
   {
     adId: 3,
-    state: "Published",
     title: "UX Designer",
     reference: "UXD-2024-003",
     summary: "Create beautiful and intuitive user experiences",
@@ -157,6 +152,17 @@ const mockJobs: JobAdderJob[] = [
       "Conduct user research",
       "Prototype and test designs"
     ],
+    portal: {
+      hotJob: true,
+      salary: {
+        ratePer: "Year", 
+        rateLow: 80000,
+        rateHigh: 100000,
+        details: "Remote-friendly position"
+      }
+    },
+    postedAt: "2024-01-19T09:15:00Z",
+    expiresAt: "2024-03-19T23:59:59Z",
     company: {
       companyId: 103,
       name: "Design Studio"
@@ -168,28 +174,6 @@ const mockJobs: JobAdderJob[] = [
     workType: {
       workTypeId: 2,
       name: "Contract"
-    },
-    salary: {
-      ratePer: "Year",
-      rateLow: 80000,
-      rateHigh: 100000,
-      currency: "USD"
-    },
-    category: {
-      categoryId: 3,
-      name: "Design",
-      subCategory: {
-        subCategoryId: 31,
-        name: "User Experience"
-      }
-    },
-    postAt: "2024-01-19T09:15:00Z",
-    expireAt: "2024-03-19T23:59:59Z",
-    owner: {
-      userId: 1003,
-      firstName: "Mike",
-      lastName: "Chen",
-      email: "mike.chen@designstudio.com"
     }
   }
 ];
@@ -200,7 +184,7 @@ export function useJobs() {
   const [error, setError] = useState<string | null>(null);
   const [useMockData, setUseMockData] = useState(false);
 
-  const fetchJobs = async (searchTerm?: string) => {
+  const fetchJobs = async (searchTerm?: string, boardId: string = '8734') => {
     setLoading(true);
     setError(null);
 
@@ -209,6 +193,7 @@ export function useJobs() {
       const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
         body: { 
           endpoint: 'jobboards',
+          boardId: boardId,
           limit: 50,
           offset: 0,
           search: searchTerm
@@ -219,7 +204,7 @@ export function useJobs() {
         throw new Error(supabaseError.message);
       }
 
-      // JobAdder returns jobs in the items array
+      // JobAdder returns jobs in the items array for job board endpoints
       const jobsData = data?.items || [];
       setJobs(jobsData);
       setUseMockData(false);

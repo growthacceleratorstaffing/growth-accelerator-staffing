@@ -49,11 +49,11 @@ export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
                 <CardTitle className="text-lg line-clamp-2">{job.title}</CardTitle>
                 <CardDescription className="flex items-center gap-1 mt-1">
                   <Building className="h-4 w-4" />
-                  {job.company.name}
+                  {job.company?.name || 'Company not specified'}
                 </CardDescription>
               </div>
               <Badge variant="secondary" className="ml-2">
-                {job.workType?.name || 'Not specified'}
+                {job.workType?.name || 'Type not specified'}
               </Badge>
             </div>
           </CardHeader>
@@ -61,19 +61,25 @@ export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                {job.location.name}
-                {job.location.area && ` - ${job.location.area.name}`}
+                {job.location?.name || 'Location not specified'}
+                {job.location?.area && ` - ${job.location.area.name}`}
               </div>
-              {job.salary && job.salary.rateLow && job.salary.rateHigh && (
+              {(job.portal?.salary || job.salary) && (
                 <div className="flex items-center gap-2 text-sm font-medium text-secondary">
                   <DollarSign className="h-4 w-4" />
-                  {job.salary.currency} {job.salary.rateLow.toLocaleString()} - {job.salary.rateHigh.toLocaleString()} {job.salary.ratePer}
+                  {job.portal?.salary ? (
+                    `${job.portal.salary.rateLow ? job.portal.salary.rateLow.toLocaleString() : 'N/A'} - ${job.portal.salary.rateHigh ? job.portal.salary.rateHigh.toLocaleString() : 'N/A'} ${job.portal.salary.ratePer}`
+                  ) : job.salary && job.salary.rateLow && job.salary.rateHigh ? (
+                    `${job.salary.currency} ${job.salary.rateLow.toLocaleString()} - ${job.salary.rateHigh.toLocaleString()} ${job.salary.ratePer}`
+                  ) : (
+                    'Salary not specified'
+                  )}
                 </div>
               )}
-              {job.postAt && (
+              {(job.postedAt || job.postAt) && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  Posted: {new Date(job.postAt).toLocaleDateString()}
+                  Posted: {new Date(job.postedAt || job.postAt!).toLocaleDateString()}
                 </div>
               )}
             </div>
@@ -89,9 +95,16 @@ export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
             )}
             
             <div className="flex justify-between items-center">
-              <Badge variant="outline" className="text-xs">
-                JobAdder ID: {job.adId}
-              </Badge>
+              <div className="flex gap-2">
+                <Badge variant="outline" className="text-xs">
+                  Job Board ID: {job.adId}
+                </Badge>
+                {job.portal?.hotJob && (
+                  <Badge variant="destructive" className="text-xs">
+                    Hot Job 🔥
+                  </Badge>
+                )}
+              </div>
               <div className="flex gap-2">
                 {job.category && (
                   <Badge variant="outline" className="text-xs">
