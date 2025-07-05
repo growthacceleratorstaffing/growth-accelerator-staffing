@@ -7,7 +7,7 @@ import { SidebarProvider, SidebarInset, Sidebar, SidebarContent, SidebarGroup, S
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, User, LogOut, UserCheck, Settings } from "lucide-react";
+import { Briefcase, User, LogOut, UserCheck, Settings, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformChatbot from "./components/PlatformChatbot";
@@ -63,6 +63,19 @@ const AppSidebar = () => {
                     <Settings className="h-4 w-4" />
                     <span className="text-white text-base">Dashboard</span>
                   </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <a 
+                    href="https://startup-accelerator.hiringmanager.com/Account/login" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span className="text-base">Client Portal</span>
+                  </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

@@ -48,14 +48,14 @@ const Landing = () => {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link to="/auth">
-              <Button size="lg" className="px-8 py-3 text-lg">
+              <Button size="lg" className="px-8 py-3 text-lg bg-white text-black hover:bg-gray-100">
                 Sign in as an agency
               </Button>
             </Link>
             <Button 
               size="lg" 
               variant="outline" 
-              className="px-8 py-3 text-lg"
+              className="px-8 py-3 text-lg bg-white text-black border-white hover:bg-gray-100"
               asChild
             >
               <a 
