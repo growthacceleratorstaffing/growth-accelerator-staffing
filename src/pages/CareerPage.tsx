@@ -1,39 +1,17 @@
-import { JobList } from "@/components/job-search/JobList";
-import { SearchStats } from "@/components/job-search/SearchStats";
-import { CrawlJobsButton } from "@/components/job-search/CrawlJobsButton";
-import { useJobSearch } from "@/hooks/useJobSearch";
-
-export interface JobListing {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  salary?: string;
-  description: string;
-  type: "full-time" | "part-time" | "contract" | "remote";
-  postedDate: string;
-  url: string;
-  source: string;
-}
-
-export interface SearchFilters {
-  location: string;
-  jobType: string;
-  salaryMin: string;
-  remote: boolean;
-  datePosted: string;
-}
+import { JobAdderJobList } from "@/components/job-search/JobAdderJobList";
+import { JobAdderSearchStats } from "@/components/job-search/JobAdderSearchStats";
+import { JobAdderSearchBar } from "@/components/job-search/JobAdderSearchBar";
+import { useJobs } from "@/hooks/useJobs";
+import { useState } from "react";
 
 const CareerPage = () => {
-  const {
-    jobs,
-    isLoading,
-    searchQuery,
-    filters,
-    setFilters,
-    crawlJobs,
-    totalResults,
-  } = useJobSearch();
+  const [searchTerm, setSearchTerm] = useState("");
+  const { jobs, loading, error, useMockData, refetch } = useJobs();
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    refetch(term);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,25 +22,31 @@ const CareerPage = () => {
               Career Opportunities
             </h1>
             <p className="text-xl text-white">
-              Discover your next career move with top companies
+              Discover your next career move with top companies via JobAdder
             </p>
+            {useMockData && (
+              <p className="text-sm text-yellow-400">
+                ⚠️ Showing demo data - JobAdder API unavailable
+              </p>
+            )}
           </div>
         </div>
         
-        <div className="flex justify-center mt-6">
-          <CrawlJobsButton onCrawl={crawlJobs} />
+        <div className="max-w-2xl mx-auto mb-8">
+          <JobAdderSearchBar onSearch={handleSearch} />
         </div>
         
         <div className="mt-8">
-          <SearchStats 
-            query={searchQuery}
-            totalResults={totalResults}
-            isLoading={isLoading}
+          <JobAdderSearchStats 
+            query={searchTerm}
+            totalResults={jobs.length}
+            isLoading={loading}
+            error={error}
           />
           
-          <JobList 
+          <JobAdderJobList 
             jobs={jobs}
-            isLoading={isLoading}
+            isLoading={loading}
           />
         </div>
       </div>

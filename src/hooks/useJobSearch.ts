@@ -1,7 +1,27 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { JobListing, SearchFilters } from '@/pages/CareerPage';
+
+export interface JobListing {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  salary?: string;
+  description: string;
+  type: "full-time" | "part-time" | "contract" | "remote";
+  postedDate: string;
+  url: string;
+  source: string;
+}
+
+export interface SearchFilters {
+  location: string;
+  jobType: string;
+  salaryMin: string;
+  remote: boolean;
+  datePosted: string;
+}
 
 interface CrawledJob {
   id: string;
