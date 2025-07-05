@@ -126,8 +126,8 @@ const PlatformChatbot = () => {
 
       {/* Chat Interface */}
       {isOpen && (
-        <Card className="w-80 h-96 shadow-xl border animate-scale-in bg-white/95 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-gradient-to-r from-primary to-secondary text-white">
+        <Card className="w-80 h-96 shadow-xl border animate-scale-in bg-background">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-secondary text-white">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Bot className="h-4 w-4" />
               Ask me anything...
