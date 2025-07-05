@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Landing = () => {
@@ -49,9 +49,25 @@ const Landing = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link to="/auth">
               <Button size="lg" className="px-8 py-3 text-lg">
-                Sign in to get started
+                Sign in as an agency
               </Button>
             </Link>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="px-8 py-3 text-lg"
+              asChild
+            >
+              <a 
+                href="https://startup-accelerator.hiringmanager.com/Account/login" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2"
+              >
+                Client Portal
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
           </div>
         </div>
 
