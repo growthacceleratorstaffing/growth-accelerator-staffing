@@ -87,7 +87,7 @@ const JobPosting = () => {
 
       toast({
         title: "Success!",
-        description: "Job posting generated with AI. The form fields below have been populated - review and adjust as needed.",
+        description: "Job posting generated with AI! Check the 'Job Description' field in the 'Manual Job Posting' section below - all form fields have been populated for your review.",
         className: "bg-pink-500 text-white border-pink-600",
       });
       
