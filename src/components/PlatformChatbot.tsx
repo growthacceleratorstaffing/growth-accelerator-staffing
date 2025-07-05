@@ -22,10 +22,11 @@ const PlatformChatbot = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Show chatbot after 3 seconds
+  // Show and auto-open chatbot after 3 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);
+      setIsOpen(true); // Auto-open the chat interface
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -41,7 +42,7 @@ const PlatformChatbot = () => {
     if (isOpen && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: 'Ask me anything about the Growth Accelerator platform! I can help you with job postings, candidate management, navigation, and more.',
+        content: 'Hi there! 👋 Ask me anything about our platform - I can help with job postings, candidate management, navigation, and more!',
         timestamp: new Date()
       }]);
     }
@@ -125,17 +126,17 @@ const PlatformChatbot = () => {
 
       {/* Chat Interface */}
       {isOpen && (
-        <Card className="w-80 h-96 shadow-xl border animate-scale-in">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <Card className="w-80 h-96 shadow-xl border animate-scale-in bg-white/95 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-gradient-to-r from-primary to-secondary text-white">
             <CardTitle className="flex items-center gap-2 text-sm">
-              <Bot className="h-4 w-4 text-primary" />
-              Platform Assistant
+              <Bot className="h-4 w-4" />
+              Ask me anything...
             </CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(false)}
-              className="h-6 w-6 p-0"
+              className="h-6 w-6 p-0 text-white hover:bg-white/20"
             >
               <X className="h-4 w-4" />
             </Button>
