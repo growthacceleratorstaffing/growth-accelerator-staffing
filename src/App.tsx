@@ -104,7 +104,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/jobs")}>
                   <Link to="/jobs">
                     <Briefcase className="h-4 w-4" />
-                    <span className="text-white text-base">Vacancies</span>
+                    <span className="text-white text-base">Jobs</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -147,7 +147,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/applications")}>
                   <Link to="/applications">
                     <User className="h-4 w-4" />
-                    <span className="text-base">Talent Pool</span>
+                    <span className="text-base">Applications</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -166,7 +166,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/matches")}>
                   <Link to="/matches">
                     <UserCheck className="h-4 w-4" />
-                    <span className="text-base">Matches</span>
+                    <span className="text-base">Matching</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
