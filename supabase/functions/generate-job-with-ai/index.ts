@@ -35,6 +35,22 @@ serve(async (req) => {
       );
     }
 
+    const systemPrompt = `You are a professional job posting generator. Based on the user's description, generate a complete job posting with the following structure as a valid JSON object only (no other text):
+
+{
+  "jobTitle": "clear, specific job title",
+  "company": "suggest a relevant company name or use 'Your Company'",
+  "location": "suggest appropriate location based on context or use 'Remote'",
+  "workType": "Full-time, Part-time, Contract, Freelance, or Internship",
+  "salaryLow": 50000,
+  "salaryHigh": 80000,
+  "jobDescription": "comprehensive job description including responsibilities, requirements, and benefits (minimum 200 words)",
+  "skillTags": "comma-separated list of required skills",
+  "category": "job category like Technology, Marketing, Finance, etc."
+}
+
+Make the salary estimates realistic for the role and location. Keep descriptions professional and comprehensive. Only return the JSON object, nothing else.`;
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -44,27 +60,11 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { 
-            role: 'system', 
-            content: `You are a professional job posting generator. Based on the user's description, generate a complete job posting with the following structure as JSON:
-
-{
-  "jobTitle": "string - clear, specific job title",
-  "company": "string - suggest a relevant company name or use 'Your Company'",
-  "location": "string - suggest appropriate location based on context or use 'Remote'",
-  "workType": "string - one of: Full-time, Part-time, Contract, Freelance, Internship",
-  "salaryLow": "number - minimum salary estimate",
-  "salaryHigh": "number - maximum salary estimate",
-  "jobDescription": "string - comprehensive job description including responsibilities, requirements, and benefits",
-  "skillTags": "string - comma-separated list of required skills",
-  "category": "string - job category like 'Technology', 'Marketing', etc."
-}
-
-Make the salary estimates realistic for the role and location. Keep descriptions professional and comprehensive.`
-          },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
+        temperature: 0.3,
+        max_tokens: 1500,
       }),
     });
 
@@ -78,17 +78,34 @@ Make the salary estimates realistic for the role and location. Keep descriptions
     }
 
     const data = await response.json();
-    const generatedContent = data.choices[0].message.content;
+    const generatedContent = data.choices[0].message.content.trim();
+    
+    console.log('AI Response:', generatedContent);
 
-    // Try to parse the JSON response
+    // Try to parse the JSON response with better error handling
     let jobData;
     try {
-      jobData = JSON.parse(generatedContent);
+      // Remove any markdown code blocks if present
+      const cleanContent = generatedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      jobData = JSON.parse(cleanContent);
+      
+      // Validate required fields
+      if (!jobData.jobTitle || !jobData.jobDescription) {
+        throw new Error('Missing required fields in AI response');
+      }
+      
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', generatedContent);
+      console.error('Parse error:', parseError.message);
+      
+      // Fallback: try to extract data manually or return error
       return new Response(
-        JSON.stringify({ error: 'Invalid AI response format' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          error: 'AI response was not in valid JSON format',
+          details: 'The AI response could not be parsed. Please try again.',
+          rawResponse: generatedContent
+        }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
