@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, MapPin, Calendar, Building } from "lucide-react";
 import { JobListing } from "@/pages/CareerPage";
+import { CrawledJobApplicationForm } from "./CrawledJobApplicationForm";
 
 interface JobListProps {
   jobs: JobListing[];
@@ -10,6 +12,18 @@ interface JobListProps {
 }
 
 export const JobList = ({ jobs, isLoading }: JobListProps) => {
+  const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
+
+  const handleApplyClick = (job: JobListing) => {
+    setSelectedJob(job);
+    setShowApplicationForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowApplicationForm(false);
+    setSelectedJob(null);
+  };
   if (isLoading) {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -84,16 +98,27 @@ export const JobList = ({ jobs, isLoading }: JobListProps) => {
               <Badge variant="outline" className="text-xs">
                 {job.source}
               </Badge>
-              <Button size="sm" asChild>
-                <a href={job.url} target="_blank" rel="noopener noreferrer">
-                  View Job
-                  <ExternalLink className="h-4 w-4 ml-1" />
-                </a>
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => handleApplyClick(job)}>
+                  Apply Now
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <a href={job.url} target="_blank" rel="noopener noreferrer">
+                    View Job
+                    <ExternalLink className="h-4 w-4 ml-1" />
+                  </a>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       ))}
+      
+      <CrawledJobApplicationForm
+        job={selectedJob}
+        isOpen={showApplicationForm}
+        onClose={handleCloseForm}
+      />
     </div>
   );
 };
