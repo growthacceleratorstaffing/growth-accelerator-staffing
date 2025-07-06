@@ -29,9 +29,22 @@ export function useJobSync() {
       let candidatesSynced = 0;
 
       if (direction === 'from-jobadder' || direction === 'bidirectional') {
+        // Get user access token from OAuth2 manager
+        const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
+        const userAccessToken = await oauth2Manager.getValidAccessToken();
+        
+        if (!userAccessToken) {
+          throw new Error('No JobAdder access token available. Please authenticate first.');
+        }
+
         // Fetch latest jobs from JobAdder
         const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jobadder-api', {
-          body: { endpoint: 'jobs', limit: 100, offset: 0 }
+          body: { 
+            endpoint: 'jobs', 
+            limit: 100, 
+            offset: 0,
+            accessToken: userAccessToken
+          }
         });
 
         if (jobsError) {
@@ -44,7 +57,12 @@ export function useJobSync() {
 
         // Fetch latest candidates from JobAdder
         const { data: candidatesData, error: candidatesError } = await supabase.functions.invoke('jobadder-api', {
-          body: { endpoint: 'candidates', limit: 100, offset: 0 }
+          body: { 
+            endpoint: 'candidates', 
+            limit: 100, 
+            offset: 0,
+            accessToken: userAccessToken
+          }
         });
 
         if (candidatesError) {
@@ -91,9 +109,24 @@ export function useJobSync() {
 
   const checkSyncStatus = useCallback(async () => {
     try {
-      // Check JobAdder API connectivity
+      // Get user access token from OAuth2 manager
+      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      
+      if (!userAccessToken) {
+        return {
+          connected: false,
+          error: 'No JobAdder access token available. Please authenticate first.',
+          apiHealth: 'unauthenticated'
+        };
+      }
+
+      // Check JobAdder API connectivity with user token
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
-        body: { endpoint: 'current-user' }
+        body: { 
+          endpoint: 'current-user',
+          accessToken: userAccessToken
+        }
       });
 
       if (error) {

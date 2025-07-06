@@ -240,21 +240,30 @@ export function useJobs() {
       // Try to fetch jobs from JobAdder API
       let jobAdderJobs: JobAdderJob[] = [];
       try {
-        const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
-          body: { 
-            endpoint: 'jobboards',
-            boardId: boardId,
-            limit: 50,
-            offset: 0,
-            search: searchTerm
-          }
-        });
+        // Get user access token from OAuth2 manager
+        const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
+        const userAccessToken = await oauth2Manager.getValidAccessToken();
+        
+        if (userAccessToken) {
+          const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+            body: { 
+              endpoint: 'jobboards',
+              boardId: boardId,
+              limit: 50,
+              offset: 0,
+              search: searchTerm,
+              accessToken: userAccessToken
+            }
+          });
 
-        if (!supabaseError && data?.items) {
-          jobAdderJobs = data.items;
-          console.log('Fetched JobAdder jobs:', jobAdderJobs.length);
+          if (!supabaseError && data?.items) {
+            jobAdderJobs = data.items;
+            console.log('Fetched JobAdder jobs:', jobAdderJobs.length);
+          } else {
+            console.warn('JobAdder API call failed:', supabaseError);
+          }
         } else {
-          console.warn('JobAdder API unavailable:', supabaseError);
+          console.warn('No JobAdder access token available - user needs to authenticate');
         }
       } catch (err) {
         console.warn('JobAdder API error:', err);

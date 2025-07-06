@@ -5,73 +5,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// JobAdder API credentials from Supabase secrets
-const JOBADDER_CLIENT_ID = Deno.env.get('JOBADDER_CLIENT_ID');
-const JOBADDER_CLIENT_SECRET = Deno.env.get('JOBADDER_CLIENT_SECRET');
+// JobAdder API configuration
 const JOBADDER_API_URL = 'https://api.jobadder.com/v2';
 
-// Token management
-interface TokenResponse {
-  access_token: string;
-  expires_in: number;
-  token_type: string;
-  refresh_token?: string;
-}
-
-let cachedToken: string | null = null;
-let tokenExpiry: number = 0;
-
-async function getAccessToken(): Promise<string> {
-  // Check if we have a valid cached token
-  if (cachedToken && Date.now() < tokenExpiry) {
-    console.log('Using cached JobAdder token');
-    return cachedToken;
+// Extract user access token from request headers or body
+function getUserAccessToken(req: Request, requestBody?: any): string | null {
+  // Check Authorization header first
+  const authHeader = req.headers.get('Authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
   }
-
-  if (!JOBADDER_CLIENT_ID || !JOBADDER_CLIENT_SECRET) {
-    console.error('JobAdder credentials missing');
-    throw new Error('JobAdder API credentials not configured');
-  }
-
-  console.log('Requesting new JobAdder access token...');
-
-  try {
-    const response = await fetch('https://id.jobadder.com/connect/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: JOBADDER_CLIENT_ID,
-        client_secret: JOBADDER_CLIENT_SECRET,
-        scope: 'read write offline_access'
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Token request failed:', response.status, errorText);
-      throw new Error(`Token request failed: ${response.status} ${errorText}`);
-    }
-
-    const tokenData: TokenResponse = await response.json();
-    
-    // Cache the token (subtract 5 minutes for safety)
-    cachedToken = tokenData.access_token;
-    tokenExpiry = Date.now() + ((tokenData.expires_in - 300) * 1000);
-    
-    console.log('JobAdder access token obtained successfully');
-    return cachedToken;
-  } catch (error) {
-    console.error('Error getting JobAdder access token:', error);
-    throw error;
-  }
-}
-
-async function makeJobAdderRequest(endpoint: string, params?: Record<string, string>): Promise<any> {
-  const accessToken = await getAccessToken();
   
+  // Check request body for token
+  if (requestBody?.accessToken) {
+    return requestBody.accessToken;
+  }
+  
+  return null;
+}
+
+async function makeJobAdderRequest(endpoint: string, accessToken: string, params?: Record<string, string>): Promise<any> {
   const url = new URL(`${JOBADDER_API_URL}${endpoint}`);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -92,15 +45,26 @@ async function makeJobAdderRequest(endpoint: string, params?: Record<string, str
   if (!response.ok) {
     const errorText = await response.text();
     console.error('JobAdder API request failed:', response.status, errorText);
+    
+    // Handle specific auth errors
+    if (response.status === 401) {
+      throw new Error('JobAdder authentication failed. Please re-authenticate.');
+    }
+    if (response.status === 403) {
+      throw new Error('Access forbidden. Check your JobAdder permissions.');
+    }
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      throw new Error(`Rate limited. Retry after ${retryAfter || '60'} seconds.`);
+    }
+    
     throw new Error(`JobAdder API request failed: ${response.status} ${errorText}`);
   }
 
   return await response.json();
 }
 
-async function makeJobAdderPostRequest(endpoint: string, body: any): Promise<any> {
-  const accessToken = await getAccessToken();
-  
+async function makeJobAdderPostRequest(endpoint: string, accessToken: string, body: any): Promise<any> {
   const url = `${JOBADDER_API_URL}${endpoint}`;
   console.log('Making JobAdder POST request to:', url);
 
@@ -116,6 +80,15 @@ async function makeJobAdderPostRequest(endpoint: string, body: any): Promise<any
   if (!response.ok) {
     const errorText = await response.text();
     console.error('JobAdder API POST request failed:', response.status, errorText);
+    
+    // Handle specific auth errors
+    if (response.status === 401) {
+      throw new Error('JobAdder authentication failed. Please re-authenticate.');
+    }
+    if (response.status === 403) {
+      throw new Error('Access forbidden. Check your JobAdder permissions.');
+    }
+    
     throw new Error(`JobAdder API POST request failed: ${response.status} ${errorText}`);
   }
 
@@ -131,19 +104,10 @@ serve(async (req) => {
   console.log('JobAdder API function called:', {
     method: req.method,
     url: req.url,
-    timestamp: new Date().toISOString(),
-    hasClientId: !!JOBADDER_CLIENT_ID,
-    hasClientSecret: !!JOBADDER_CLIENT_SECRET
+    timestamp: new Date().toISOString()
   });
 
   try {
-    // Log environment variables status (without exposing values)
-    console.log('Environment check:', {
-      hasClientId: !!JOBADDER_CLIENT_ID,
-      hasClientSecret: !!JOBADDER_CLIENT_SECRET,
-      clientIdLength: JOBADDER_CLIENT_ID?.length || 0,
-      apiUrl: JOBADDER_API_URL
-    });
 
     const url = new URL(req.url);
     let endpoint = url.searchParams.get('endpoint');
@@ -175,41 +139,67 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Processing JobAdder API request: ${endpoint} (${req.method})`);
+    // Extract user access token
+    const userAccessToken = getUserAccessToken(req, requestBody);
+    if (!userAccessToken) {
+      console.error('No access token provided');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Access token required. Please authenticate with JobAdder first.',
+          authUrl: '/jobadder-auth' 
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Processing JobAdder API request: ${endpoint} (${req.method}) with user token`);
 
     let data;
     const params: Record<string, string> = { limit, offset };
 
     switch (endpoint) {
       case 'health':
-        // Simple health check endpoint
-        return new Response(JSON.stringify({ 
-          status: 'ok', 
-          timestamp: new Date().toISOString(),
-          credentials: {
-            hasClientId: !!JOBADDER_CLIENT_ID,
-            hasClientSecret: !!JOBADDER_CLIENT_SECRET,
-          }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        // Simple health check endpoint with token validation
+        try {
+          await makeJobAdderRequest('/users/current', userAccessToken);
+          return new Response(JSON.stringify({ 
+            status: 'ok', 
+            timestamp: new Date().toISOString(),
+            authenticated: true
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({ 
+            status: 'error',
+            authenticated: false,
+            error: error.message
+          }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+      case 'current-user':
+        data = await makeJobAdderRequest('/users/current', userAccessToken);
+        break;
 
       case 'jobs':
-        data = await makeJobAdderRequest('/jobs', params);
+        data = await makeJobAdderRequest('/jobs', userAccessToken, params);
         break;
       
       case 'candidates':
-        data = await makeJobAdderRequest('/candidates', params);
+        data = await makeJobAdderRequest('/candidates', userAccessToken, params);
         break;
       
       case 'placements':
-        data = await makeJobAdderRequest('/placements', params);
+        data = await makeJobAdderRequest('/placements', userAccessToken, params);
         break;
       
       case 'jobboards':
         const jobboardId = url.searchParams.get('jobboardId') || url.searchParams.get('boardId') || requestBody?.boardId || '8734';
         console.log(`Fetching jobboard ${jobboardId} job ads`);
-        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/jobads`, params);
+        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/jobads`, userAccessToken, params);
         break;
 
       case 'jobboard-ad':
@@ -221,7 +211,7 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        data = await makeJobAdderRequest(`/jobboards/${boardId}/jobads/${adId}`);
+        data = await makeJobAdderRequest(`/jobboards/${boardId}/jobads/${adId}`, userAccessToken);
         break;
 
       case 'create-job':
@@ -261,7 +251,7 @@ serve(async (req) => {
         };
         
         console.log('Mapped job payload:', jobPayload);
-        data = await makeJobAdderPostRequest('/jobs', jobPayload);
+        data = await makeJobAdderPostRequest('/jobs', userAccessToken, jobPayload);
         break;
       
       default:
