@@ -2,20 +2,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Users, Calendar, FileText, UserPlus, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const PreOnboarding = () => {
   const [selectedCandidate, setSelectedCandidate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [successfulMatches, setSuccessfulMatches] = useState<any[]>([]);
+  const [loadingMatches, setLoadingMatches] = useState(true);
+  const [preboardingStats, setPreboardingStats] = useState({
+    pending: 0,
+    inProgress: 0,
+    readyForOnboarding: 0
+  });
   const { toast } = useToast();
 
-  const candidates = [
-    { value: "candidate1", name: "John Doe", email: "john.doe@example.com", position: "Software Engineer" },
-    { value: "candidate2", name: "Jane Smith", email: "jane.smith@example.com", position: "Marketing Manager" },
-    { value: "candidate3", name: "Mike Johnson", email: "mike.johnson@example.com", position: "Sales Representative" },
-  ];
+  // Fetch successful matches on component mount
+  useEffect(() => {
+    const fetchSuccessfulMatches = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('local_placements')
+          .select('*')
+          .eq('status_name', 'Active')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching successful matches:', error);
+          toast({
+            title: "Error loading matches",
+            description: "Failed to load successful matches for preboarding.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setSuccessfulMatches(data || []);
+        
+        // Calculate preboarding stats (for now, using sample data)
+        setPreboardingStats({
+          pending: data?.length || 0,
+          inProgress: Math.floor((data?.length || 0) / 2),
+          readyForOnboarding: Math.floor((data?.length || 0) / 3)
+        });
+      } finally {
+        setLoadingMatches(false);
+      }
+    };
+
+    fetchSuccessfulMatches();
+  }, [toast]);
 
   const handleSendPreboardingEmail = async () => {
     if (!selectedCandidate) {
@@ -27,7 +64,7 @@ const PreOnboarding = () => {
       return;
     }
 
-    const candidate = candidates.find(c => c.value === selectedCandidate);
+    const candidate = successfulMatches.find(c => c.id === selectedCandidate);
     if (!candidate) return;
 
     setIsLoading(true);
@@ -35,9 +72,10 @@ const PreOnboarding = () => {
     try {
       const { data, error } = await supabase.functions.invoke('send-preboarding-email', {
         body: {
-          candidateName: candidate.name,
-          candidateEmail: candidate.email,
-          position: candidate.position,
+          candidateName: candidate.candidate_name,
+          candidateEmail: candidate.candidate_email,
+          position: candidate.job_title,
+          companyName: candidate.company_name,
         },
       });
 
@@ -47,7 +85,7 @@ const PreOnboarding = () => {
 
       toast({
         title: "Preboarding email sent!",
-        description: `Successfully sent preboarding email to ${candidate.name}`,
+        description: `Successfully sent preboarding email to ${candidate.candidate_name}`,
       });
 
       // Reset the form
@@ -79,7 +117,7 @@ const PreOnboarding = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Pending Preboarding
             </CardTitle>
-            <div className="text-3xl font-bold">24</div>
+            <div className="text-3xl font-bold">{loadingMatches ? "..." : preboardingStats.pending}</div>
             <p className="text-sm text-muted-foreground">
               Candidates awaiting preboarding
             </p>
@@ -91,7 +129,7 @@ const PreOnboarding = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               In Progress
             </CardTitle>
-            <div className="text-3xl font-bold">12</div>
+            <div className="text-3xl font-bold">{loadingMatches ? "..." : preboardingStats.inProgress}</div>
             <p className="text-sm text-muted-foreground">
               Currently in preboarding process
             </p>
@@ -103,7 +141,7 @@ const PreOnboarding = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Ready for Onboarding
             </CardTitle>
-            <div className="text-3xl font-bold">8</div>
+            <div className="text-3xl font-bold">{loadingMatches ? "..." : preboardingStats.readyForOnboarding}</div>
             <p className="text-sm text-muted-foreground">
               Completed preboarding steps
             </p>
@@ -119,28 +157,38 @@ const PreOnboarding = () => {
             <CardTitle>Send Preboarding Email</CardTitle>
           </div>
           <CardDescription>
-            Select a candidate to send them a preboarding email with initial requirements
+            Select a successful match to send them a preboarding email with initial requirements
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <Select value={selectedCandidate} onValueChange={setSelectedCandidate}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a candidate for preboarding" />
+                <SelectValue placeholder="Select a successful match for preboarding" />
               </SelectTrigger>
               <SelectContent>
-                {candidates.map((candidate) => (
-                  <SelectItem key={candidate.value} value={candidate.value}>
-                    {candidate.name} - {candidate.position}
+                {loadingMatches ? (
+                  <SelectItem value="loading" disabled>
+                    Loading successful matches...
                   </SelectItem>
-                ))}
+                ) : successfulMatches.length === 0 ? (
+                  <SelectItem value="no-matches" disabled>
+                    No successful matches found
+                  </SelectItem>
+                ) : (
+                  successfulMatches.map((candidate) => (
+                    <SelectItem key={candidate.id} value={candidate.id}>
+                      {candidate.candidate_name} - {candidate.job_title} at {candidate.company_name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
           <Button 
             className="w-full" 
             onClick={handleSendPreboardingEmail}
-            disabled={isLoading}
+            disabled={isLoading || loadingMatches || successfulMatches.length === 0}
           >
             {isLoading ? "Sending..." : "Begin Preboarding"}
           </Button>
@@ -163,7 +211,7 @@ const PreOnboarding = () => {
             <Calendar className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">Ready to Start Preboarding</h3>
             <p className="text-muted-foreground mb-8">
-              Select a candidate above to begin their preboarding journey through our 4-step process
+              Select a successful match above to begin their preboarding journey through our 4-step process
             </p>
 
             {/* Preboarding Steps */}
