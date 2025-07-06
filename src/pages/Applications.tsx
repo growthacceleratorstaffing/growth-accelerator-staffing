@@ -323,12 +323,12 @@ const Applications = () => {
         </Alert>
       )}
 
-      <Tabs defaultValue="applications" className="space-y-6">
+      <Tabs defaultValue="talent-pool" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="applications">
+          <TabsTrigger value="applicants" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
             Applicants ({jobApplications.length})
           </TabsTrigger>
-          <TabsTrigger value="talent-pool">
+          <TabsTrigger value="talent-pool" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
             Talent Pool ({talentPool.length})
           </TabsTrigger>
         </TabsList>
@@ -345,7 +345,7 @@ const Applications = () => {
           </div>
         </div>
 
-        <TabsContent value="applications" className="space-y-6">
+        <TabsContent value="applicants" className="space-y-6">
           <div className="grid gap-6">
             {paginatedJobApplications.length === 0 ? (
               <div className="text-center py-12">
@@ -513,6 +513,7 @@ const Applications = () => {
                         <Button 
                           size="sm"
                           onClick={() => handleUpdateStage(application)}
+                          className="bg-secondary hover:bg-secondary/80 text-secondary-foreground"
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           Update Stage
@@ -711,10 +712,10 @@ const Applications = () => {
                         <Button 
                           size="sm"
                           onClick={() => handleUpdateStage(candidate)}
-                          className="bg-pink-500 hover:bg-pink-600 text-white"
+                          className="bg-secondary hover:bg-secondary/80 text-secondary-foreground"
                         >
                           <Edit className="h-4 w-4 mr-1" />
-                          Move to Job
+                          Update Stage
                         </Button>
                       </div>
                     </div>
