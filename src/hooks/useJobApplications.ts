@@ -662,16 +662,22 @@ export function useJobApplications() {
         console.warn('Error fetching local candidates:', supabaseError);
       }
 
-      // Separate job applications by stage
-      const initialApplications = jobAdderApplications.filter(app => 
-        app.status.name.toLowerCase() === 'application review' || 
-        app.status.name.toLowerCase() === 'submitted'
-      );
+      // Separate job applications by stage - be more specific about initial stages
+      const initialApplications = jobAdderApplications.filter(app => {
+        const statusName = app.status.name.toLowerCase();
+        return statusName === 'application review' || 
+               statusName === 'submitted' ||
+               statusName === 'new' ||
+               statusName === 'pending review';
+      });
       
-      const advancedApplications = jobAdderApplications.filter(app => 
-        app.status.name.toLowerCase() !== 'application review' && 
-        app.status.name.toLowerCase() !== 'submitted'
-      );
+      const advancedApplications = jobAdderApplications.filter(app => {
+        const statusName = app.status.name.toLowerCase();
+        return statusName !== 'application review' && 
+               statusName !== 'submitted' &&
+               statusName !== 'new' &&
+               statusName !== 'pending review';
+      });
 
       // Apply search filter to initial job applications
       let filteredJobApplications = initialApplications;

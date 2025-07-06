@@ -30,6 +30,7 @@ import {
   Edit
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button as PaginationButton } from "@/components/ui/button";
 import { useJobApplications, type JobApplicationCandidate } from "@/hooks/useJobApplications";
 import { useCandidateDetails } from "@/hooks/useCandidateDetails";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +38,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Applications = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [applicantsPage, setApplicantsPage] = useState(1);
+  const [talentPoolPage, setTalentPoolPage] = useState(1);
   const [isUpdateStageOpen, setIsUpdateStageOpen] = useState(false);
   const [isCandidateDetailsOpen, setIsCandidateDetailsOpen] = useState(false);
   const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
@@ -59,14 +62,30 @@ const Applications = () => {
     notes: ""
   });
   
+  const ITEMS_PER_PAGE = 25;
+  
   const { applications, jobApplications, talentPool, loading, error, useMockData, refetch, updateApplicationStage } = useJobApplications();
   const { candidateDetails, loading: candidateLoading, fetchCandidateDetails, clearCandidateDetails } = useCandidateDetails();
   const { toast } = useToast();
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
+    // Reset pagination when searching
+    setApplicantsPage(1);
+    setTalentPoolPage(1);
     refetch(value);
   };
+
+  // Pagination helpers
+  const getPaginatedData = (data: JobApplicationCandidate[], page: number) => {
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  };
+
+  const getTotalPages = (total: number) => Math.ceil(total / ITEMS_PER_PAGE);
+
+  const paginatedJobApplications = getPaginatedData(jobApplications, applicantsPage);
+  const paginatedTalentPool = getPaginatedData(talentPool, talentPoolPage);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -328,13 +347,14 @@ const Applications = () => {
 
         <TabsContent value="applications" className="space-y-6">
           <div className="grid gap-6">
-            {jobApplications.length === 0 ? (
+            {paginatedJobApplications.length === 0 ? (
               <div className="text-center py-12">
                 <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No job applications found matching your search.</p>
               </div>
             ) : (
-              jobApplications.map((application) => (
+              <>
+                {paginatedJobApplications.map((application) => (
                 <Card key={application.applicationId} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start gap-4">
@@ -501,20 +521,48 @@ const Applications = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))
+              ))}
+              
+              {/* Pagination for Job Applications */}
+              {getTotalPages(jobApplications.length) > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-8">
+                  <PaginationButton
+                    variant="outline"
+                    onClick={() => setApplicantsPage(prev => Math.max(1, prev - 1))}
+                    disabled={applicantsPage === 1}
+                  >
+                    Previous
+                  </PaginationButton>
+                  
+                  <span className="text-sm text-muted-foreground">
+                    Page {applicantsPage} of {getTotalPages(jobApplications.length)}
+                    {' '}({jobApplications.length} total)
+                  </span>
+                  
+                  <PaginationButton
+                    variant="outline"
+                    onClick={() => setApplicantsPage(prev => Math.min(getTotalPages(jobApplications.length), prev + 1))}
+                    disabled={applicantsPage === getTotalPages(jobApplications.length)}
+                  >
+                    Next
+                  </PaginationButton>
+                </div>
+              )}
+            </>
             )}
           </div>
         </TabsContent>
 
         <TabsContent value="talent-pool" className="space-y-6">
           <div className="grid gap-6">
-            {talentPool.length === 0 ? (
+            {paginatedTalentPool.length === 0 ? (
               <div className="text-center py-12">
                 <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No candidates found in talent pool matching your search.</p>
               </div>
             ) : (
-              talentPool.map((candidate) => (
+              <>
+                {paginatedTalentPool.map((candidate) => (
                 <Card key={candidate.applicationId} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start gap-4">
@@ -671,7 +719,34 @@ const Applications = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))
+              ))}
+              
+              {/* Pagination for Talent Pool */}
+              {getTotalPages(talentPool.length) > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-8">
+                  <PaginationButton
+                    variant="outline"
+                    onClick={() => setTalentPoolPage(prev => Math.max(1, prev - 1))}
+                    disabled={talentPoolPage === 1}
+                  >
+                    Previous
+                  </PaginationButton>
+                  
+                  <span className="text-sm text-muted-foreground">
+                    Page {talentPoolPage} of {getTotalPages(talentPool.length)}
+                    {' '}({talentPool.length} total)
+                  </span>
+                  
+                  <PaginationButton
+                    variant="outline"
+                    onClick={() => setTalentPoolPage(prev => Math.min(getTotalPages(talentPool.length), prev + 1))}
+                    disabled={talentPoolPage === getTotalPages(talentPool.length)}
+                  >
+                    Next
+                  </PaginationButton>
+                </div>
+              )}
+            </>
             )}
           </div>
         </TabsContent>
