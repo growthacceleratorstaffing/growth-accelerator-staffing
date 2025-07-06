@@ -208,8 +208,20 @@ serve(async (req) => {
       
       case 'jobboards':
         const jobboardId = url.searchParams.get('jobboardId') || url.searchParams.get('boardId') || requestBody?.boardId || '8734';
-        console.log(`Fetching jobboard ${jobboardId} ads`);
-        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/ads`, params);
+        console.log(`Fetching jobboard ${jobboardId} job ads`);
+        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/jobads`, params);
+        break;
+
+      case 'jobboard-ad':
+        const adId = url.searchParams.get('adId') || requestBody?.adId;
+        const boardId = url.searchParams.get('boardId') || requestBody?.boardId || '8734';
+        if (!adId) {
+          return new Response(
+            JSON.stringify({ error: 'adId parameter is required for jobboard-ad endpoint' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        data = await makeJobAdderRequest(`/jobboards/${boardId}/jobads/${adId}`);
         break;
 
       case 'create-job':

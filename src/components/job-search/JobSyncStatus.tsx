@@ -143,6 +143,14 @@ export const JobSyncStatus = () => {
           >
             Check Status
           </Button>
+          
+          <Button
+            variant="secondary"
+            onClick={() => window.open('/jobadder-auth', '_blank')}
+            size="sm"
+          >
+            Setup OAuth
+          </Button>
         </div>
         
         <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">

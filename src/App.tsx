@@ -25,6 +25,7 @@ import ApplyJob from "./pages/ApplyJob";
 import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
+import JobAdderAuth from "./pages/JobAdderAuth";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import AuthLogin from "./pages/AuthLogin";
@@ -271,6 +272,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/auth/login" element={<AuthLogin />} />
+          <Route path="/jobadder-auth" element={<JobAdderAuth />} />
           
           {/* Routes with sidebar */}
           <Route path="/" element={
