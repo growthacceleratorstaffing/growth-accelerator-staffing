@@ -22,6 +22,7 @@ import Applications from "./pages/Applications";
 import Candidates from "./pages/Candidates";
 import Matches from "./pages/Matches";
 import ApplyJob from "./pages/ApplyJob";
+import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
 import NotFound from "./pages/NotFound";
@@ -176,6 +177,14 @@ const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/pre-onboarding")}>
+                  <Link to="/pre-onboarding">
+                    <Settings className="h-4 w-4" />
+                    <span className="text-base">Pre-Onboarding</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild onClick={handleOnboardingClick}>
                   <button>
                     <Settings className="h-4 w-4" />
@@ -329,6 +338,13 @@ const App = () => (
             <ProtectedRoute requiredScope="read_placement">
               <AppLayout>
                 <Matches />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/pre-onboarding" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <PreOnboarding />
               </AppLayout>
             </ProtectedRoute>
           } />
