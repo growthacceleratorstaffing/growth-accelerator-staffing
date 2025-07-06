@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import oauth2Manager from '@/lib/oauth2-manager';
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from '@/integrations/supabase/client';
 
 // Job Application interfaces based on API specification
 export interface JobApplicationCandidate {
@@ -122,68 +121,34 @@ interface JobApplicationsResponse {
 }
 
 class JobApplicationsAPI {
-  private async getHeaders(): Promise<HeadersInit> {
-    const accessToken = await oauth2Manager.getValidAccessToken();
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
-
-    return headers;
-  }
-
-  private async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
-    try {
-      const response = await fetch(url, options);
-
-      // Handle 429 Too Many Requests with retry logic
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, retryCount) * 1000;
-        
-        console.warn(`Rate limited (429). Waiting ${waitTime / 1000} seconds before retry...`);
-        
-        if (retryCount < 3) {
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return this.makeRequest(url, options, retryCount + 1);
-        } else {
-          throw new Error('Rate limit exceeded. Please try again later.');
-        }
-      }
-
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  }
-
   async getJobApplications(jobId: number, params?: {
     offset?: number;
     limit?: number;
   }): Promise<JobApplicationsResponse> {
     try {
-      const searchParams = new URLSearchParams();
-      if (params?.offset) searchParams.append('offset', params.offset.toString());
-      if (params?.limit) searchParams.append('limit', params.limit.toString());
-
-      const url = `https://api.jobadder.com/v2/jobs/${jobId}/applications${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      // Use Supabase edge function instead of direct API call
+      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
       
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'GET',
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      if (!userAccessToken) {
+        throw new Error('No JobAdder access token available. Please authenticate first.');
       }
 
-      const data = await response.json();
-      return data;
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'job-applications',
+          jobId: jobId.toString(),
+          limit: params?.limit?.toString() || '50',
+          offset: params?.offset?.toString() || '0',
+          accessToken: userAccessToken
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data || { items: [], totalCount: 0 };
     } catch (error) {
       console.error('Error fetching job applications:', error);
       throw error;
@@ -195,24 +160,29 @@ class JobApplicationsAPI {
     limit?: number;
   }): Promise<JobApplicationsResponse> {
     try {
-      const searchParams = new URLSearchParams();
-      if (params?.offset) searchParams.append('offset', params.offset.toString());
-      if (params?.limit) searchParams.append('limit', params.limit.toString());
-
-      const url = `https://api.jobadder.com/v2/jobs/${jobId}/applications/active${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+      // Use Supabase edge function instead of direct API call
+      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
       
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'GET',
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      if (!userAccessToken) {
+        throw new Error('No JobAdder access token available. Please authenticate first.');
       }
 
-      const data = await response.json();
-      return data;
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'job-applications-active',
+          jobId: jobId.toString(),
+          limit: params?.limit?.toString() || '50',
+          offset: params?.offset?.toString() || '0',
+          accessToken: userAccessToken
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data || { items: [], totalCount: 0 };
     } catch (error) {
       console.error('Error fetching active job applications:', error);
       throw error;
@@ -225,35 +195,29 @@ class JobApplicationsAPI {
     activeOnly?: boolean;
   }): Promise<JobApplicationCandidate[]> {
     try {
-      // First, get all jobs to fetch applications from each
-      const jobsResponse = await fetch('https://api.jobadder.com/v2/jobs?limit=100', {
-        headers: await this.getHeaders()
+      // Use Supabase edge function to get job applications
+      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      
+      if (!userAccessToken) {
+        throw new Error('No JobAdder access token available. Please authenticate first.');
+      }
+
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'applications',
+          limit: params?.limit?.toString() || '100',
+          offset: params?.offset?.toString() || '0',
+          activeOnly: params?.activeOnly,
+          accessToken: userAccessToken
+        }
       });
 
-      if (!jobsResponse.ok) {
-        throw new Error('Failed to fetch jobs');
+      if (error) {
+        throw new Error(error.message);
       }
 
-      const jobsData = await jobsResponse.json();
-      const jobs = jobsData.items || [];
-
-      // Fetch applications for each job
-      const allApplications: JobApplicationCandidate[] = [];
-      
-      for (const job of jobs.slice(0, 10)) { // Limit to first 10 jobs to avoid too many API calls
-        try {
-          const applications = params?.activeOnly 
-            ? await this.getActiveJobApplications(job.jobId, { limit: 50 })
-            : await this.getJobApplications(job.jobId, { limit: 50 });
-          
-          allApplications.push(...applications.items);
-        } catch (error) {
-          console.warn(`Failed to fetch applications for job ${job.jobId}:`, error);
-          // Continue with other jobs
-        }
-      }
-
-      return allApplications;
+      return data?.items || [];
     } catch (error) {
       console.error('Error fetching all job applications:', error);
       throw error;
@@ -262,27 +226,8 @@ class JobApplicationsAPI {
 
   async updateApplicationStage(applicationId: number, statusId: number, notes?: string): Promise<JobApplicationCandidate> {
     try {
-      // In JobAdder API, you typically update application status via PUT request
-      const url = `https://api.jobadder.com/v2/jobapplications/${applicationId}`;
-      
-      const payload = {
-        statusId: statusId,
-        notes: notes
-      };
-
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'PUT',
-        headers: headers,
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
+      // TODO: Implement via Supabase edge function
+      throw new Error('Feature not yet implemented via edge function');
     } catch (error) {
       console.error('Error updating application stage:', error);
       throw error;
@@ -301,24 +246,8 @@ class JobApplicationsAPI {
     notes?: string;
   }): Promise<any> {
     try {
-      // This would be the endpoint to create a placement from an application
-      // In JobAdder, this might be done by updating the application to "Placed" status
-      // and providing additional placement details
-      const url = `https://api.jobadder.com/v2/jobapplications/${applicationId}/placement`;
-      
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(placementData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
+      // TODO: Implement via Supabase edge function
+      throw new Error('Feature not yet implemented via edge function');
     } catch (error) {
       console.error('Error creating placement from application:', error);
       throw error;

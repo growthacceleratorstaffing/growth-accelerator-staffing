@@ -1,7 +1,7 @@
 // External API client for Startup Accelerator Website
 // Job Board: Startup Accelerator Website API (ID: 8734)
 // Portal: Startup Accelerator API (ID: 4809)
-import oauth2Manager from './oauth2-manager';
+import { supabase } from "@/integrations/supabase/client";
 
 const JOBADDER_API_BASE = 'https://api.jobadder.com/v2';
 const JOBBOARD_ID = 8734;
@@ -67,92 +67,112 @@ export interface JobAdderJobDetail extends JobAdderJob {
 }
 
 class JobAdderAPI {
-  private async getHeaders(): Promise<HeadersInit> {
-    const accessToken = await oauth2Manager.getValidAccessToken();
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
-
-    return headers;
-  }
-
-  private async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
+  /**
+   * Fetch jobs from the job board using Supabase edge function
+   */
+  async getJobBoardJobs(options: {
+    offset?: number;
+    limit?: number;
+    search?: string;
+  } = {}): Promise<{ items: JobAdderJob[]; totalCount: number }> {
     try {
-      const response = await fetch(url, options);
-
-      // Handle 429 Too Many Requests with retry logic
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, retryCount) * 1000; // Exponential backoff if no Retry-After
-        
-        console.warn(`Rate limited (429). Waiting ${waitTime / 1000} seconds before retry...`);
-        
-        // Only retry up to 3 times
-        if (retryCount < 3) {
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return this.makeRequest(url, options, retryCount + 1);
-        } else {
-          throw new Error('Rate limit exceeded. Please try again later.');
-        }
+      // Get user access token from OAuth2 manager
+      const { default: oauth2Manager } = await import('./oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      
+      if (!userAccessToken) {
+        throw new Error('No JobAdder access token available. Please authenticate first.');
       }
 
-      return response;
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'jobboards',
+          boardId: JOBBOARD_ID.toString(),
+          limit: options.limit?.toString() || '50',
+          offset: options.offset?.toString() || '0',
+          search: options.search,
+          accessToken: userAccessToken
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        items: data?.items || [],
+        totalCount: data?.totalCount || 0
+      };
     } catch (error) {
+      console.error('Error fetching JobAdder job board jobs:', error);
       throw error;
     }
   }
 
+  /**
+   * Import a JobAdder job to local database using Supabase edge function
+   */
+  async importJob(job: JobAdderJob): Promise<any> {
+    try {
+      // Get user access token from OAuth2 manager
+      const { default: oauth2Manager } = await import('./oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      
+      if (!userAccessToken) {
+        throw new Error('No JobAdder access token available. Please authenticate first.');
+      }
+
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'import-job',
+          job: job,
+          accessToken: userAccessToken
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error importing JobAdder job:', error);
+      throw error;
+    }
+  }
+
+  // Legacy methods for backward compatibility - now use Supabase edge function
   async findJobBoardJobAds(params?: {
     offset?: number;
     limit?: number;
     search?: string;
   }): Promise<{ items: JobAdderJob[]; totalCount: number }> {
-    try {
-      const searchParams = new URLSearchParams();
-      if (params?.offset) searchParams.append('offset', params.offset.toString());
-      if (params?.limit) searchParams.append('limit', params.limit.toString());
-      if (params?.search) searchParams.append('search', params.search);
-
-      const url = `${JOBADDER_API_BASE}/jobboards/${JOBBOARD_ID}/jobads${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-      
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'GET',
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching job ads:', error);
-      throw error;
-    }
+    return this.getJobBoardJobs(params);
   }
 
   async getJobBoardJobAd(adId: number): Promise<JobAdderJobDetail> {
     try {
-      const url = `${JOBADDER_API_BASE}/jobboards/${JOBBOARD_ID}/jobads/${adId}`;
+      // Get user access token from OAuth2 manager
+      const { default: oauth2Manager } = await import('./oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
       
-      const headers = await this.getHeaders();
-      const response = await this.makeRequest(url, {
-        method: 'GET',
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      if (!userAccessToken) {
+        throw new Error('No JobAdder access token available. Please authenticate first.');
       }
 
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'jobboard-ad',
+          adId: adId.toString(),
+          boardId: JOBBOARD_ID.toString(),
+          accessToken: userAccessToken
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
       return data;
     } catch (error) {
       console.error('Error fetching job ad details:', error);

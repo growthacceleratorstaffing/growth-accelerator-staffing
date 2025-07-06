@@ -191,6 +191,32 @@ serve(async (req) => {
       case 'candidates':
         data = await makeJobAdderRequest('/candidates', userAccessToken, params);
         break;
+
+      case 'applications':
+        data = await makeJobAdderRequest('/jobapplications', userAccessToken, params);
+        break;
+      
+      case 'job-applications':
+        const jobId = requestBody?.jobId || url.searchParams.get('jobId');
+        if (!jobId) {
+          return new Response(
+            JSON.stringify({ error: 'jobId parameter is required for job-applications endpoint' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        data = await makeJobAdderRequest(`/jobs/${jobId}/applications`, userAccessToken, params);
+        break;
+
+      case 'job-applications-active':
+        const activeJobId = requestBody?.jobId || url.searchParams.get('jobId');
+        if (!activeJobId) {
+          return new Response(
+            JSON.stringify({ error: 'jobId parameter is required for job-applications-active endpoint' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        data = await makeJobAdderRequest(`/jobs/${activeJobId}/applications/active`, userAccessToken, params);
+        break;
       
       case 'placements':
         data = await makeJobAdderRequest('/placements', userAccessToken, params);
