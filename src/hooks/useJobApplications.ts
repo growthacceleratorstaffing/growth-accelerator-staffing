@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import oauth2Manager from '@/lib/oauth2-manager';
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 
 // Job Application interfaces based on API specification
@@ -556,6 +557,7 @@ export function useJobApplications() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [useMockData, setUseMockData] = useState(false);
+  const { toast } = useToast();
 
   const fetchApplications = async (searchTerm?: string) => {
     setLoading(true);
@@ -665,7 +667,8 @@ export function useJobApplications() {
       // Separate job applications by stage - fix the logic to be more restrictive for advanced stages
       const initialApplications = jobAdderApplications.filter(app => {
         const statusName = app.status.name.toLowerCase();
-        // Only advanced stages go to talent pool, everything else stays in applicants
+        console.log(`Checking initial application status: "${statusName}"`);
+        // Only these initial stages stay in applicants
         return statusName === 'application review' || 
                statusName === 'submitted' ||
                statusName === 'new' ||
@@ -677,7 +680,8 @@ export function useJobApplications() {
       
       const advancedApplications = jobAdderApplications.filter(app => {
         const statusName = app.status.name.toLowerCase();
-        // Only these advanced stages go to talent pool
+        console.log(`Checking advanced application status: "${statusName}"`);
+        // These advanced stages go to talent pool
         return statusName === 'phone interview' ||
                statusName === 'interview scheduled' ||
                statusName === 'technical interview' ||
@@ -687,6 +691,8 @@ export function useJobApplications() {
                statusName === 'on hold' ||
                statusName === 'shortlisted';
       });
+
+      console.log(`JobAdder Applications Split: ${initialApplications.length} initial, ${advancedApplications.length} advanced`);
 
       // Apply search filter to initial job applications
       let filteredJobApplications = initialApplications;
@@ -721,7 +727,7 @@ export function useJobApplications() {
       const allApplications = [...filteredJobApplications, ...filteredTalentPool];
       setApplications(allApplications);
       
-      console.log(`Job Applications: ${filteredJobApplications.length}, Talent Pool: ${filteredTalentPool.length} (${advancedApplications.length} advanced + ${localCandidates.length} local)`);
+      console.log(`Total applications displayed: ${filteredJobApplications.length} applicants, ${filteredTalentPool.length} talent pool (${advancedApplications.length} advanced + ${localCandidates.length} local)`);
       
     } catch (err) {
       console.error('Error fetching applications:', err);
@@ -752,14 +758,21 @@ export function useJobApplications() {
     };
 
     try {
+      console.log(`Updating application ${applicationId} to status ${statusId} (${statusNames[statusId]})`);
+      
       // For positive application IDs, try to sync with JobAdder API
       if (applicationId > 0) {
-        const response = await jobApplicationsAPI.updateApplicationStage(applicationId, statusId, notes);
-        console.log('JobAdder API updated successfully:', response);
+        try {
+          const response = await jobApplicationsAPI.updateApplicationStage(applicationId, statusId, notes);
+          console.log('JobAdder API updated successfully:', response);
+        } catch (apiError) {
+          console.warn('JobAdder API update failed:', apiError);
+          // Continue with local update even if API fails
+        }
       }
       
-      // Update local state regardless of API success
-      setApplications(prev => prev.map(app => {
+      // Update all local state arrays
+      const updateApplication = (app: any) => {
         if (app.applicationId === applicationId) {
           const updatedApp = {
             ...app,
@@ -776,32 +789,37 @@ export function useJobApplications() {
             },
             updatedAt: new Date().toISOString()
           };
-          
+          console.log(`Updated application ${applicationId} locally:`, updatedApp.status);
           return updatedApp;
         }
         return app;
-      }));
+      };
       
-      // Update separate arrays too
-      setJobApplications(prev => prev.map(app => 
-        app.applicationId === applicationId 
-          ? { ...app, status: { ...app.status, statusId, name: statusNames[statusId] || "Unknown" }, updatedAt: new Date().toISOString() }
-          : app
-      ));
+      // Update all arrays
+      setApplications(prev => prev.map(updateApplication));
+      setJobApplications(prev => prev.map(updateApplication));
+      setTalentPool(prev => prev.map(updateApplication));
       
-      setTalentPool(prev => prev.map(app => 
-        app.applicationId === applicationId 
-          ? { ...app, status: { ...app.status, statusId, name: statusNames[statusId] || "Unknown" }, updatedAt: new Date().toISOString() }
-          : app
-      ));
+      // Trigger a refetch to get updated categorization after a short delay
+      setTimeout(() => {
+        console.log('Triggering refetch to update categorization...');
+        fetchApplications();
+      }, 1000);
       
-      // Trigger a refetch to get updated categorization
-      setTimeout(() => fetchApplications(), 500);
+      toast({
+        title: "Stage Updated!",
+        description: `Application moved to "${statusNames[statusId]}".`,
+      });
       
       return { success: true };
-    } catch (apiError) {
-      console.warn('JobAdder API update failed, updated locally only:', apiError);
-      setError('Stage updated locally - JobAdder sync may have failed');
+    } catch (error) {
+      console.error('Error updating application stage:', error);
+      setError('Failed to update application stage');
+      toast({
+        title: "Error",
+        description: "Failed to update application stage.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
