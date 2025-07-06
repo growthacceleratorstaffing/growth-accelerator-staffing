@@ -551,6 +551,8 @@ export const jobApplicationsAPI = new JobApplicationsAPI();
 
 export function useJobApplications() {
   const [applications, setApplications] = useState<JobApplicationCandidate[]>([]);
+  const [jobApplications, setJobApplications] = useState<JobApplicationCandidate[]>([]);
+  const [talentPool, setTalentPool] = useState<JobApplicationCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [useMockData, setUseMockData] = useState(false);
@@ -660,13 +662,21 @@ export function useJobApplications() {
         console.warn('Error fetching local candidates:', supabaseError);
       }
 
-      // Combine JobAdder applications with local candidates
-      const allApplications = [...jobAdderApplications, ...localCandidates];
-      
-      // Apply search filter if provided
-      let filteredApplications = allApplications;
+      // Apply search filter to job applications
+      let filteredJobApplications = jobAdderApplications;
       if (searchTerm) {
-        filteredApplications = allApplications.filter(app => 
+        filteredJobApplications = jobAdderApplications.filter(app => 
+          `${app.candidate.firstName} ${app.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.job.company?.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // Apply search filter to talent pool
+      let filteredTalentPool = localCandidates;
+      if (searchTerm) {
+        filteredTalentPool = localCandidates.filter(app => 
           `${app.candidate.firstName} ${app.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -674,8 +684,15 @@ export function useJobApplications() {
         );
       }
       
-      setApplications(filteredApplications);
-      console.log(`Total applications displayed: ${filteredApplications.length} (${jobAdderApplications.length} from JobAdder, ${localCandidates.length} local)`);
+      // Set separate data for job applications and talent pool
+      setJobApplications(filteredJobApplications);
+      setTalentPool(filteredTalentPool);
+      
+      // Keep combined view for backward compatibility
+      const allApplications = [...filteredJobApplications, ...filteredTalentPool];
+      setApplications(allApplications);
+      
+      console.log(`Job Applications: ${filteredJobApplications.length}, Talent Pool: ${filteredTalentPool.length}`);
       
     } catch (err) {
       console.error('Error fetching applications:', err);
@@ -771,6 +788,8 @@ export function useJobApplications() {
 
   return {
     applications,
+    jobApplications,
+    talentPool,
     loading,
     error,
     useMockData,

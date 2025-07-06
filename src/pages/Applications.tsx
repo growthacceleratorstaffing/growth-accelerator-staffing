@@ -29,6 +29,7 @@ import {
   Eye,
   Edit
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useJobApplications, type JobApplicationCandidate } from "@/hooks/useJobApplications";
 import { useCandidateDetails } from "@/hooks/useCandidateDetails";
 import { useToast } from "@/hooks/use-toast";
@@ -58,7 +59,7 @@ const Applications = () => {
     notes: ""
   });
   
-  const { applications, loading, error, useMockData, refetch, updateApplicationStage } = useJobApplications();
+  const { applications, jobApplications, talentPool, loading, error, useMockData, refetch, updateApplicationStage } = useJobApplications();
   const { candidateDetails, loading: candidateLoading, fetchCandidateDetails, clearCandidateDetails } = useCandidateDetails();
   const { toast } = useToast();
 
@@ -280,8 +281,8 @@ const Applications = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Talent Pool</h1>
-          <p className="text-muted-foreground mt-2">Manage and track all talent applications and candidate details</p>
+          <h1 className="text-3xl font-bold">Applications & Talent Pool</h1>
+          <p className="text-muted-foreground mt-2">Manage job applications and talent pipeline</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -303,197 +304,378 @@ const Applications = () => {
         </Alert>
       )}
 
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search applications by candidate name, job title, or company..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
+      <Tabs defaultValue="applications" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="applications">
+            Applicants ({jobApplications.length})
+          </TabsTrigger>
+          <TabsTrigger value="talent-pool">
+            Talent Pool ({talentPool.length})
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-6">
-        {applications.length === 0 ? (
-          <div className="text-center py-12">
-            <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No job applications found matching your search.</p>
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by candidate name, job title, or company..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        ) : (
-          applications.map((application) => (
-            <Card key={application.applicationId} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${application.candidate.firstName}${application.candidate.lastName}`} />
-                    <AvatarFallback className="text-lg">
-                      {`${application.candidate.firstName[0]}${application.candidate.lastName[0]}`}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <CardTitle className="text-xl mb-1">
-                          <span className="flex items-center gap-2">
-                            <User className="h-5 w-5 text-primary" />
-                            {application.candidate.firstName} {application.candidate.lastName}
-                          </span>
-                        </CardTitle>
-                        <CardDescription className="text-base">
-                          Applied for: <span className="font-medium">{application.job.jobTitle}</span>
-                        </CardDescription>
-                        <CardDescription className="text-sm text-muted-foreground">
-                          Application ID: {application.applicationId}
-                        </CardDescription>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Badge className={getStatusColor(application.status.name)}>
-                          {application.status.name}
-                        </Badge>
-                        {application.rating && (
-                          <div className="flex items-center gap-1 text-sm">
-                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                            <span>{application.rating}/5</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+        </div>
 
-                    {/* Application Summary */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-                      {/* Candidate Information */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Candidate Details</span>
-                        </div>
-                        <div className="pl-6 space-y-2">
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {application.candidate.email}
-                            </span>
-                            {application.candidate.phone && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {application.candidate.phone}
+        <TabsContent value="applications" className="space-y-6">
+          <div className="grid gap-6">
+            {jobApplications.length === 0 ? (
+              <div className="text-center py-12">
+                <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No job applications found matching your search.</p>
+              </div>
+            ) : (
+              jobApplications.map((application) => (
+                <Card key={application.applicationId} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${application.candidate.firstName}${application.candidate.lastName}`} />
+                        <AvatarFallback className="text-lg">
+                          {`${application.candidate.firstName[0]}${application.candidate.lastName[0]}`}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <CardTitle className="text-xl mb-1">
+                              <span className="flex items-center gap-2">
+                                <User className="h-5 w-5 text-primary" />
+                                {application.candidate.firstName} {application.candidate.lastName}
                               </span>
+                            </CardTitle>
+                            <CardDescription className="text-base">
+                              Applied for: <span className="font-medium">{application.job.jobTitle}</span>
+                            </CardDescription>
+                            <CardDescription className="text-sm text-muted-foreground">
+                              Application ID: {application.applicationId}
+                            </CardDescription>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Badge className={getStatusColor(application.status.name)}>
+                              {application.status.name}
+                            </Badge>
+                            {application.rating && (
+                              <div className="flex items-center gap-1 text-sm">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span>{application.rating}/5</span>
+                              </div>
                             )}
                           </div>
-                          {application.candidate.address && (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <MapPin className="h-3 w-3" />
-                              {application.candidate.address.city}, {application.candidate.address.state}
+                        </div>
+
+                        {/* Application Summary */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+                          {/* Candidate Information */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">Candidate Details</span>
                             </div>
-                          )}
-                          <div className="text-sm">
-                            <span className="font-medium">Source: </span>
-                            <span className="text-muted-foreground">{application.source || 'Direct Application'}</span>
+                            <div className="pl-6 space-y-2">
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {application.candidate.email}
+                                </span>
+                                {application.candidate.phone && (
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="h-3 w-3" />
+                                    {application.candidate.phone}
+                                  </span>
+                                )}
+                              </div>
+                              {application.candidate.address && (
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <MapPin className="h-3 w-3" />
+                                  {application.candidate.address.city}, {application.candidate.address.state}
+                                </div>
+                              )}
+                              <div className="text-sm">
+                                <span className="font-medium">Source: </span>
+                                <span className="text-muted-foreground">{application.source || 'Direct Application'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Job Information */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Briefcase className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">Position Details</span>
+                            </div>
+                            <div className="pl-6 space-y-2">
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Building className="h-3 w-3" />
+                                  {application.job.company?.name}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {application.job.location?.name}
+                                </span>
+                              </div>
+                              {application.jobReference && (
+                                <div className="text-sm">
+                                  <span className="font-medium">Ref: </span>
+                                  <span className="text-muted-foreground">{application.jobReference}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator className="my-4" />
+
+                        {/* Workflow Progress */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div className="space-y-1">
+                            <span className="font-medium flex items-center gap-1">
+                              <ArrowRight className="h-4 w-4" />
+                              Current Stage
+                            </span>
+                            <p className="text-muted-foreground">
+                              {getWorkflowProgress(application.status.workflow)}
+                            </p>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <span className="font-medium flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              Applied
+                            </span>
+                            <p className="text-muted-foreground">
+                              {application.createdAt ? new Date(application.createdAt).toLocaleDateString() : 'Recently'}
+                            </p>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <span className="font-medium flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              Last Updated
+                            </span>
+                            <p className="text-muted-foreground">
+                              {application.updatedAt ? new Date(application.updatedAt).toLocaleDateString() : 'Recently'}
+                            </p>
                           </div>
                         </div>
                       </div>
-
-                      {/* Job Information */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Briefcase className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Position Details</span>
-                        </div>
-                        <div className="pl-6 space-y-2">
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Building className="h-3 w-3" />
-                              {application.job.company?.name}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {application.job.location?.name}
-                            </span>
-                          </div>
-                          {application.jobReference && (
-                            <div className="text-sm">
-                              <span className="font-medium">Ref: </span>
-                              <span className="text-muted-foreground">{application.jobReference}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </div>
-
-                    <Separator className="my-4" />
-
-                    {/* Workflow Progress */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div className="space-y-1">
-                        <span className="font-medium flex items-center gap-1">
-                          <ArrowRight className="h-4 w-4" />
-                          Current Stage
-                        </span>
-                        <p className="text-muted-foreground">
-                          {getWorkflowProgress(application.status.workflow)}
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <span className="font-medium flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          Applied
-                        </span>
-                        <p className="text-muted-foreground">
-                          {application.createdAt ? new Date(application.createdAt).toLocaleDateString() : 'Recently'}
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <span className="font-medium flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          Last Updated
-                        </span>
-                        <p className="text-muted-foreground">
-                          {application.updatedAt ? new Date(application.updatedAt).toLocaleDateString() : 'Recently'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <div className="flex items-center justify-between pt-4">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>ID: {application.applicationId}</span>
-                    <span>Source: {application.source || 'Direct'}</span>
-                    {application.manual && <Badge variant="outline">Manual Entry</Badge>}
-                  </div>
+                  </CardHeader>
                   
-                   <div className="flex gap-2">
-                     <Button 
-                       variant="outline" 
-                       size="sm"
-                       onClick={() => handleViewDetails(application)}
-                       className="bg-pink-500 hover:bg-pink-600 text-white border-pink-500"
-                     >
-                       <Eye className="h-4 w-4 mr-1" />
-                       View Details
-                     </Button>
-                     <Button 
-                       size="sm"
-                       onClick={() => handleUpdateStage(application)}
-                       className="bg-pink-500 hover:bg-pink-600 text-white"
-                     >
-                       <Edit className="h-4 w-4 mr-1" />
-                       Update Stage
-                     </Button>
-                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                  <CardContent>
+                    <div className="flex items-center justify-between pt-4">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>ID: {application.applicationId}</span>
+                        <span>Source: {application.source || 'Direct'}</span>
+                        {application.manual && <Badge variant="outline">Manual Entry</Badge>}
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewDetails(application)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleUpdateStage(application)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Update Stage
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="talent-pool" className="space-y-6">
+          <div className="grid gap-6">
+            {talentPool.length === 0 ? (
+              <div className="text-center py-12">
+                <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No candidates found in talent pool matching your search.</p>
+              </div>
+            ) : (
+              talentPool.map((candidate) => (
+                <Card key={candidate.applicationId} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${candidate.candidate.firstName}${candidate.candidate.lastName}`} />
+                        <AvatarFallback className="text-lg">
+                          {`${candidate.candidate.firstName[0]}${candidate.candidate.lastName[0]}`}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <CardTitle className="text-xl mb-1">
+                              <span className="flex items-center gap-2">
+                                <User className="h-5 w-5 text-primary" />
+                                {candidate.candidate.firstName} {candidate.candidate.lastName}
+                              </span>
+                            </CardTitle>
+                            <CardDescription className="text-base">
+                              Position: <span className="font-medium">{candidate.jobTitle}</span>
+                            </CardDescription>
+                            <CardDescription className="text-sm text-muted-foreground">
+                              Status: Available for opportunities
+                            </CardDescription>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Badge className={getStatusColor(candidate.status.name)}>
+                              {candidate.status.name}
+                            </Badge>
+                            <Badge variant="outline">Talent Pool</Badge>
+                          </div>
+                        </div>
+
+                        {/* Candidate Summary */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+                          {/* Contact Information */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">Contact Details</span>
+                            </div>
+                            <div className="pl-6 space-y-2">
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {candidate.candidate.email}
+                                </span>
+                                {candidate.candidate.phone && (
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="h-3 w-3" />
+                                    {candidate.candidate.phone}
+                                  </span>
+                                )}
+                              </div>
+                              {candidate.candidate.address && (
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <MapPin className="h-3 w-3" />
+                                  {candidate.candidate.address.city}, {candidate.candidate.address.state}
+                                </div>
+                              )}
+                              <div className="text-sm">
+                                <span className="font-medium">Source: </span>
+                                <span className="text-muted-foreground">{candidate.source || 'Manual Entry'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Current Position */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Briefcase className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">Current Status</span>
+                            </div>
+                            <div className="pl-6 space-y-2">
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Building className="h-3 w-3" />
+                                  {candidate.job.company?.name}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {candidate.job.location?.name}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator className="my-4" />
+
+                        {/* Status & Timeline */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div className="space-y-1">
+                            <span className="font-medium flex items-center gap-1">
+                              <ArrowRight className="h-4 w-4" />
+                              Current Stage
+                            </span>
+                            <p className="text-muted-foreground">
+                              {getWorkflowProgress(candidate.status.workflow)}
+                            </p>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <span className="font-medium flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              Added
+                            </span>
+                            <p className="text-muted-foreground">
+                              {candidate.createdAt ? new Date(candidate.createdAt).toLocaleDateString() : 'Recently'}
+                            </p>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <span className="font-medium flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              Last Updated
+                            </span>
+                            <p className="text-muted-foreground">
+                              {candidate.updatedAt ? new Date(candidate.updatedAt).toLocaleDateString() : 'Recently'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <div className="flex items-center justify-between pt-4">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>Ref: {candidate.jobReference}</span>
+                        <span>Source: {candidate.source || 'Manual'}</span>
+                        <Badge variant="outline">Available</Badge>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewDetails(candidate)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleUpdateStage(candidate)}
+                          className="bg-pink-500 hover:bg-pink-600 text-white"
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Move to Job
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Add Candidate Dialog */}
       <Dialog open={isAddCandidateOpen} onOpenChange={setIsAddCandidateOpen}>
