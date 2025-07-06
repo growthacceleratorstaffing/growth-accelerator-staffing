@@ -193,14 +193,66 @@ const Matches = () => {
     } catch (error) {
       console.error('Error creating placement:', error);
       
-      // Show a more informative error message but don't block the UI
-      toast({
-        title: "JobAdder API Unavailable",
-        description: "Placement tracked locally. Will sync with JobAdder when available.",
-        variant: "default"
-      });
+      // Fallback: Save placement locally when JobAdder API is unavailable
+      try {
+        // Find candidate and job details for local storage
+        const selectedCandidate = availableCandidates.find(c => 
+          c.candidate.candidateId.toString() === placementData.candidateId
+        );
+        const selectedJob = jobs.find(j => 
+          j.adId.toString() === placementData.jobId
+        );
+
+        if (!selectedCandidate || !selectedJob) {
+          throw new Error('Could not find candidate or job details');
+        }
+
+        // Save to local placements table
+        const { data: localPlacement, error: localError } = await supabase
+          .from('local_placements')
+          .insert({
+            candidate_id: placementData.candidateId,
+            candidate_name: `${selectedCandidate.candidate.firstName} ${selectedCandidate.candidate.lastName}`,
+            candidate_email: selectedCandidate.candidate.email,
+            job_id: placementData.jobId,
+            job_title: selectedJob.title,
+            company_name: selectedJob.company.name,
+            start_date: placementData.startDate,
+            end_date: placementData.endDate || null,
+            salary_rate: placementData.salaryRate ? parseFloat(placementData.salaryRate) : null,
+            salary_currency: placementData.salaryCurrency,
+            salary_rate_per: placementData.salaryRatePer,
+            work_type_id: placementData.workTypeId,
+            status_id: parseInt(placementData.statusId),
+            status_name: 'Active',
+            notes: placementData.notes,
+            synced_to_jobadder: false
+          })
+          .select()
+          .single();
+
+        if (localError) {
+          throw localError;
+        }
+
+        console.log('Local placement created:', localPlacement);
+
+        toast({
+          title: "Placement Tracked Locally",
+          description: "JobAdder API unavailable. Placement saved locally and will sync when API is available.",
+          variant: "default"
+        });
+      } catch (localSaveError) {
+        console.error('Failed to save placement locally:', localSaveError);
+        toast({
+          title: "Error",
+          description: "Failed to create placement. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
       
-      // Still reset form and close modal for better UX
+      // Reset form and close modal
       setPlacementData({
         candidateId: "",
         jobId: "", 

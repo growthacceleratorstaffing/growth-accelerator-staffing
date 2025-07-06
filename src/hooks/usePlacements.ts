@@ -408,21 +408,97 @@ export function usePlacements() {
     setError(null);
 
     try {
-      // Try to fetch from edge function
-      const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
-        body: { 
-          endpoint: 'placements',
-          limit: 100
-        }
-      });
+      let jobAdderPlacements: JobAdderPlacement[] = [];
+      let useJobAdderMock = false;
 
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
+      // Try to fetch from JobAdder API first
+      try {
+        const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+          body: { 
+            endpoint: 'placements',
+            limit: 100
+          }
+        });
+
+        if (supabaseError) {
+          throw new Error(supabaseError.message);
+        }
+
+        jobAdderPlacements = data.items || data || [];
+      } catch (apiError) {
+        console.warn('JobAdder API unavailable, using mock data for JobAdder placements:', apiError);
+        jobAdderPlacements = mockPlacements;
+        useJobAdderMock = true;
       }
 
-      let filteredPlacements = data.items || data;
+      // Always fetch local placements
+      let localPlacements: JobAdderPlacement[] = [];
+      try {
+        const { data: localData, error: localError } = await supabase
+          .from('local_placements')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (localError) {
+          console.warn('Error fetching local placements:', localError);
+        } else {
+          // Convert local placements to JobAdderPlacement format
+          localPlacements = (localData || []).map((local, index) => ({
+            placementId: -1000 - index, // Negative IDs to distinguish from JobAdder
+            status: {
+              statusId: local.status_id || 1,
+              name: local.status_name || 'Active',
+              active: true,
+              default: local.status_id === 1
+            },
+            candidate: {
+              candidateId: parseInt(local.candidate_id),
+              firstName: local.candidate_name.split(' ')[0] || 'Unknown',
+              lastName: local.candidate_name.split(' ').slice(1).join(' ') || '',
+              email: local.candidate_email,
+              status: {
+                statusId: 3,
+                name: 'Placed',
+                active: true,
+                default: false
+              }
+            },
+            job: {
+              jobId: parseInt(local.job_id),
+              jobTitle: local.job_title,
+              company: {
+                companyId: -1,
+                name: local.company_name,
+                status: {
+                  statusId: 1,
+                  name: 'Active',
+                  active: true,
+                  default: true
+                }
+              }
+            },
+            salary: local.salary_rate ? {
+              ratePer: local.salary_rate_per || 'Year',
+              rate: parseFloat(local.salary_rate.toString()),
+              currency: local.salary_currency || 'USD'
+            } : undefined,
+            startDate: local.start_date,
+            endDate: local.end_date || undefined,
+            notes: local.notes || undefined,
+            createdAt: local.created_at,
+            updatedAt: local.updated_at
+          }));
+        }
+      } catch (localFetchError) {
+        console.error('Error fetching local placements:', localFetchError);
+      }
+
+      // Combine JobAdder and local placements
+      let allPlacements = [...jobAdderPlacements, ...localPlacements];
+
+      // Apply search filter
       if (searchTerm) {
-        filteredPlacements = filteredPlacements.filter((placement: JobAdderPlacement) => 
+        allPlacements = allPlacements.filter(placement => 
           `${placement.candidate.firstName} ${placement.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
           placement.job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
           placement.job.company?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -430,23 +506,13 @@ export function usePlacements() {
         );
       }
       
-      setPlacements(filteredPlacements);
-      setUseMockData(false);
+      setPlacements(allPlacements);
+      setUseMockData(useJobAdderMock);
+      setError(useJobAdderMock ? 'Using demo data for JobAdder - API unavailable' : null);
     } catch (err) {
-      console.warn('API unavailable, using mock data:', err);
-      // Fallback to mock data
-      let filteredPlacements = mockPlacements;
-      if (searchTerm) {
-        filteredPlacements = mockPlacements.filter(placement => 
-          `${placement.candidate.firstName} ${placement.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          placement.job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          placement.job.company?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          placement.candidate.email.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      }
-      setPlacements(filteredPlacements);
-      setUseMockData(true);
-      setError('Using demo data - API unavailable');
+      console.error('Error fetching placements:', err);
+      setError('Error loading placements data');
+      setPlacements([]);
     } finally {
       setLoading(false);
     }

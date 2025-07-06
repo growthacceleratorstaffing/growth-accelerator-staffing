@@ -637,6 +637,75 @@ export type Database = {
           },
         ]
       }
+      local_placements: {
+        Row: {
+          candidate_email: string
+          candidate_id: string
+          candidate_name: string
+          company_name: string
+          created_at: string
+          end_date: string | null
+          id: string
+          job_id: string
+          job_title: string
+          jobadder_placement_id: number | null
+          notes: string | null
+          salary_currency: string | null
+          salary_rate: number | null
+          salary_rate_per: string | null
+          start_date: string
+          status_id: number | null
+          status_name: string | null
+          synced_to_jobadder: boolean | null
+          updated_at: string
+          work_type_id: string | null
+        }
+        Insert: {
+          candidate_email: string
+          candidate_id: string
+          candidate_name: string
+          company_name: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          job_id: string
+          job_title: string
+          jobadder_placement_id?: number | null
+          notes?: string | null
+          salary_currency?: string | null
+          salary_rate?: number | null
+          salary_rate_per?: string | null
+          start_date: string
+          status_id?: number | null
+          status_name?: string | null
+          synced_to_jobadder?: boolean | null
+          updated_at?: string
+          work_type_id?: string | null
+        }
+        Update: {
+          candidate_email?: string
+          candidate_id?: string
+          candidate_name?: string
+          company_name?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          job_id?: string
+          job_title?: string
+          jobadder_placement_id?: number | null
+          notes?: string | null
+          salary_currency?: string | null
+          salary_rate?: number | null
+          salary_rate_per?: string | null
+          start_date?: string
+          status_id?: number | null
+          status_name?: string | null
+          synced_to_jobadder?: boolean | null
+          updated_at?: string
+          work_type_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
