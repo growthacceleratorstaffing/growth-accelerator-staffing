@@ -284,7 +284,10 @@ const Applications = () => {
           <p className="text-muted-foreground mt-2">Manage and track all talent applications and candidate details</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setIsAddCandidateOpen(true)}>
+          <Button 
+            onClick={() => setIsAddCandidateOpen(true)}
+            className="bg-pink-500 hover:bg-pink-600 text-white"
+          >
             <User className="h-4 w-4 mr-2" />
             Add Candidate
           </Button>
