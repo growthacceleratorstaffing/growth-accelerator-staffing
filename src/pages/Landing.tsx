@@ -46,8 +46,8 @@ const Landing = () => {
             need into one platform, or separate if you prefer.
           </p>
           
-          <div className="flex flex-col gap-4 justify-center mb-12 max-w-md mx-auto w-full">
-            <Link to="/auth" className="w-full">
+          <div className="flex flex-row gap-4 justify-center mb-12 max-w-2xl mx-auto w-full">
+            <Link to="/auth" className="flex-1">
               <Button size="lg" className="w-full px-8 py-4 text-lg bg-white text-black hover:bg-gray-100">
                 Sign in as an agency
               </Button>
@@ -55,7 +55,7 @@ const Landing = () => {
             <Button 
               size="lg" 
               variant="outline" 
-              className="w-full px-8 py-4 text-lg bg-white text-black border-white hover:bg-gray-100"
+              className="flex-1 px-8 py-4 text-lg bg-white text-black border-white hover:bg-gray-100"
               asChild
             >
               <a 
