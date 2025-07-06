@@ -76,54 +76,53 @@ serve(async (req) => {
         jobUrl
       });
 
-      // Also post to LinkedIn
+      // Also create LinkedIn job posting
       let linkedinMessage = 'Job posted to career page successfully!';
       let linkedinError = null;
 
       try {
-        console.log('Creating LinkedIn post about the job...');
+        console.log('Creating LinkedIn job posting...');
         
-        // Create LinkedIn share post about the job opening
-        const shareContent = {
-          author: 'urn:li:organization:company-id', // You may need to configure this
-          lifecycleState: 'PUBLISHED',
-          specificContent: {
-            'com.linkedin.ugc.ShareContent': {
-              shareCommentary: {
-                text: `🚀 We're hiring! New ${jobTitle} position available at Growth Accelerator.${jobDescription ? `\n\n${jobDescription.substring(0, 200)}${jobDescription.length > 200 ? '...' : ''}` : ''}\n\n👉 Apply now: ${jobUrl}`
-              },
-              shareMediaCategory: 'NONE'
-            }
+        // Create LinkedIn job posting
+        const jobPostingData = {
+          companyId: 'urn:li:organization:company-id', // You may need to configure this with your actual company ID
+          description: jobDescription || `Join our team as a ${jobTitle} at Growth Accelerator.`,
+          employmentStatus: 'FULL_TIME',
+          externalJobPostingId: createdJob.id,
+          listedAt: new Date().getTime(),
+          jobPostingOperationType: 'CREATE',
+          title: jobTitle,
+          location: {
+            countryCode: 'US',
+            city: city || 'Remote'
           },
-          visibility: {
-            'com.linkedin.ugc.MemberNetworkVisibility': 'CONNECTIONS'
-          }
+          workplaceTypes: [workplaceType || 'REMOTE']
         };
 
-        const linkedinResponse = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+        const linkedinResponse = await fetch('https://api.linkedin.com/v2/jobPostings', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${linkedinAccessToken}`,
             'Content-Type': 'application/json',
             'X-Restli-Protocol-Version': '2.0.0'
           },
-          body: JSON.stringify(shareContent)
+          body: JSON.stringify(jobPostingData)
         });
 
         if (!linkedinResponse.ok) {
           const errorText = await linkedinResponse.text();
-          console.error('LinkedIn posting error:', errorText);
-          linkedinError = `LinkedIn posting failed: ${linkedinResponse.status}`;
-          linkedinMessage = 'Job posted to career page successfully! LinkedIn posting failed - please check your LinkedIn credentials.';
+          console.error('LinkedIn job posting error:', errorText);
+          linkedinError = `LinkedIn job posting failed: ${linkedinResponse.status}`;
+          linkedinMessage = 'Job posted to career page successfully! LinkedIn job posting failed - please check your LinkedIn credentials and company permissions.';
         } else {
           const linkedinResult = await linkedinResponse.json();
-          console.log('LinkedIn post created successfully:', linkedinResult.id);
-          linkedinMessage = 'Job posted to career page and LinkedIn successfully!';
+          console.log('LinkedIn job posting created successfully:', linkedinResult.id);
+          linkedinMessage = 'Job posted to career page and LinkedIn job board successfully!';
         }
       } catch (error) {
-        console.error('LinkedIn posting error:', error);
+        console.error('LinkedIn job posting error:', error);
         linkedinError = error.message;
-        linkedinMessage = 'Job posted to career page successfully! LinkedIn posting failed - please check your LinkedIn credentials.';
+        linkedinMessage = 'Job posted to career page successfully! LinkedIn job posting failed - please check your LinkedIn credentials and company permissions.';
       }
 
       return new Response(JSON.stringify({

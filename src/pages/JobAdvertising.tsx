@@ -191,9 +191,9 @@ const JobAdvertising = () => {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Create Career Page Job & LinkedIn Post</CardTitle>
+                  <CardTitle>Create Career Page Job & LinkedIn Job Posting</CardTitle>
                   <CardDescription>
-                    Add job openings to your career page and automatically share on LinkedIn to maximize reach
+                    Add job openings to your career page and automatically post them as jobs on LinkedIn's job board
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -299,7 +299,7 @@ const JobAdvertising = () => {
                     disabled={isCreatingJob}
                     className="w-full"
                   >
-                    {isCreatingJob ? "Creating Job & LinkedIn Post..." : "Create Job & Share on LinkedIn"}
+                    {isCreatingJob ? "Creating Job & LinkedIn Posting..." : "Create Job & Post to LinkedIn"}
                   </Button>
                 </CardContent>
               </Card>
@@ -324,19 +324,19 @@ const JobAdvertising = () => {
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
                     <div>
-                      <strong>LinkedIn Share:</strong> Automatic LinkedIn post with job link
+                      <strong>LinkedIn Job Board:</strong> Official job posting on LinkedIn's job board
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                     <div>
-                      <strong>SEO Benefits:</strong> Jobs are indexed by search engines
+                      <strong>Professional Reach:</strong> Candidates can apply directly through LinkedIn
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                     <div>
-                      <strong>Dual Reach:</strong> Combines career page visibility with social sharing
+                      <strong>Dual Visibility:</strong> Maximum exposure across both platforms
                     </div>
                   </div>
                 </CardContent>
