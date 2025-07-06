@@ -47,6 +47,9 @@ const JobAdvertising = () => {
   };
 
   const handleCreateJob = async () => {
+    console.log('Starting LinkedIn job posting creation...');
+    console.log('Form data:', jobFormData);
+    
     if (!jobFormData.jobTitle || !jobFormData.jobDescription || !jobFormData.companyId) {
       toast({
         title: "Missing Information",
@@ -57,6 +60,7 @@ const JobAdvertising = () => {
     }
 
     setIsCreatingJob(true);
+    console.log('Invoking LinkedIn job advertisement function...');
     
     try {
       const { data, error } = await supabase.functions.invoke('linkedin-job-advertisement', {
@@ -73,8 +77,11 @@ const JobAdvertising = () => {
         }
       });
 
+      console.log('Function response:', { data, error });
+
       if (error) throw error;
 
+      console.log('LinkedIn job posting successful!');
       toast({
         title: "Job Posted",
         description: `Job posted to LinkedIn Jobs! View at: ${data.jobUrl}`
@@ -486,28 +493,6 @@ const JobAdvertising = () => {
                     <div>
                       <strong>Higher Visibility:</strong> Promoted content in LinkedIn feed
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Pricing Guide
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div>
-                    <strong>Cost per Click:</strong> $2-$5 USD
-                  </div>
-                  <div>
-                    <strong>Recommended Budget:</strong>
-                    <ul className="ml-4 mt-1 space-y-1">
-                      <li>• Small campaign: $200-$500</li>
-                      <li>• Medium campaign: $500-$1000</li>
-                      <li>• Large campaign: $1000+</li>
-                    </ul>
                   </div>
                 </CardContent>
               </Card>

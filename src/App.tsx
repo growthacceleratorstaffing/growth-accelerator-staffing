@@ -112,9 +112,9 @@ const AppSidebar = () => {
 
         <SidebarSeparator />
 
-        {/* Vacancies Section */}
+        {/* Jobs Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-pink-500 text-xl font-semibold">Vacancies</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-pink-500 text-xl font-semibold">Jobs</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
