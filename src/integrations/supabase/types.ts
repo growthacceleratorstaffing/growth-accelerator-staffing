@@ -944,6 +944,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_workable_permission: {
+        Args: { _user_id: string; _permission: string }
+        Returns: boolean
+      }
       has_workable_role: {
         Args: {
           _user_id: string
@@ -1002,6 +1006,12 @@ export type Database = {
         | "recruiter"
         | "interviewer"
         | "viewer"
+        | "simple"
+        | "reviewer"
+        | "no_access"
+        | "hris_admin"
+        | "hris_employee"
+        | "hris_no_access"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1152,6 +1162,12 @@ export const Constants = {
         "recruiter",
         "interviewer",
         "viewer",
+        "simple",
+        "reviewer",
+        "no_access",
+        "hris_admin",
+        "hris_employee",
+        "hris_no_access",
       ],
     },
   },
