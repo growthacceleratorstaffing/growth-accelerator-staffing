@@ -14,10 +14,12 @@ const JobAdvertising = () => {
   const [formData, setFormData] = useState({
     jobTitle: "",
     jobDescription: "",
-    budget: "",
-    duration: "",
-    targetAudience: "",
-    campaignName: ""
+    companyId: "",
+    city: "",
+    jobFunction: "",
+    employmentType: "FULL_TIME",
+    workplaceType: "REMOTE",
+    duration: ""
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -26,10 +28,10 @@ const JobAdvertising = () => {
   };
 
   const handleCreateAdvertisement = async () => {
-    if (!formData.jobTitle || !formData.budget || !formData.duration) {
+    if (!formData.jobTitle || !formData.jobDescription || !formData.companyId) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please fill in job title, description, and company ID",
         variant: "destructive"
       });
       return;
@@ -42,35 +44,39 @@ const JobAdvertising = () => {
         body: {
           jobTitle: formData.jobTitle,
           jobDescription: formData.jobDescription,
-          budget: parseFloat(formData.budget),
-          duration: parseInt(formData.duration),
-          targetAudience: formData.targetAudience,
-          campaignName: formData.campaignName || formData.jobTitle
+          companyId: formData.companyId,
+          city: formData.city,
+          jobFunction: formData.jobFunction,
+          employmentType: formData.employmentType,
+          workplaceType: formData.workplaceType,
+          duration: parseInt(formData.duration) || 30
         }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Advertisement Created",
-        description: "Your LinkedIn job advertisement has been created successfully!"
+        title: "Job Posted",
+        description: `Job posted to LinkedIn Jobs! View at: ${data.jobUrl}`
       });
 
       // Reset form
       setFormData({
         jobTitle: "",
         jobDescription: "",
-        budget: "",
-        duration: "",
-        targetAudience: "",
-        campaignName: ""
+        companyId: "",
+        city: "",
+        jobFunction: "",
+        employmentType: "FULL_TIME",
+        workplaceType: "REMOTE",
+        duration: ""
       });
 
     } catch (error) {
-      console.error('Error creating LinkedIn advertisement:', error);
+      console.error('Error creating LinkedIn job posting:', error);
       toast({
         title: "Error",
-        description: "Failed to create LinkedIn advertisement. Please try again.",
+        description: "Failed to create LinkedIn job posting. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -93,10 +99,10 @@ const JobAdvertising = () => {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Create LinkedIn Job Advertisement</CardTitle>
-              <CardDescription>
-                Create a targeted job advertisement to reach potential candidates on LinkedIn
-              </CardDescription>
+            <CardTitle>Create LinkedIn Job Posting</CardTitle>
+            <CardDescription>
+              Post a job directly to LinkedIn's job board (linkedin.com/jobs)
+            </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -110,18 +116,18 @@ const JobAdvertising = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="campaignName">Campaign Name</Label>
+                  <Label htmlFor="companyId">Company ID *</Label>
                   <Input
-                    id="campaignName"
-                    placeholder="Leave empty to use job title"
-                    value={formData.campaignName}
-                    onChange={(e) => handleInputChange("campaignName", e.target.value)}
+                    id="companyId"
+                    placeholder="LinkedIn Company ID"
+                    value={formData.companyId}
+                    onChange={(e) => handleInputChange("companyId", e.target.value)}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="jobDescription">Job Description</Label>
+                <Label htmlFor="jobDescription">Job Description *</Label>
                 <Textarea
                   id="jobDescription"
                   placeholder="Describe the role, requirements, and benefits..."
@@ -133,39 +139,77 @@ const JobAdvertising = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="budget">Budget (USD) *</Label>
+                  <Label htmlFor="city">City</Label>
                   <Input
-                    id="budget"
-                    type="number"
-                    placeholder="e.g. 500"
-                    value={formData.budget}
-                    onChange={(e) => handleInputChange("budget", e.target.value)}
+                    id="city"
+                    placeholder="e.g. San Francisco (leave empty for Remote)"
+                    value={formData.city}
+                    onChange={(e) => handleInputChange("city", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="duration">Duration (Days) *</Label>
-                  <Select onValueChange={(value) => handleInputChange("duration", value)}>
+                  <Label htmlFor="jobFunction">Job Function</Label>
+                  <Select onValueChange={(value) => handleInputChange("jobFunction", value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select duration" />
+                      <SelectValue placeholder="Select job function" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="7">7 days</SelectItem>
-                      <SelectItem value="14">14 days</SelectItem>
-                      <SelectItem value="30">30 days</SelectItem>
-                      <SelectItem value="60">60 days</SelectItem>
+                      <SelectItem value="eng">Engineering</SelectItem>
+                      <SelectItem value="mkt">Marketing</SelectItem>
+                      <SelectItem value="sal">Sales</SelectItem>
+                      <SelectItem value="fin">Finance</SelectItem>
+                      <SelectItem value="hr">Human Resources</SelectItem>
+                      <SelectItem value="ops">Operations</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="employmentType">Employment Type</Label>
+                  <Select onValueChange={(value) => handleInputChange("employmentType", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Full-time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FULL_TIME">Full-time</SelectItem>
+                      <SelectItem value="PART_TIME">Part-time</SelectItem>
+                      <SelectItem value="CONTRACT">Contract</SelectItem>
+                      <SelectItem value="TEMPORARY">Temporary</SelectItem>
+                      <SelectItem value="INTERNSHIP">Internship</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="workplaceType">Workplace Type</Label>
+                  <Select onValueChange={(value) => handleInputChange("workplaceType", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Remote" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="REMOTE">Remote</SelectItem>
+                      <SelectItem value="ON_SITE">On-site</SelectItem>
+                      <SelectItem value="HYBRID">Hybrid</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="targetAudience">Target Audience</Label>
-                <Input
-                  id="targetAudience"
-                  placeholder="e.g. Software Engineers in San Francisco"
-                  value={formData.targetAudience}
-                  onChange={(e) => handleInputChange("targetAudience", e.target.value)}
-                />
+                <Label htmlFor="duration">Duration (Days)</Label>
+                <Select onValueChange={(value) => handleInputChange("duration", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="30 days (default)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7 days</SelectItem>
+                    <SelectItem value="14">14 days</SelectItem>
+                    <SelectItem value="30">30 days</SelectItem>
+                    <SelectItem value="60">60 days</SelectItem>
+                    <SelectItem value="90">90 days</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <Button 
@@ -173,7 +217,7 @@ const JobAdvertising = () => {
                 disabled={isCreating}
                 className="w-full"
               >
-                {isCreating ? "Creating Advertisement..." : "Create LinkedIn Advertisement"}
+                {isCreating ? "Creating Job Posting..." : "Post Job to LinkedIn"}
               </Button>
             </CardContent>
           </Card>
@@ -185,26 +229,26 @@ const JobAdvertising = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />
-                Advertisement Benefits
+                Job Posting Benefits
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex items-start gap-2">
                 <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                 <div>
-                  <strong>Targeted Reach:</strong> Reach qualified candidates based on skills, location, and experience
+                  <strong>Professional Visibility:</strong> Jobs appear on LinkedIn's job board
                 </div>
               </div>
               <div className="flex items-start gap-2">
                 <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                 <div>
-                  <strong>Professional Network:</strong> Access LinkedIn's professional user base
+                  <strong>Quality Candidates:</strong> Access to LinkedIn's professional network
                 </div>
               </div>
               <div className="flex items-start gap-2">
                 <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                 <div>
-                  <strong>Performance Tracking:</strong> Monitor clicks, applications, and engagement
+                  <strong>Easy Applications:</strong> Candidates can apply directly through LinkedIn
                 </div>
               </div>
             </CardContent>
@@ -214,20 +258,21 @@ const JobAdvertising = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5" />
-                Pricing Guide
+                Required Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div>
-                <strong>Cost per Click:</strong> $2-$5 USD
+                <strong>Company ID:</strong> Your LinkedIn Company Page ID
               </div>
               <div>
-                <strong>Recommended Budget:</strong>
-                <ul className="ml-4 mt-1 space-y-1">
-                  <li>• Small campaign: $200-$500</li>
-                  <li>• Medium campaign: $500-$1000</li>
-                  <li>• Large campaign: $1000+</li>
-                </ul>
+                <strong>Job Function:</strong> Helps categorize the role
+              </div>
+              <div>
+                <strong>Employment Type:</strong> Full-time, Part-time, Contract, etc.
+              </div>
+              <div>
+                <strong>Workplace Type:</strong> Remote, On-site, or Hybrid
               </div>
             </CardContent>
           </Card>
@@ -240,11 +285,11 @@ const JobAdvertising = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <div>• Run ads for at least 7-14 days</div>
-              <div>• Target specific skills and locations</div>
-              <div>• Use clear, compelling job titles</div>
-              <div>• Include salary range if possible</div>
-              <div>• Monitor and adjust targeting</div>
+              <div>• Post jobs for 30-90 days</div>
+              <div>• Use clear, specific job titles</div>
+              <div>• Include detailed job descriptions</div>
+              <div>• Specify location requirements</div>
+              <div>• Add salary range if possible</div>
             </CardContent>
           </Card>
         </div>

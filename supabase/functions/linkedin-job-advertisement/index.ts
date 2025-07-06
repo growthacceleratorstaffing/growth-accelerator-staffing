@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { jobTitle, jobDescription, budget, duration, targetAudience, campaignName } = await req.json();
+    const { jobTitle, jobDescription, companyId, city, jobFunction, employmentType, workplaceType, duration } = await req.json();
 
     // Get LinkedIn credentials from secrets
     const linkedinClientId = Deno.env.get('LINKEDIN_CLIENT_ID');
@@ -27,99 +27,55 @@ serve(async (req) => {
       throw new Error('LinkedIn access token not configured. Please authenticate first.');
     }
 
-    // Create LinkedIn campaign
-    const campaignData = {
-      name: campaignName,
-      type: "SPONSORED_CONTENT",
-      status: "DRAFT",
-      costType: "CPM",
-      dailyBudget: {
-        amount: (budget / duration).toFixed(2),
-        currencyCode: "USD"
+    // Create LinkedIn job posting (not sponsored content)
+    const jobPostingData = {
+      companyId: `urn:li:organization:${companyId}`,
+      title: jobTitle,
+      description: jobDescription,
+      location: {
+        countryCode: "US", // Should be configurable
+        city: city || "Remote"
       },
-      totalBudget: {
-        amount: budget.toString(),
-        currencyCode: "USD"
+      jobFunction: {
+        code: jobFunction || "eng" // Engineering default
       },
-      runSchedule: {
-        start: new Date().getTime(),
-        end: new Date(Date.now() + duration * 24 * 60 * 60 * 1000).getTime()
-      },
-      targeting: {
-        includedTargetingFacets: {
-          industries: [],
-          locations: [],
-          skills: []
-        }
-      }
+      employmentType: employmentType || "FULL_TIME",
+      workplaceType: workplaceType || "REMOTE",
+      listedAt: Date.now(),
+      expireAt: Date.now() + ((duration || 30) * 24 * 60 * 60 * 1000)
     };
 
-    // Create the campaign
-    const campaignResponse = await fetch('https://api.linkedin.com/v2/adCampaignsV2', {
+    // Create the job posting using LinkedIn Jobs API
+    const jobResponse = await fetch('https://api.linkedin.com/v2/jobs', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${linkedinAccessToken}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0'
       },
-      body: JSON.stringify(campaignData)
+      body: JSON.stringify(jobPostingData)
     });
 
-    if (!campaignResponse.ok) {
-      const errorText = await campaignResponse.text();
-      console.error('LinkedIn Campaign API error:', errorText);
-      throw new Error(`Failed to create LinkedIn campaign: ${campaignResponse.status}`);
+    if (!jobResponse.ok) {
+      const errorText = await jobResponse.text();
+      console.error('LinkedIn Jobs API error:', errorText);
+      throw new Error(`Failed to create LinkedIn job posting: ${jobResponse.status}`);
     }
 
-    const campaign = await campaignResponse.json();
-
-    // Create job ad creative
-    const creativeData = {
-      campaign: campaign.id,
-      status: "ACTIVE",
-      type: "SPONSORED_CONTENT",
-      content: {
-        title: jobTitle,
-        description: jobDescription || `Join our team as a ${jobTitle}. Apply now!`,
-        callToAction: {
-          type: "APPLY_NOW",
-          url: `${req.headers.get('origin')}/jobs`
-        }
-      }
-    };
-
-    const creativeResponse = await fetch('https://api.linkedin.com/v2/adCreativesV2', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${linkedinAccessToken}`,
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0'
-      },
-      body: JSON.stringify(creativeData)
-    });
-
-    if (!creativeResponse.ok) {
-      const errorText = await creativeResponse.text();
-      console.error('LinkedIn Creative API error:', errorText);
-      throw new Error(`Failed to create LinkedIn creative: ${creativeResponse.status}`);
-    }
-
-    const creative = await creativeResponse.json();
+    const jobPosting = await jobResponse.json();
 
     // Log the successful creation
-    console.log('LinkedIn job advertisement created:', {
-      campaignId: campaign.id,
-      creativeId: creative.id,
+    console.log('LinkedIn job posting created:', {
+      jobId: jobPosting.id,
       jobTitle,
-      budget,
       duration
     });
 
     return new Response(JSON.stringify({
       success: true,
-      campaignId: campaign.id,
-      creativeId: creative.id,
-      message: 'LinkedIn job advertisement created successfully'
+      jobId: jobPosting.id,
+      jobUrl: `https://www.linkedin.com/jobs/view/${jobPosting.id}`,
+      message: 'LinkedIn job posting created successfully'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
