@@ -25,29 +25,52 @@ let tokenExpiry: number = 0;
 async function getAccessToken(): Promise<string> {
   // Check if we have a valid cached token
   if (cachedToken && Date.now() < tokenExpiry) {
+    console.log('Using cached JobAdder token');
     return cachedToken;
   }
 
   if (!JOBADDER_CLIENT_ID || !JOBADDER_CLIENT_SECRET) {
+    console.error('JobAdder credentials missing:', {
+      hasClientId: !!JOBADDER_CLIENT_ID,
+      hasClientSecret: !!JOBADDER_CLIENT_SECRET
+    });
     throw new Error('JobAdder API credentials not configured');
   }
 
+  console.log('Requesting new JobAdder access token...');
+
   try {
-    const response = await fetch('https://id.jobadder.com/connect/token', {
+    const tokenUrl = 'https://id.jobadder.com/connect/token';
+    const tokenPayload = {
+      grant_type: 'client_credentials',
+      client_id: JOBADDER_CLIENT_ID,
+      client_secret: JOBADDER_CLIENT_SECRET,
+      scope: 'read write offline_access'
+    };
+
+    console.log('Token request details:', {
+      url: tokenUrl,
+      clientId: JOBADDER_CLIENT_ID?.substring(0, 10) + '...',
+      scope: 'read write offline_access'
+    });
+
+    const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: JOBADDER_CLIENT_ID,
-        client_secret: JOBADDER_CLIENT_SECRET,
-        scope: 'read write offline_access'
-      })
+      body: new URLSearchParams(tokenPayload)
     });
+
+    console.log('Token response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Token request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
       throw new Error(`Token request failed: ${response.status} ${errorText}`);
     }
 
@@ -57,10 +80,20 @@ async function getAccessToken(): Promise<string> {
     cachedToken = tokenData.access_token;
     tokenExpiry = Date.now() + ((tokenData.expires_in - 300) * 1000);
     
-    console.log('JobAdder access token obtained successfully');
+    console.log('JobAdder access token obtained successfully', {
+      expiresIn: tokenData.expires_in,
+      tokenType: tokenData.token_type,
+      hasRefreshToken: !!tokenData.refresh_token,
+      cacheExpiryTime: new Date(tokenExpiry).toISOString()
+    });
+    
     return cachedToken;
   } catch (error) {
-    console.error('Error getting JobAdder access token:', error);
+    console.error('Error getting JobAdder access token:', {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 }
@@ -162,7 +195,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('JobAdder API function called:', {
+    method: req.method,
+    url: req.url,
+    timestamp: new Date().toISOString()
+  });
+
   try {
+    // Log environment variables status (without exposing values)
+    console.log('Environment check:', {
+      hasClientId: !!JOBADDER_CLIENT_ID,
+      hasClientSecret: !!JOBADDER_CLIENT_SECRET,
+      apiUrl: JOBADDER_API_URL
+    });
+
     const url = new URL(req.url);
     let endpoint = url.searchParams.get('endpoint');
     const limit = url.searchParams.get('limit') || '50';
@@ -179,17 +225,22 @@ serve(async (req) => {
         }
       } catch (error) {
         console.error('Error parsing request body:', error);
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON in request body', details: error.message }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
     if (!endpoint) {
+      console.error('No endpoint specified');
       return new Response(
         JSON.stringify({ error: 'Endpoint parameter is required (in URL params or request body)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`JobAdder API request: ${endpoint} (${req.method})`);
+    console.log(`Processing JobAdder API request: ${endpoint} (${req.method})`);
 
     let data;
     const params: Record<string, string> = { limit, offset };
@@ -918,11 +969,19 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('JobAdder API function error:', error);
+    console.error('JobAdder API function error:', {
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+      requestUrl: req.url,
+      requestMethod: req.method
+    });
+    
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Internal server error',
-        details: error.stack 
+        timestamp: new Date().toISOString(),
+        service: 'JobAdder API Proxy'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
