@@ -1,27 +1,85 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Briefcase, Users, TrendingUp, Clock, Plus, ArrowRight, UserCheck, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
-  const stats = [
-    { title: "Active Jobs", value: "23", icon: Briefcase, color: "text-blue-600" },
-    { title: "Total Candidates", value: "156", icon: Users, color: "text-green-600" },
-    { title: "Successful Matches", value: "12", icon: TrendingUp, color: "text-purple-600" },
-    { title: "Pending Reviews", value: "8", icon: Clock, color: "text-orange-600" }
-  ];
+  const [stats, setStats] = useState({
+    activeJobs: 0,
+    totalCandidates: 0,
+    localJobs: 0,
+    syncedJobs: 0
+  });
+  const [recentJobs, setRecentJobs] = useState([]);
+  const [recentCandidates, setRecentCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentJobs = [
-    { id: "1", title: "Senior Frontend Developer", company: "Tech Corp", applications: 23, posted: "2 days ago" },
-    { id: "2", title: "Product Manager", company: "Innovation Inc", applications: 15, posted: "1 week ago" },
-    { id: "3", title: "UX Designer", company: "Design Studio", applications: 8, posted: "3 days ago" }
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-  const recentCandidates = [
-    { id: "1", name: "Sarah Johnson", title: "Senior Frontend Developer", status: "Available" },
-    { id: "2", name: "Michael Chen", title: "Product Manager", status: "Interviewing" },
-    { id: "3", name: "Emily Rodriguez", title: "UX Designer", status: "Available" }
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch jobs stats
+      const { data: jobs, error: jobsError } = await supabase
+        .from('jobs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Fetch candidates stats
+      const { data: candidates, error: candidatesError } = await supabase
+        .from('candidates')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (!jobsError && jobs) {
+        setStats(prev => ({
+          ...prev,
+          activeJobs: jobs.length,
+          localJobs: jobs.filter(job => !job.synced_to_jobadder).length,
+          syncedJobs: jobs.filter(job => job.synced_to_jobadder).length
+        }));
+
+        // Set recent jobs (last 5)
+        setRecentJobs(jobs.slice(0, 5).map(job => ({
+          id: job.id,
+          title: job.title,
+          company: job.company_name || `Company ${job.company_id}`,
+          applications: 0, // TODO: Connect to applications table
+          posted: new Date(job.created_at).toLocaleDateString(),
+          synced: job.synced_to_jobadder
+        })));
+      }
+
+      if (!candidatesError && candidates) {
+        setStats(prev => ({
+          ...prev,
+          totalCandidates: candidates.length
+        }));
+
+        setRecentCandidates(candidates.map(candidate => ({
+          id: candidate.id,
+          name: candidate.name,
+          title: candidate.current_position || 'No position specified',
+          status: candidate.interview_stage || 'New'
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statsCards = [
+    { title: "Active Jobs", value: stats.activeJobs.toString(), icon: Briefcase, color: "text-blue-600" },
+    { title: "Total Candidates", value: stats.totalCandidates.toString(), icon: Users, color: "text-green-600" },
+    { title: "Local Jobs", value: stats.localJobs.toString(), icon: Clock, color: "text-orange-600" },
+    { title: "Synced to JobAdder", value: stats.syncedJobs.toString(), icon: TrendingUp, color: "text-purple-600" }
   ];
 
   const talentPool = [
@@ -36,6 +94,19 @@ const Index = () => {
     { id: "3", candidate: "Emily Rodriguez", job: "UX Designer", company: "Design Studio", status: "Reference Check" }
   ];
 
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -43,7 +114,7 @@ const Index = () => {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-2">Welcome to your job posting portal</p>
         </div>
-        <Link to="/post-job">
+        <Link to="/job-posting">
           <Button className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Post New Job
@@ -53,7 +124,7 @@ const Index = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat, index) => (
+        {statsCards.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
@@ -82,18 +153,31 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentJobs.map((job) => (
+              {recentJobs.length > 0 ? recentJobs.map((job) => (
                 <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <h4 className="font-medium">{job.title}</h4>
                     <p className="text-sm text-muted-foreground">{job.company}</p>
                   </div>
-                  <div className="text-right">
-                    <Badge variant="secondary">{job.applications} applications</Badge>
-                    <p className="text-xs text-muted-foreground mt-1">{job.posted}</p>
+                  <div className="text-right flex flex-col items-end gap-1">
+                    <div className="flex gap-2">
+                      <Badge variant="secondary">{job.applications} applications</Badge>
+                      {job.synced && <Badge variant="default" className="bg-green-500">Synced</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{job.posted}</p>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No jobs posted yet</p>
+                  <Link to="/job-posting">
+                    <Button variant="outline" size="sm" className="mt-2">
+                      Post Your First Job
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -113,7 +197,7 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentCandidates.map((candidate) => (
+              {recentCandidates.length > 0 ? recentCandidates.map((candidate) => (
                 <div key={candidate.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <h4 className="font-medium">{candidate.name}</h4>
@@ -125,7 +209,17 @@ const Index = () => {
                     {candidate.status}
                   </Badge>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No candidates yet</p>
+                  <Link to="/applications">
+                    <Button variant="outline" size="sm" className="mt-2">
+                      View Applications
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
