@@ -29,7 +29,7 @@ const Index = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Fetch all candidates count for stats
+      // Fetch all candidates count for Talent Pool
       const { data: allCandidates, error: allCandidatesError } = await supabase
         .from('candidates')
         .select('*');
@@ -41,7 +41,7 @@ const Index = () => {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      // Fetch applicants stats
+      // Fetch applicants count from candidate_responses table
       const { data: applicants, error: applicantsError } = await supabase
         .from('candidate_responses')
         .select('*');
@@ -64,7 +64,7 @@ const Index = () => {
         })));
       }
 
-      // Set total candidates count from all candidates
+      // Set Talent Pool count (candidates)
       if (!allCandidatesError && allCandidates) {
         setStats(prev => ({
           ...prev,
@@ -82,12 +82,19 @@ const Index = () => {
         })));
       }
 
+      // Set Applicants count from candidate_responses
       if (!applicantsError && applicants) {
         setStats(prev => ({
           ...prev,
           totalApplicants: applicants.length
         }));
       }
+
+      console.log('Dashboard stats:', {
+        candidates: allCandidates?.length || 0,
+        applicants: applicants?.length || 0,
+        jobs: jobs?.length || 0
+      });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
