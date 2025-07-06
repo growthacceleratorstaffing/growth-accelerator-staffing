@@ -2,8 +2,67 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Users, Calendar, FileText, UserPlus, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const PreOnboarding = () => {
+  const [selectedCandidate, setSelectedCandidate] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const candidates = [
+    { value: "candidate1", name: "John Doe", email: "john.doe@example.com", position: "Software Engineer" },
+    { value: "candidate2", name: "Jane Smith", email: "jane.smith@example.com", position: "Marketing Manager" },
+    { value: "candidate3", name: "Mike Johnson", email: "mike.johnson@example.com", position: "Sales Representative" },
+  ];
+
+  const handleSendPreboardingEmail = async () => {
+    if (!selectedCandidate) {
+      toast({
+        title: "Please select a candidate",
+        description: "You need to select a candidate before sending the preboarding email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const candidate = candidates.find(c => c.value === selectedCandidate);
+    if (!candidate) return;
+
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-preboarding-email', {
+        body: {
+          candidateName: candidate.name,
+          candidateEmail: candidate.email,
+          position: candidate.position,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Preboarding email sent!",
+        description: `Successfully sent preboarding email to ${candidate.name}`,
+      });
+
+      // Reset the form
+      setSelectedCandidate("");
+    } catch (error) {
+      console.error('Error sending preboarding email:', error);
+      toast({
+        title: "Failed to send email",
+        description: "There was an error sending the preboarding email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="container mx-auto px-6 py-8">
       <div className="mb-8">
@@ -65,19 +124,25 @@ const PreOnboarding = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Select>
+            <Select value={selectedCandidate} onValueChange={setSelectedCandidate}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a candidate for preboarding" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="candidate1">John Doe - Software Engineer</SelectItem>
-                <SelectItem value="candidate2">Jane Smith - Marketing Manager</SelectItem>
-                <SelectItem value="candidate3">Mike Johnson - Sales Representative</SelectItem>
+                {candidates.map((candidate) => (
+                  <SelectItem key={candidate.value} value={candidate.value}>
+                    {candidate.name} - {candidate.position}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          <Button className="w-full">
-            Begin Preboarding
+          <Button 
+            className="w-full" 
+            onClick={handleSendPreboardingEmail}
+            disabled={isLoading}
+          >
+            {isLoading ? "Sending..." : "Begin Preboarding"}
           </Button>
         </CardContent>
       </Card>

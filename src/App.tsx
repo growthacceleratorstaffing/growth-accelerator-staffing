@@ -165,6 +165,14 @@ const AppSidebar = () => {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/pre-onboarding")}>
+                  <Link to="/pre-onboarding">
+                    <Settings className="h-4 w-4" />
+                    <span className="text-base">Preboarding</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -176,14 +184,6 @@ const AppSidebar = () => {
           <SidebarGroupLabel className="text-pink-500 text-xl font-semibold">Contracting</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/pre-onboarding")}>
-                  <Link to="/pre-onboarding">
-                    <Settings className="h-4 w-4" />
-                    <span className="text-base">Preboarding</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild onClick={handleOnboardingClick}>
                   <button>
