@@ -662,21 +662,30 @@ export function useJobApplications() {
         console.warn('Error fetching local candidates:', supabaseError);
       }
 
-      // Separate job applications by stage - be more specific about initial stages
+      // Separate job applications by stage - fix the logic to be more restrictive for advanced stages
       const initialApplications = jobAdderApplications.filter(app => {
         const statusName = app.status.name.toLowerCase();
+        // Only advanced stages go to talent pool, everything else stays in applicants
         return statusName === 'application review' || 
                statusName === 'submitted' ||
                statusName === 'new' ||
-               statusName === 'pending review';
+               statusName === 'pending review' ||
+               statusName === 'pending' ||
+               statusName === 'received' ||
+               statusName === 'initial review';
       });
       
       const advancedApplications = jobAdderApplications.filter(app => {
         const statusName = app.status.name.toLowerCase();
-        return statusName !== 'application review' && 
-               statusName !== 'submitted' &&
-               statusName !== 'new' &&
-               statusName !== 'pending review';
+        // Only these advanced stages go to talent pool
+        return statusName === 'phone interview' ||
+               statusName === 'interview scheduled' ||
+               statusName === 'technical interview' ||
+               statusName === 'final interview' ||
+               statusName === 'offer extended' ||
+               statusName === 'placed' ||
+               statusName === 'on hold' ||
+               statusName === 'shortlisted';
       });
 
       // Apply search filter to initial job applications
@@ -731,34 +740,28 @@ export function useJobApplications() {
     setLoading(true);
     setError(null);
 
+    const statusNames: Record<number, string> = {
+      1: "Application Review",
+      2: "Phone Interview", 
+      3: "Technical Interview",
+      4: "Final Interview",
+      5: "Offer Extended",
+      6: "Placed",
+      7: "Rejected",
+      8: "Declined"
+    };
+
     try {
-      // Try API first
-      const response = await jobApplicationsAPI.updateApplicationStage(applicationId, statusId, notes);
-      // Update local state
-      setApplications(prev => prev.map(app => 
-        app.applicationId === applicationId 
-          ? { ...app, status: response.status, updatedAt: new Date().toISOString() }
-          : app
-      ));
-      return response;
-    } catch (apiError) {
-      console.warn('API update failed, using mock update:', apiError);
+      // For positive application IDs, try to sync with JobAdder API
+      if (applicationId > 0) {
+        const response = await jobApplicationsAPI.updateApplicationStage(applicationId, statusId, notes);
+        console.log('JobAdder API updated successfully:', response);
+      }
       
-      // Mock update for demo
+      // Update local state regardless of API success
       setApplications(prev => prev.map(app => {
         if (app.applicationId === applicationId) {
-          const statusNames: Record<number, string> = {
-            1: "Application Review",
-            2: "Phone Interview", 
-            3: "Technical Interview",
-            4: "Final Interview",
-            5: "Offer Extended",
-            6: "Placed",
-            7: "Rejected",
-            8: "Declined"
-          };
-          
-          return {
+          const updatedApp = {
             ...app,
             status: {
               ...app.status,
@@ -773,11 +776,32 @@ export function useJobApplications() {
             },
             updatedAt: new Date().toISOString()
           };
+          
+          return updatedApp;
         }
         return app;
       }));
       
-      setError('Demo mode - Stage updated locally');
+      // Update separate arrays too
+      setJobApplications(prev => prev.map(app => 
+        app.applicationId === applicationId 
+          ? { ...app, status: { ...app.status, statusId, name: statusNames[statusId] || "Unknown" }, updatedAt: new Date().toISOString() }
+          : app
+      ));
+      
+      setTalentPool(prev => prev.map(app => 
+        app.applicationId === applicationId 
+          ? { ...app, status: { ...app.status, statusId, name: statusNames[statusId] || "Unknown" }, updatedAt: new Date().toISOString() }
+          : app
+      ));
+      
+      // Trigger a refetch to get updated categorization
+      setTimeout(() => fetchApplications(), 500);
+      
+      return { success: true };
+    } catch (apiError) {
+      console.warn('JobAdder API update failed, updated locally only:', apiError);
+      setError('Stage updated locally - JobAdder sync may have failed');
     } finally {
       setLoading(false);
     }
