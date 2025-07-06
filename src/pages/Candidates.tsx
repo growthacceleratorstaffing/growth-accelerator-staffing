@@ -205,6 +205,10 @@ const Candidates = () => {
     }
   };
 
+  useEffect(() => {
+    fetchJobAdderCandidates();
+  }, []);
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -217,10 +221,6 @@ const Candidates = () => {
       </div>
     );
   }
-
-  useEffect(() => {
-    fetchJobAdderCandidates();
-  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
