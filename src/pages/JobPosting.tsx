@@ -159,7 +159,10 @@ const JobPosting = () => {
       // Save to local database
       const { data: localJob, error: localError } = await supabase
         .from('jobs')
-        .insert([localJobData])
+        .insert([{
+          ...localJobData,
+          created_by: (await supabase.auth.getUser()).data.user?.id
+        }])
         .select()
         .single();
 

@@ -107,18 +107,18 @@ const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/jobs")}>
-                  <Link to="/jobs">
-                    <Briefcase className="h-4 w-4" />
-                    <span className="text-white text-base">Vacancies</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/job-posting")}>
                   <Link to="/job-posting">
                     <Briefcase className="h-4 w-4" />
                     <span className="text-base">Job Posting</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/jobs")}>
+                  <Link to="/jobs">
+                    <Briefcase className="h-4 w-4" />
+                    <span className="text-white text-base">Vacancies</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
