@@ -34,6 +34,7 @@ import { usePlacements } from "@/hooks/usePlacements";
 import { usePlacementDetails } from "@/hooks/usePlacementDetails";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useJobs } from "@/hooks/useJobs";
+import { useJobApplications } from "@/hooks/useJobApplications";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import JobAdderAPIExplorer from "@/components/JobAdderAPIExplorer";
@@ -84,7 +85,19 @@ const Matches = () => {
   const { placementDetails, loading: placementLoading, fetchPlacementDetails, updatePlacementStatus, clearPlacementDetails } = usePlacementDetails();
   const { candidates, loading: candidatesLoading } = useCandidates();
   const { jobs, loading: jobsLoading } = useJobs();
+  const { talentPool, loading: talentPoolLoading } = useJobApplications();
   const { toast } = useToast();
+
+  // Filter out already placed candidates from talent pool
+  const availableCandidates = talentPool.filter(candidate => {
+    // Check if this candidate already has an active placement
+    const hasActivePlacement = placements.some(placement => 
+      placement.candidate?.candidateId === candidate.candidate.candidateId &&
+      (placement.status?.name?.toLowerCase() === 'active' || 
+       placement.status?.name?.toLowerCase() === 'pending start')
+    );
+    return !hasActivePlacement;
+  });
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -440,19 +453,30 @@ const Matches = () => {
                     <Label htmlFor="candidateId">Candidate *</Label>
                     <Select value={placementData.candidateId} onValueChange={(value) => handleInputChange("candidateId", value)}>
                       <SelectTrigger>
-                        <SelectValue placeholder={candidatesLoading ? "Loading candidates..." : "Select a candidate"} />
+                        <SelectValue placeholder={talentPoolLoading ? "Loading talent pool..." : "Select from talent pool"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {candidates.map((candidate) => (
-                          <SelectItem key={candidate.candidateId} value={candidate.candidateId.toString()}>
-                            <div className="flex flex-col">
-                              <span>{candidate.firstName} {candidate.lastName}</span>
-                              <span className="text-xs text-muted-foreground">{candidate.email}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {availableCandidates.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground">
+                            No available candidates in talent pool
+                          </div>
+                        ) : (
+                          availableCandidates.map((candidate) => (
+                            <SelectItem key={candidate.candidate.candidateId} value={candidate.candidate.candidateId.toString()}>
+                              <div className="flex flex-col">
+                                <span>{candidate.candidate.firstName} {candidate.candidate.lastName}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {candidate.candidate.email} • {candidate.status.name}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Only showing talent pool candidates (advanced stage + manual entries)
+                    </p>
                   </div>
                   
                   <div className="space-y-2">
