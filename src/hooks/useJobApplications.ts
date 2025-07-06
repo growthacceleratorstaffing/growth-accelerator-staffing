@@ -588,7 +588,7 @@ export function useJobApplications() {
         const { data: candidates, error: supabaseError } = await supabase
           .from('candidates')
           .select('*')
-          .not('interview_stage', 'in', '(pending,null)')
+          .in('interview_stage', ['in_progress', 'completed', 'passed'])
           .order('created_at', { ascending: false });
 
         if (supabaseError) {
@@ -675,32 +675,25 @@ export function useJobApplications() {
         console.warn('Error fetching local candidates:', supabaseError);
       }
 
-      // Separate job applications by stage - fix the logic to be more restrictive for advanced stages
-      const initialApplications = jobAdderApplications.filter(app => {
-        const statusName = app.status.name.toLowerCase();
-        console.log(`Checking initial application status: "${statusName}"`);
-        // Only these initial stages stay in applicants
-        return statusName === 'application review' || 
-               statusName === 'submitted' ||
-               statusName === 'new' ||
-               statusName === 'pending review' ||
-               statusName === 'pending' ||
-               statusName === 'received' ||
-               statusName === 'initial review';
-      });
-      
+      // Separate job applications by stage - make initial filter less restrictive  
       const advancedApplications = jobAdderApplications.filter(app => {
         const statusName = app.status.name.toLowerCase();
         console.log(`Checking advanced application status: "${statusName}"`);
         // These advanced stages go to talent pool
-        return statusName === 'phone interview' ||
-               statusName === 'interview scheduled' ||
-               statusName === 'technical interview' ||
-               statusName === 'final interview' ||
-               statusName === 'offer extended' ||
-               statusName === 'placed' ||
-               statusName === 'on hold' ||
-               statusName === 'shortlisted';
+        return statusName.includes('interview') ||
+               statusName.includes('offer') ||
+               statusName.includes('placed') ||
+               statusName.includes('shortlist') ||
+               statusName.includes('on hold') ||
+               statusName.includes('technical') ||
+               statusName.includes('final');
+      });
+      
+      const initialApplications = jobAdderApplications.filter(app => {
+        const statusName = app.status.name.toLowerCase();
+        console.log(`Checking initial application status: "${statusName}"`);
+        // All other stages are initial applicants (not in advanced list)
+        return !advancedApplications.some(advApp => advApp.applicationId === app.applicationId);
       });
 
       console.log(`JobAdder Applications Split: ${initialApplications.length} initial, ${advancedApplications.length} advanced`);
