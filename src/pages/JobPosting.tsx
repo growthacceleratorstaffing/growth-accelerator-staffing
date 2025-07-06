@@ -178,13 +178,15 @@ const JobPosting = () => {
         throw new Error(error.message);
       }
 
+      console.log('Job created successfully:', data);
+      
       toast({
         title: "Success!",
         description: "Job posting created successfully in JobAdder and will appear in the Jobs section.",
         className: "bg-green-500 text-white border-green-600",
       });
       
-      // Reset form and refresh
+      // Reset form and refresh jobs list
       setFormData({
         jobTitle: "",
         companyId: "",
@@ -202,6 +204,8 @@ const JobPosting = () => {
         skillTags: "",
         source: ""
       });
+      
+      // Refresh the jobs list to show the new job
       refetch();
     } catch (error) {
       console.error('Error creating job:', error);
