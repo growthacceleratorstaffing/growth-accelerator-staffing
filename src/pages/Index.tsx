@@ -10,7 +10,7 @@ const Index = () => {
   const [stats, setStats] = useState({
     activeJobs: 0,
     totalCandidates: 0,
-    localJobs: 0,
+    totalApplicants: 0,
     syncedJobs: 0
   });
   const [recentJobs, setRecentJobs] = useState([]);
@@ -36,11 +36,15 @@ const Index = () => {
         .order('created_at', { ascending: false })
         .limit(5);
 
+      // Fetch applicants stats
+      const { data: applicants, error: applicantsError } = await supabase
+        .from('candidate_responses')
+        .select('*');
+
       if (!jobsError && jobs) {
         setStats(prev => ({
           ...prev,
           activeJobs: jobs.length,
-          localJobs: jobs.filter(job => !job.synced_to_jobadder).length,
           syncedJobs: jobs.filter(job => job.synced_to_jobadder).length
         }));
 
@@ -68,6 +72,13 @@ const Index = () => {
           status: candidate.interview_stage || 'New'
         })));
       }
+
+      if (!applicantsError && applicants) {
+        setStats(prev => ({
+          ...prev,
+          totalApplicants: applicants.length
+        }));
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -78,7 +89,7 @@ const Index = () => {
   const statsCards = [
     { title: "Active Jobs", value: stats.activeJobs.toString(), icon: Briefcase, color: "text-blue-600" },
     { title: "Total Candidates", value: stats.totalCandidates.toString(), icon: Users, color: "text-green-600" },
-    { title: "Local Jobs", value: stats.localJobs.toString(), icon: Clock, color: "text-orange-600" },
+    { title: "Applicants", value: stats.totalApplicants.toString(), icon: UserCheck, color: "text-orange-600" },
     { title: "Synced to JobAdder", value: stats.syncedJobs.toString(), icon: TrendingUp, color: "text-purple-600" }
   ];
 
