@@ -662,10 +662,21 @@ export function useJobApplications() {
         console.warn('Error fetching local candidates:', supabaseError);
       }
 
-      // Apply search filter to job applications
-      let filteredJobApplications = jobAdderApplications;
+      // Separate job applications by stage
+      const initialApplications = jobAdderApplications.filter(app => 
+        app.status.name.toLowerCase() === 'application review' || 
+        app.status.name.toLowerCase() === 'submitted'
+      );
+      
+      const advancedApplications = jobAdderApplications.filter(app => 
+        app.status.name.toLowerCase() !== 'application review' && 
+        app.status.name.toLowerCase() !== 'submitted'
+      );
+
+      // Apply search filter to initial job applications
+      let filteredJobApplications = initialApplications;
       if (searchTerm) {
-        filteredJobApplications = jobAdderApplications.filter(app => 
+        filteredJobApplications = initialApplications.filter(app => 
           `${app.candidate.firstName} ${app.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -673,10 +684,13 @@ export function useJobApplications() {
         );
       }
 
+      // Combine advanced applications with local candidates for talent pool
+      const allTalentPoolCandidates = [...advancedApplications, ...localCandidates];
+      
       // Apply search filter to talent pool
-      let filteredTalentPool = localCandidates;
+      let filteredTalentPool = allTalentPoolCandidates;
       if (searchTerm) {
-        filteredTalentPool = localCandidates.filter(app => 
+        filteredTalentPool = allTalentPoolCandidates.filter(app => 
           `${app.candidate.firstName} ${app.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -692,7 +706,7 @@ export function useJobApplications() {
       const allApplications = [...filteredJobApplications, ...filteredTalentPool];
       setApplications(allApplications);
       
-      console.log(`Job Applications: ${filteredJobApplications.length}, Talent Pool: ${filteredTalentPool.length}`);
+      console.log(`Job Applications: ${filteredJobApplications.length}, Talent Pool: ${filteredTalentPool.length} (${advancedApplications.length} advanced + ${localCandidates.length} local)`);
       
     } catch (err) {
       console.error('Error fetching applications:', err);
