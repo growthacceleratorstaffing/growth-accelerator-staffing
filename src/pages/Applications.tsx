@@ -32,17 +32,30 @@ import {
 import { useJobApplications, type JobApplicationCandidate } from "@/hooks/useJobApplications";
 import { useCandidateDetails } from "@/hooks/useCandidateDetails";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Applications = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isUpdateStageOpen, setIsUpdateStageOpen] = useState(false);
   const [isCandidateDetailsOpen, setIsCandidateDetailsOpen] = useState(false);
+  const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<JobApplicationCandidate | null>(null);
   const [stageUpdateData, setStageUpdateData] = useState({
     statusId: "",
     stageName: "",
     notes: "",
     createPlacement: false
+  });
+  const [newCandidateData, setNewCandidateData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    position: "",
+    company: "",
+    location: "",
+    skills: "",
+    notes: ""
   });
   
   const { applications, loading, error, useMockData, refetch, updateApplicationStage } = useJobApplications();
@@ -144,6 +157,90 @@ const Applications = () => {
     }
   };
 
+  const handleAddCandidate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!newCandidateData.firstName || !newCandidateData.lastName || !newCandidateData.email) {
+      toast({
+        title: "Error",
+        description: "Please fill in the required fields (First Name, Last Name, Email).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Add candidate to local database
+      const candidateResponse = await supabase
+        .from('candidates')
+        .insert({
+          name: `${newCandidateData.firstName} ${newCandidateData.lastName}`,
+          email: newCandidateData.email,
+          phone: newCandidateData.phone,
+          current_position: newCandidateData.position,
+          company: newCandidateData.company,
+          location: newCandidateData.location,
+          skills: newCandidateData.skills ? newCandidateData.skills.split(',').map(s => s.trim()) : [],
+          source_platform: 'manual'
+        })
+        .select()
+        .single();
+
+      if (candidateResponse.error) {
+        throw candidateResponse.error;
+      }
+
+      // Sync to JobAdder and Workable via edge function
+      const syncResponse = await supabase.functions.invoke('sync-candidate-to-systems', {
+        body: {
+          candidateId: candidateResponse.data.id,
+          candidateData: {
+            firstName: newCandidateData.firstName,
+            lastName: newCandidateData.lastName,
+            email: newCandidateData.email,
+            phone: newCandidateData.phone,
+            position: newCandidateData.position,
+            company: newCandidateData.company,
+            location: newCandidateData.location,
+            skills: newCandidateData.skills,
+            notes: newCandidateData.notes
+          }
+        }
+      });
+
+      toast({
+        title: "Candidate Added Successfully!",
+        description: `${newCandidateData.firstName} ${newCandidateData.lastName} has been added to the talent pool and synced to JobAdder and Workable.`,
+      });
+
+      // Reset form and close dialog
+      setNewCandidateData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        position: "",
+        company: "",
+        location: "",
+        skills: "",
+        notes: ""
+      });
+      setIsAddCandidateOpen(false);
+      
+      // Refresh applications list
+      refetch();
+      
+    } catch (error) {
+      console.error('Error adding candidate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add candidate. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleViewDetails = async (application: JobApplicationCandidate) => {
     setSelectedApplication(application);
     setIsCandidateDetailsOpen(true);
@@ -187,8 +284,10 @@ const Applications = () => {
           <p className="text-muted-foreground mt-2">Manage and track all talent applications and candidate details</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">Export Applications</Button>
-          <Button variant="outline">Bulk Actions</Button>
+          <Button onClick={() => setIsAddCandidateOpen(true)}>
+            <User className="h-4 w-4 mr-2" />
+            Add Candidate
+          </Button>
         </div>
       </div>
 
@@ -392,6 +491,131 @@ const Applications = () => {
           ))
         )}
       </div>
+
+      {/* Add Candidate Dialog */}
+      <Dialog open={isAddCandidateOpen} onOpenChange={setIsAddCandidateOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Candidate</DialogTitle>
+            <DialogDescription>
+              Add a new candidate to the talent pool. This will sync to both JobAdder and Workable.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleAddCandidate} className="space-y-6 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  id="firstName"
+                  value={newCandidateData.firstName}
+                  onChange={(e) => setNewCandidateData(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="John"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={newCandidateData.lastName}
+                  onChange={(e) => setNewCandidateData(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Doe"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={newCandidateData.email}
+                onChange={(e) => setNewCandidateData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="john.doe@example.com"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={newCandidateData.phone}
+                onChange={(e) => setNewCandidateData(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="+1 (555) 123-4567"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="position">Current Position</Label>
+                <Input
+                  id="position"
+                  value={newCandidateData.position}
+                  onChange={(e) => setNewCandidateData(prev => ({ ...prev, position: e.target.value }))}
+                  placeholder="Software Engineer"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company">Company</Label>
+                <Input
+                  id="company"
+                  value={newCandidateData.company}
+                  onChange={(e) => setNewCandidateData(prev => ({ ...prev, company: e.target.value }))}
+                  placeholder="Tech Corp"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={newCandidateData.location}
+                onChange={(e) => setNewCandidateData(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="New York, NY"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="skills">Skills (comma separated)</Label>
+              <Input
+                id="skills"
+                value={newCandidateData.skills}
+                onChange={(e) => setNewCandidateData(prev => ({ ...prev, skills: e.target.value }))}
+                placeholder="JavaScript, React, Node.js, Python"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={newCandidateData.notes}
+                onChange={(e) => setNewCandidateData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Additional notes about the candidate..."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex gap-4 pt-6">
+              <Button type="submit" className="flex-1">
+                Add Candidate
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsAddCandidateOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Update Stage Dialog */}
       <Dialog open={isUpdateStageOpen} onOpenChange={setIsUpdateStageOpen}>
