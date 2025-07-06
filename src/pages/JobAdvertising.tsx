@@ -81,8 +81,9 @@ const JobAdvertising = () => {
 
       console.log('Career page job creation successful!');
       toast({
-        title: "Job Created!",
-        description: `Job added to career page! View at: ${data.careerPageUrl}`
+        title: data.linkedinError ? "Job Created with LinkedIn Issue" : "Job Created Successfully!",
+        description: data.message,
+        variant: data.linkedinError ? "destructive" : "default"
       });
 
       // Reset form
@@ -190,9 +191,9 @@ const JobAdvertising = () => {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Create Career Page Job</CardTitle>
+                  <CardTitle>Create Career Page Job & LinkedIn Post</CardTitle>
                   <CardDescription>
-                    Add job openings directly to your career page for candidates to discover and apply
+                    Add job openings to your career page and automatically share on LinkedIn to maximize reach
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -298,7 +299,7 @@ const JobAdvertising = () => {
                     disabled={isCreatingJob}
                     className="w-full"
                   >
-                    {isCreatingJob ? "Creating Job..." : "Create Career Page Job"}
+                    {isCreatingJob ? "Creating Job & LinkedIn Post..." : "Create Job & Share on LinkedIn"}
                   </Button>
                 </CardContent>
               </Card>
@@ -317,7 +318,13 @@ const JobAdvertising = () => {
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5"></div>
                     <div>
-                      <strong>Direct Applications:</strong> Candidates apply directly through your website
+                      <strong>Career Page:</strong> Job posted directly to your website
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></div>
+                    <div>
+                      <strong>LinkedIn Share:</strong> Automatic LinkedIn post with job link
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
@@ -329,7 +336,7 @@ const JobAdvertising = () => {
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                     <div>
-                      <strong>Brand Control:</strong> Full control over job presentation and application process
+                      <strong>Dual Reach:</strong> Combines career page visibility with social sharing
                     </div>
                   </div>
                 </CardContent>

@@ -37,7 +37,7 @@ serve(async (req) => {
     }
 
     if (type === 'job-posting') {
-      console.log('Creating job for career page...');
+      console.log('Creating job for career page and LinkedIn...');
 
       // Save the job directly to local database for the career page
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
@@ -69,18 +69,70 @@ serve(async (req) => {
         throw new Error('Failed to create job posting');
       }
 
+      const jobUrl = `${req.headers.get('origin')}/jobs/${createdJob.id}`;
       console.log('Job created successfully:', {
         jobId: createdJob.id,
         jobTitle,
-        jobUrl: `${req.headers.get('origin')}/jobs/${createdJob.id}`
+        jobUrl
       });
+
+      // Also post to LinkedIn
+      let linkedinMessage = 'Job posted to career page successfully!';
+      let linkedinError = null;
+
+      try {
+        console.log('Creating LinkedIn post about the job...');
+        
+        // Create LinkedIn share post about the job opening
+        const shareContent = {
+          author: 'urn:li:organization:company-id', // You may need to configure this
+          lifecycleState: 'PUBLISHED',
+          specificContent: {
+            'com.linkedin.ugc.ShareContent': {
+              shareCommentary: {
+                text: `🚀 We're hiring! New ${jobTitle} position available at Growth Accelerator.${jobDescription ? `\n\n${jobDescription.substring(0, 200)}${jobDescription.length > 200 ? '...' : ''}` : ''}\n\n👉 Apply now: ${jobUrl}`
+              },
+              shareMediaCategory: 'NONE'
+            }
+          },
+          visibility: {
+            'com.linkedin.ugc.MemberNetworkVisibility': 'CONNECTIONS'
+          }
+        };
+
+        const linkedinResponse = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${linkedinAccessToken}`,
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0'
+          },
+          body: JSON.stringify(shareContent)
+        });
+
+        if (!linkedinResponse.ok) {
+          const errorText = await linkedinResponse.text();
+          console.error('LinkedIn posting error:', errorText);
+          linkedinError = `LinkedIn posting failed: ${linkedinResponse.status}`;
+          linkedinMessage = 'Job posted to career page successfully! LinkedIn posting failed - please check your LinkedIn credentials.';
+        } else {
+          const linkedinResult = await linkedinResponse.json();
+          console.log('LinkedIn post created successfully:', linkedinResult.id);
+          linkedinMessage = 'Job posted to career page and LinkedIn successfully!';
+        }
+      } catch (error) {
+        console.error('LinkedIn posting error:', error);
+        linkedinError = error.message;
+        linkedinMessage = 'Job posted to career page successfully! LinkedIn posting failed - please check your LinkedIn credentials.';
+      }
 
       return new Response(JSON.stringify({
         success: true,
         jobId: createdJob.id,
-        jobUrl: `${req.headers.get('origin')}/jobs/${createdJob.id}`,
+        jobUrl,
         careerPageUrl: `${req.headers.get('origin')}/jobs`,
-        message: 'Job posted to career page successfully!'
+        message: linkedinMessage,
+        linkedinError
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
