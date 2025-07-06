@@ -131,7 +131,9 @@ serve(async (req) => {
   console.log('JobAdder API function called:', {
     method: req.method,
     url: req.url,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    hasClientId: !!JOBADDER_CLIENT_ID,
+    hasClientSecret: !!JOBADDER_CLIENT_SECRET
   });
 
   try {
@@ -139,6 +141,7 @@ serve(async (req) => {
     console.log('Environment check:', {
       hasClientId: !!JOBADDER_CLIENT_ID,
       hasClientSecret: !!JOBADDER_CLIENT_SECRET,
+      clientIdLength: JOBADDER_CLIENT_ID?.length || 0,
       apiUrl: JOBADDER_API_URL
     });
 
