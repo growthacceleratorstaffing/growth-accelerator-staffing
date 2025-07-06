@@ -473,6 +473,90 @@ export type Database = {
         }
         Relationships: []
       }
+      jobs: {
+        Row: {
+          area_id: string | null
+          category_id: string | null
+          category_name: string | null
+          company_id: string | null
+          company_name: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          job_description: string | null
+          jobadder_job_id: string | null
+          location_id: string | null
+          location_name: string | null
+          salary_currency: string | null
+          salary_rate_high: number | null
+          salary_rate_low: number | null
+          salary_rate_per: string | null
+          skill_tags: string[] | null
+          source: string | null
+          sub_category_id: string | null
+          synced_to_jobadder: boolean | null
+          title: string
+          updated_at: string
+          work_type_id: string | null
+          work_type_name: string | null
+        }
+        Insert: {
+          area_id?: string | null
+          category_id?: string | null
+          category_name?: string | null
+          company_id?: string | null
+          company_name?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_description?: string | null
+          jobadder_job_id?: string | null
+          location_id?: string | null
+          location_name?: string | null
+          salary_currency?: string | null
+          salary_rate_high?: number | null
+          salary_rate_low?: number | null
+          salary_rate_per?: string | null
+          skill_tags?: string[] | null
+          source?: string | null
+          sub_category_id?: string | null
+          synced_to_jobadder?: boolean | null
+          title: string
+          updated_at?: string
+          work_type_id?: string | null
+          work_type_name?: string | null
+        }
+        Update: {
+          area_id?: string | null
+          category_id?: string | null
+          category_name?: string | null
+          company_id?: string | null
+          company_name?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_description?: string | null
+          jobadder_job_id?: string | null
+          location_id?: string | null
+          location_name?: string | null
+          salary_currency?: string | null
+          salary_rate_high?: number | null
+          salary_rate_low?: number | null
+          salary_rate_per?: string | null
+          skill_tags?: string[] | null
+          source?: string | null
+          sub_category_id?: string | null
+          synced_to_jobadder?: boolean | null
+          title?: string
+          updated_at?: string
+          work_type_id?: string | null
+          work_type_name?: string | null
+        }
+        Relationships: []
+      }
       linkedin_ad_accounts: {
         Row: {
           created_at: string

@@ -136,53 +136,95 @@ const JobPosting = () => {
     }
 
     try {
-      // Create job payload according to JobAdder API format
-      const jobPayload = {
-        endpoint: 'create-job',
-        jobTitle: formData.jobTitle,
-        companyId: parseInt(formData.companyId),
-        contactId: formData.contactId ? parseInt(formData.contactId) : null,
-        jobDescription: formData.jobDescription,
-        location: {
-          locationId: parseInt(formData.locationId),
-          areaId: formData.areaId ? parseInt(formData.areaId) : null
-        },
-        workTypeId: parseInt(formData.workTypeId),
-        category: formData.categoryId ? {
-          categoryId: parseInt(formData.categoryId),
-          subCategoryId: formData.subCategoryId ? parseInt(formData.subCategoryId) : null
-        } : null,
-        salary: (formData.salaryRateLow || formData.salaryRateHigh) ? {
-          ratePer: formData.salaryRatePer,
-          rateLow: formData.salaryRateLow ? parseFloat(formData.salaryRateLow) : null,
-          rateHigh: formData.salaryRateHigh ? parseFloat(formData.salaryRateHigh) : null,
-          currency: formData.salaryCurrency,
-          timePerWeek: null // Optional field
-        } : null,
-        skillTags: formData.skillTags ? {
-          matchAll: false, // Set to false for OR matching
-          tags: formData.skillTags.split(',').map(tag => tag.trim()).filter(Boolean)
-        } : null,
+      // First, save the job locally to the database
+      const localJobData = {
+        title: formData.jobTitle,
+        company_id: formData.companyId,
+        contact_id: formData.contactId || null,
+        location_id: formData.locationId,
+        area_id: formData.areaId || null,
+        work_type_id: formData.workTypeId,
+        category_id: formData.categoryId || null,
+        sub_category_id: formData.subCategoryId || null,
+        salary_rate_per: formData.salaryRatePer,
+        salary_rate_low: formData.salaryRateLow ? parseFloat(formData.salaryRateLow) : null,
+        salary_rate_high: formData.salaryRateHigh ? parseFloat(formData.salaryRateHigh) : null,
+        salary_currency: formData.salaryCurrency,
+        job_description: formData.jobDescription,
+        skill_tags: formData.skillTags ? formData.skillTags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
         source: formData.source || 'Website',
-        numberOfJobs: 1, // Default to 1
-        ownerUserId: null, // Will be set by JobAdder based on authenticated user
-        recruiterUserId: null // Optional
+        synced_to_jobadder: false
       };
 
-      // Send to JobAdder API via edge function
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
-        body: jobPayload
-      });
+      // Save to local database
+      const { data: localJob, error: localError } = await supabase
+        .from('jobs')
+        .insert([localJobData])
+        .select()
+        .single();
 
-      if (error) {
-        throw new Error(error.message);
+      if (localError) {
+        throw new Error(`Failed to save job locally: ${localError.message}`);
       }
 
-      console.log('Job created successfully:', data);
+      console.log('Job saved locally:', localJob);
+
+      // Try to sync to JobAdder API in the background (optional)
+      try {
+        const jobPayload = {
+          endpoint: 'create-job',
+          jobTitle: formData.jobTitle,
+          companyId: parseInt(formData.companyId),
+          contactId: formData.contactId ? parseInt(formData.contactId) : null,
+          jobDescription: formData.jobDescription,
+          location: {
+            locationId: parseInt(formData.locationId),
+            areaId: formData.areaId ? parseInt(formData.areaId) : null
+          },
+          workTypeId: parseInt(formData.workTypeId),
+          category: formData.categoryId ? {
+            categoryId: parseInt(formData.categoryId),
+            subCategoryId: formData.subCategoryId ? parseInt(formData.subCategoryId) : null
+          } : null,
+          salary: (formData.salaryRateLow || formData.salaryRateHigh) ? {
+            ratePer: formData.salaryRatePer,
+            rateLow: formData.salaryRateLow ? parseFloat(formData.salaryRateLow) : null,
+            rateHigh: formData.salaryRateHigh ? parseFloat(formData.salaryRateHigh) : null,
+            currency: formData.salaryCurrency
+          } : null,
+          skillTags: formData.skillTags ? {
+            matchAll: false,
+            tags: formData.skillTags.split(',').map(tag => tag.trim()).filter(Boolean)
+          } : null,
+          source: formData.source || 'Website',
+          numberOfJobs: 1
+        };
+
+        const { data: jobAdderResponse, error: jobAdderError } = await supabase.functions.invoke('jobadder-api', {
+          body: jobPayload
+        });
+
+        if (!jobAdderError && jobAdderResponse) {
+          // Update local job to mark as synced
+          await supabase
+            .from('jobs')
+            .update({ 
+              synced_to_jobadder: true,
+              jobadder_job_id: jobAdderResponse.jobId?.toString() || null
+            })
+            .eq('id', localJob.id);
+          
+          console.log('Job successfully synced to JobAdder');
+        } else {
+          console.warn('Failed to sync to JobAdder, but job saved locally:', jobAdderError);
+        }
+      } catch (syncError) {
+        console.warn('JobAdder sync failed, but job saved locally:', syncError);
+      }
       
       toast({
         title: "Success!",
-        description: "Job posting created successfully in JobAdder and will appear in the Jobs section.",
+        description: "Job posting created successfully! It will appear in the Jobs section.",
         className: "bg-green-500 text-white border-green-600",
       });
       
@@ -211,7 +253,7 @@ const JobPosting = () => {
       console.error('Error creating job:', error);
       toast({
         title: "Error",
-        description: "Failed to create job posting. Please try again.",
+        description: `Failed to create job posting: ${error.message}`,
         variant: "destructive"
       });
     }
