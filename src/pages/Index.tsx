@@ -29,8 +29,13 @@ const Index = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Fetch candidates stats
-      const { data: candidates, error: candidatesError } = await supabase
+      // Fetch all candidates count for stats
+      const { data: allCandidates, error: allCandidatesError } = await supabase
+        .from('candidates')
+        .select('*');
+
+      // Fetch recent candidates for display (limited to 5)
+      const { data: recentCandidatesData, error: recentCandidatesError } = await supabase
         .from('candidates')
         .select('*')
         .order('created_at', { ascending: false })
@@ -59,13 +64,17 @@ const Index = () => {
         })));
       }
 
-      if (!candidatesError && candidates) {
+      // Set total candidates count from all candidates
+      if (!allCandidatesError && allCandidates) {
         setStats(prev => ({
           ...prev,
-          totalCandidates: candidates.length
+          totalCandidates: allCandidates.length
         }));
+      }
 
-        setRecentCandidates(candidates.map(candidate => ({
+      // Set recent candidates for display
+      if (!recentCandidatesError && recentCandidatesData) {
+        setRecentCandidates(recentCandidatesData.map(candidate => ({
           id: candidate.id,
           name: candidate.name,
           title: candidate.current_position || 'No position specified',
@@ -88,7 +97,7 @@ const Index = () => {
 
   const statsCards = [
     { title: "Active Jobs", value: stats.activeJobs.toString(), icon: Briefcase, color: "text-blue-600" },
-    { title: "Total Candidates", value: stats.totalCandidates.toString(), icon: Users, color: "text-green-600" },
+    { title: "Talent Pool", value: stats.totalCandidates.toString(), icon: Users, color: "text-green-600" },
     { title: "Applicants", value: stats.totalApplicants.toString(), icon: UserCheck, color: "text-orange-600" },
     { title: "Synced to JobAdder", value: stats.syncedJobs.toString(), icon: TrendingUp, color: "text-purple-600" }
   ];
