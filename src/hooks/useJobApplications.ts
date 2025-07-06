@@ -581,21 +581,22 @@ export function useJobApplications() {
         setError('Using demo data for JobAdder applications - API unavailable');
       }
 
-      // Fetch local candidates from Supabase
-      let localCandidates: JobApplicationCandidate[] = [];
+      // Fetch local candidates from Supabase - only those with advanced interview stages
+      let localAdvancedCandidates: JobApplicationCandidate[] = [];
       
       try {
         const { data: candidates, error: supabaseError } = await supabase
           .from('candidates')
           .select('*')
+          .not('interview_stage', 'in', '(pending,null)')
           .order('created_at', { ascending: false });
 
         if (supabaseError) {
           throw supabaseError;
         }
 
-        // Convert local candidates to JobApplicationCandidate format
-        localCandidates = (candidates || []).map((candidate, index) => ({
+        // Convert local advanced candidates to JobApplicationCandidate format
+        localAdvancedCandidates = (candidates || []).map((candidate, index) => ({
           applicationId: -1000 - index, // Negative IDs to distinguish from JobAdder
           jobTitle: candidate.current_position || "General Application",
           jobReference: `LOCAL-${candidate.id.slice(0, 8)}`,
@@ -603,17 +604,27 @@ export function useJobApplications() {
           source: "Manual Entry - Growth Accelerator",
           rating: 3,
           status: {
-            statusId: 1,
-            name: "Available",
+            statusId: candidate.interview_stage === 'in_progress' ? 2 : 
+                     candidate.interview_stage === 'completed' ? 4 :
+                     candidate.interview_stage === 'passed' ? 5 : 1,
+            name: candidate.interview_stage === 'in_progress' ? "Interview In Progress" :
+                  candidate.interview_stage === 'completed' ? "Interview Completed" :
+                  candidate.interview_stage === 'passed' ? "Interview Passed" : "Available",
             active: true,
-            rejected: false,
-            default: true,
+            rejected: candidate.interview_stage === 'failed',
+            default: false,
             defaultRejected: false,
             workflow: {
-              stage: "Talent Pool",
-              stageIndex: 0,
-              step: 1,
-              progress: "Available"
+              stage: candidate.interview_stage === 'in_progress' ? "Interview In Progress" :
+                     candidate.interview_stage === 'completed' ? "Interview Completed" :
+                     candidate.interview_stage === 'passed' ? "Interview Passed" : "Talent Pool",
+              stageIndex: candidate.interview_stage === 'in_progress' ? 1 :
+                         candidate.interview_stage === 'completed' ? 2 :
+                         candidate.interview_stage === 'passed' ? 3 : 0,
+              step: candidate.interview_stage === 'in_progress' ? 2 :
+                   candidate.interview_stage === 'completed' ? 3 :
+                   candidate.interview_stage === 'passed' ? 4 : 1,
+              progress: candidate.interview_stage === 'passed' ? "Completed" : "In Progress"
             }
           },
           candidate: {
@@ -659,7 +670,7 @@ export function useJobApplications() {
           updatedAt: candidate.updated_at
         }));
 
-        console.log(`Fetched ${localCandidates.length} local candidates from database`);
+        console.log(`Fetched ${localAdvancedCandidates.length} advanced local candidates from database`);
       } catch (supabaseError) {
         console.warn('Error fetching local candidates:', supabaseError);
       }
@@ -705,8 +716,8 @@ export function useJobApplications() {
         );
       }
 
-      // Combine advanced applications with local candidates for talent pool
-      const allTalentPoolCandidates = [...advancedApplications, ...localCandidates];
+      // Combine advanced applications with local advanced candidates for talent pool
+      const allTalentPoolCandidates = [...advancedApplications, ...localAdvancedCandidates];
       
       // Apply search filter to talent pool
       let filteredTalentPool = allTalentPoolCandidates;
@@ -727,7 +738,7 @@ export function useJobApplications() {
       const allApplications = [...filteredJobApplications, ...filteredTalentPool];
       setApplications(allApplications);
       
-      console.log(`Total applications displayed: ${filteredJobApplications.length} applicants, ${filteredTalentPool.length} talent pool (${advancedApplications.length} advanced + ${localCandidates.length} local)`);
+      console.log(`Total applications displayed: ${filteredJobApplications.length} applicants, ${filteredTalentPool.length} talent pool (${advancedApplications.length} advanced + ${localAdvancedCandidates.length} local advanced)`);
       
     } catch (err) {
       console.error('Error fetching applications:', err);
@@ -768,6 +779,48 @@ export function useJobApplications() {
         } catch (apiError) {
           console.warn('JobAdder API update failed:', apiError);
           // Continue with local update even if API fails
+        }
+      }
+      // For negative application IDs (local candidates), update the database
+      else if (applicationId < 0) {
+        try {
+          // Map statusId to interview_stage enum
+          const interviewStageMap: Record<number, 'pending' | 'in_progress' | 'completed' | 'passed' | 'failed'> = {
+            1: "pending",
+            2: "in_progress", 
+            3: "in_progress",
+            4: "completed",
+            5: "passed",
+            6: "passed", // Placed = passed
+            7: "failed",
+            8: "failed"
+          };
+          
+          const newInterviewStage = interviewStageMap[statusId] || "pending";
+          
+          // Find the actual application to get the candidate ID
+          const currentApp = applications.find(app => app.applicationId === applicationId) ||
+                            jobApplications.find(app => app.applicationId === applicationId) ||
+                            talentPool.find(app => app.applicationId === applicationId);
+          
+          if (currentApp && currentApp.candidate.email) {
+            // Update candidate in database by email (most reliable identifier)
+            const { error: updateError } = await supabase
+              .from('candidates')
+              .update({ 
+                interview_stage: newInterviewStage,
+                updated_at: new Date().toISOString()
+              })
+              .eq('email', currentApp.candidate.email);
+              
+            if (updateError) {
+              console.warn('Failed to update local candidate:', updateError);
+            } else {
+              console.log(`Updated local candidate ${currentApp.candidate.email} to stage: ${newInterviewStage}`);
+            }
+          }
+        } catch (dbError) {
+          console.warn('Error updating local candidate:', dbError);
         }
       }
       
