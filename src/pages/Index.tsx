@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { Briefcase, Users, TrendingUp, Clock, Plus, ArrowRight, UserCheck, User } from "lucide-react";
+import { Briefcase, Users, TrendingUp, ArrowRight, UserCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
@@ -29,7 +29,7 @@ const Index = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Fetch all candidates count for Talent Pool
+      // Fetch candidates count for Candidates card
       const { data: allCandidates, error: allCandidatesError } = await supabase
         .from('candidates')
         .select('*');
@@ -41,8 +41,8 @@ const Index = () => {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      // Fetch applicants count from candidate_responses table
-      const { data: applicants, error: applicantsError } = await supabase
+      // Fetch talent pool count from candidate_responses table
+      const { data: talentPoolData, error: talentPoolError } = await supabase
         .from('candidate_responses')
         .select('*');
 
@@ -64,7 +64,7 @@ const Index = () => {
         })));
       }
 
-      // Set Talent Pool count (candidates)
+      // Set Candidates count (from candidates table)
       if (!allCandidatesError && allCandidates) {
         setStats(prev => ({
           ...prev,
@@ -82,17 +82,17 @@ const Index = () => {
         })));
       }
 
-      // Set Applicants count from candidate_responses
-      if (!applicantsError && applicants) {
+      // Set Talent Pool count (from candidate_responses table)
+      if (!talentPoolError && talentPoolData) {
         setStats(prev => ({
           ...prev,
-          totalApplicants: applicants.length
+          totalApplicants: talentPoolData.length
         }));
       }
 
       console.log('Dashboard stats:', {
         candidates: allCandidates?.length || 0,
-        applicants: applicants?.length || 0,
+        talentPool: talentPoolData?.length || 0,
         jobs: jobs?.length || 0
       });
     } catch (error) {
@@ -104,8 +104,8 @@ const Index = () => {
 
   const statsCards = [
     { title: "Active Jobs", value: stats.activeJobs.toString(), icon: Briefcase, color: "text-blue-600" },
-    { title: "Talent Pool", value: stats.totalCandidates.toString(), icon: Users, color: "text-green-600" },
-    { title: "Applicants", value: stats.totalApplicants.toString(), icon: UserCheck, color: "text-orange-600" },
+    { title: "Candidates", value: stats.totalCandidates.toString(), icon: Users, color: "text-green-600" },
+    { title: "Talent Pool", value: stats.totalApplicants.toString(), icon: UserCheck, color: "text-orange-600" },
     { title: "Synced to JobAdder", value: stats.syncedJobs.toString(), icon: TrendingUp, color: "text-purple-600" }
   ];
 
@@ -141,12 +141,6 @@ const Index = () => {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-2">Welcome to your job posting portal</p>
         </div>
-        <Link to="/job-posting">
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Post New Job
-          </Button>
-        </Link>
       </div>
 
       {/* Stats Cards */}
