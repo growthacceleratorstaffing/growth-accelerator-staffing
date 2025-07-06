@@ -9,13 +9,51 @@ import { Link } from "react-router-dom";
 import { useJobs } from "@/hooks/useJobs";
 import { JobSyncStatus } from "@/components/job-search/JobSyncStatus";
 import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJob, setSelectedJob] = useState(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [isTestingAPI, setIsTestingAPI] = useState(false);
+  const { toast } = useToast();
   
   const { jobs, loading, error, useMockData, refetch } = useJobs();
+
+  const testJobAdderAPI = async () => {
+    setIsTestingAPI(true);
+    try {
+      console.log('Testing JobAdder API health...');
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { endpoint: 'health' }
+      });
+      
+      if (error) {
+        console.error('JobAdder API test failed:', error);
+        toast({
+          title: "API Test Failed",
+          description: `Error: ${error.message}`,
+          variant: "destructive",
+        });
+      } else {
+        console.log('JobAdder API test success:', data);
+        toast({
+          title: "API Test Successful",
+          description: `Status: ${data.status}, Has credentials: ${data.credentials?.hasClientId && data.credentials?.hasClientSecret}`,
+        });
+      }
+    } catch (err) {
+      console.error('API test exception:', err);
+      toast({
+        title: "API Test Exception",
+        description: `Exception: ${err.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingAPI(false);
+    }
+  };
 
 
   const handleSearch = (value: string) => {
@@ -58,6 +96,17 @@ const Jobs = () => {
       {/* Sync Status */}
       <div className="mb-8">
         <JobSyncStatus />
+        <div className="mt-4">
+          <Button 
+            onClick={testJobAdderAPI} 
+            disabled={isTestingAPI}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <AlertCircle className="h-4 w-4" />
+            {isTestingAPI ? "Testing API..." : "Test JobAdder API"}
+          </Button>
+        </div>
       </div>
 
       {error && useMockData && (

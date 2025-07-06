@@ -247,6 +247,20 @@ serve(async (req) => {
     if (search) params.search = search;
 
     switch (endpoint) {
+      case 'health':
+        // Simple health check endpoint
+        return new Response(JSON.stringify({ 
+          status: 'ok', 
+          timestamp: new Date().toISOString(),
+          credentials: {
+            hasClientId: !!JOBADDER_CLIENT_ID,
+            hasClientSecret: !!JOBADDER_CLIENT_SECRET,
+            clientIdPreview: JOBADDER_CLIENT_ID?.substring(0, 8) + '...',
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+
       case 'jobApplications':
         if (req.method !== 'POST') {
           return new Response(
