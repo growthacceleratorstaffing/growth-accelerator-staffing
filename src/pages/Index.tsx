@@ -29,7 +29,7 @@ const Index = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Fetch candidates count for Candidates card
+      // Fetch candidates count for Talent Pool card
       const { data: allCandidates, error: allCandidatesError } = await supabase
         .from('candidates')
         .select('*');
@@ -41,8 +41,8 @@ const Index = () => {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      // Fetch talent pool count from candidate_responses table
-      const { data: talentPoolData, error: talentPoolError } = await supabase
+      // Fetch candidates count from candidate_responses table
+      const { data: candidateResponsesData, error: candidateResponsesError } = await supabase
         .from('candidate_responses')
         .select('*');
 
@@ -64,11 +64,11 @@ const Index = () => {
         })));
       }
 
-      // Set Candidates count (from candidates table)
-      if (!allCandidatesError && allCandidates) {
+      // Set Candidates count (from candidate_responses table)
+      if (!candidateResponsesError && candidateResponsesData) {
         setStats(prev => ({
           ...prev,
-          totalCandidates: allCandidates.length
+          totalCandidates: candidateResponsesData.length
         }));
       }
 
@@ -82,17 +82,17 @@ const Index = () => {
         })));
       }
 
-      // Set Talent Pool count (from candidate_responses table)
-      if (!talentPoolError && talentPoolData) {
+      // Set Talent Pool count (from candidates table)
+      if (!allCandidatesError && allCandidates) {
         setStats(prev => ({
           ...prev,
-          totalApplicants: talentPoolData.length
+          totalApplicants: allCandidates.length
         }));
       }
 
       console.log('Dashboard stats:', {
-        candidates: allCandidates?.length || 0,
-        talentPool: talentPoolData?.length || 0,
+        candidates: candidateResponsesData?.length || 0,
+        talentPool: allCandidates?.length || 0,
         jobs: jobs?.length || 0
       });
     } catch (error) {

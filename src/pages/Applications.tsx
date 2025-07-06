@@ -326,10 +326,10 @@ const Applications = () => {
       <Tabs defaultValue="talent-pool" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="applicants" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
-            Talent Pool ({jobApplications.length})
+            Candidates ({jobApplications.length})
           </TabsTrigger>
           <TabsTrigger value="talent-pool" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
-            Candidates ({talentPool.length})
+            Talent Pool ({talentPool.length})
           </TabsTrigger>
         </TabsList>
 
