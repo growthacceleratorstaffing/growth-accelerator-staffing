@@ -996,8 +996,8 @@ export function useJobApplications() {
       2: "Phone Interview", 
       3: "Technical Interview",
       4: "Final Interview",
-      5: "Offer Extended",
-      6: "Placed",
+      5: "Placed",
+      6: "Offer Extended",
       7: "Rejected",
       8: "Declined"
     };
@@ -1024,8 +1024,8 @@ export function useJobApplications() {
             2: "in_progress", 
             3: "in_progress",
             4: "completed",
-            5: "passed",
-            6: "passed", // Placed = passed
+            5: "passed", // Placed = passed (step 5)
+            6: "completed", // Offer Extended
             7: "failed",
             8: "failed"
           };

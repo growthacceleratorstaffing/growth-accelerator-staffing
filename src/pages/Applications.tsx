@@ -146,13 +146,13 @@ const Applications = () => {
         stageUpdateData.notes
       );
       
-      if (stageUpdateData.createPlacement || stageUpdateData.stageName.toLowerCase() === "placed") {
-        // Create placement when moved to "placed" stage
-        toast({
-          title: "Application Moved to Placed!",
-          description: `${selectedApplication.candidate.firstName} ${selectedApplication.candidate.lastName} has been placed. A placement record has been created.`,
-        });
-      } else {
+            if (stageUpdateData.createPlacement || stageUpdateData.stageName.toLowerCase() === "placed") {
+              // Create placement when moved to "placed" stage (step 5)
+              toast({
+                title: "Candidate Placed!",
+                description: `${selectedApplication.candidate.firstName} ${selectedApplication.candidate.lastName} has been successfully placed.`,
+              });
+            } else {
         toast({
           title: "Stage Updated!",
           description: `Application moved to "${stageUpdateData.stageName}".`,
@@ -277,8 +277,8 @@ const Applications = () => {
     { id: "2", name: "Phone Interview", description: "Phone screening with candidate" },
     { id: "3", name: "Technical Interview", description: "Technical assessment and interview" },
     { id: "4", name: "Final Interview", description: "Final interview with hiring manager" },
-    { id: "5", name: "Offer Extended", description: "Job offer has been extended" },
-    { id: "6", name: "Placed", description: "Candidate has accepted and placement created" },
+    { id: "5", name: "Placed", description: "Candidate has been successfully placed" },
+    { id: "6", name: "Offer Extended", description: "Job offer has been extended" },
     { id: "7", name: "Rejected", description: "Application rejected" },
     { id: "8", name: "Declined", description: "Candidate declined offer" }
   ];
