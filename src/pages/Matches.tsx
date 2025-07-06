@@ -309,34 +309,91 @@ const Matches = () => {
           return;
         }
         
-        // Create candidate via JobAdder API
-        const candidatePayload = {
-          firstName: newCandidateData.firstName,
-          lastName: newCandidateData.lastName,
-          email: newCandidateData.email,
-          phone: newCandidateData.phone,
-          currentRole: newCandidateData.currentRole,
-          company: newCandidateData.currentCompany,
-          skills: newCandidateData.skills.split(',').map(s => s.trim()).filter(Boolean),
-          experienceYears: newCandidateData.experienceYears ? parseInt(newCandidateData.experienceYears) : null,
-          location: newCandidateData.location
-        };
+        let jobAdderSuccess = false;
+        
+        // Try to create candidate via JobAdder API first
+        try {
+          const candidatePayload = {
+            firstName: newCandidateData.firstName,
+            lastName: newCandidateData.lastName,
+            email: newCandidateData.email,
+            phone: newCandidateData.phone,
+            currentRole: newCandidateData.currentRole,
+            company: newCandidateData.currentCompany,
+            skills: newCandidateData.skills.split(',').map(s => s.trim()).filter(Boolean),
+            experienceYears: newCandidateData.experienceYears ? parseInt(newCandidateData.experienceYears) : null,
+            location: newCandidateData.location
+          };
 
-        const { data, error } = await supabase.functions.invoke('jobadder-api', {
-          body: { 
-            endpoint: 'create-candidate',
-            ...candidatePayload
+          const { data, error } = await supabase.functions.invoke('jobadder-api', {
+            body: { 
+              endpoint: 'create-candidate',
+              ...candidatePayload
+            }
+          });
+
+          if (error) {
+            throw new Error(error.message);
           }
-        });
 
-        if (error) {
-          throw new Error(error.message);
+          console.log('Candidate created successfully in JobAdder:', data);
+          jobAdderSuccess = true;
+        } catch (apiError) {
+          console.error('JobAdder API failed:', apiError);
+          // Continue to save locally
         }
 
-        toast({
-          title: "Candidate Created!",
-          description: `${newCandidateData.firstName} ${newCandidateData.lastName} has been added to JobAdder.`,
-        });
+        // Always save candidate locally (whether JobAdder succeeded or failed)
+        try {
+          const { data: localCandidate, error: localError } = await supabase
+            .from('candidates')
+            .insert({
+              name: `${newCandidateData.firstName} ${newCandidateData.lastName}`,
+              email: newCandidateData.email,
+              phone: newCandidateData.phone,
+              current_position: newCandidateData.currentRole,
+              company: newCandidateData.currentCompany,
+              skills: newCandidateData.skills.split(',').map(s => s.trim()).filter(Boolean),
+              experience_years: newCandidateData.experienceYears ? parseInt(newCandidateData.experienceYears) : null,
+              location: newCandidateData.location,
+              source_platform: 'manual',
+              interview_stage: 'pending'
+            })
+            .select()
+            .single();
+
+          if (localError) {
+            throw localError;
+          }
+
+          console.log('Local candidate saved:', localCandidate);
+
+          // Show appropriate success message
+          if (jobAdderSuccess) {
+            toast({
+              title: "Candidate Created!",
+              description: `${newCandidateData.firstName} ${newCandidateData.lastName} has been added to JobAdder and saved locally.`,
+            });
+          } else {
+            toast({
+              title: "Candidate Added Locally",
+              description: `${newCandidateData.firstName} ${newCandidateData.lastName} has been saved locally. JobAdder API unavailable.`,
+            });
+          }
+        } catch (localSaveError) {
+          console.error('Failed to save candidate locally:', localSaveError);
+          
+          // If local save fails but JobAdder succeeded, still show partial success
+          if (jobAdderSuccess) {
+            toast({
+              title: "Partial Success",
+              description: `${newCandidateData.firstName} ${newCandidateData.lastName} created in JobAdder but failed to save locally.`,
+            });
+          } else {
+            // Both JobAdder and local save failed
+            throw new Error('Failed to create candidate both in JobAdder and locally');
+          }
+        }
       } else if (activeTab === "job") {
         if (!newJobData.title || !newJobData.company) {
           toast({
