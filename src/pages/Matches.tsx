@@ -546,7 +546,7 @@ const Matches = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Job Matches</h1>
-          <p className="text-muted-foreground mt-2">Successful job placements and candidate matches</p>
+          <p className="text-muted-foreground mt-2">See your current placements and create new matches</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isNewPlacementOpen} onOpenChange={setIsNewPlacementOpen}>
