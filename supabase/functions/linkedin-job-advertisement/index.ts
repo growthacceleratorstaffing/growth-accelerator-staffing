@@ -14,10 +14,17 @@ serve(async (req) => {
   try {
     const { jobTitle, jobDescription, budget, duration, targetAudience, campaignName } = await req.json();
 
-    // Get LinkedIn access token from secrets
+    // Get LinkedIn credentials from secrets
+    const linkedinClientId = Deno.env.get('LINKEDIN_CLIENT_ID');
+    const linkedinClientSecret = Deno.env.get('LINKEDIN_CLIENT_SECRET');
     const linkedinAccessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
+    
+    if (!linkedinClientId || !linkedinClientSecret) {
+      throw new Error('LinkedIn client credentials not configured');
+    }
+
     if (!linkedinAccessToken) {
-      throw new Error('LinkedIn access token not configured');
+      throw new Error('LinkedIn access token not configured. Please authenticate first.');
     }
 
     // Create LinkedIn campaign
