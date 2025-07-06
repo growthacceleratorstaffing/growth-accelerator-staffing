@@ -1097,12 +1097,6 @@ export function useJobApplications() {
       setJobApplications(prev => prev.map(updateApplication));
       setTalentPool(prev => prev.map(updateApplication));
       
-      // Trigger a refetch to get updated categorization after a short delay
-      setTimeout(() => {
-        console.log('Triggering refetch to update categorization...');
-        fetchApplications();
-      }, 1000);
-      
       toast({
         title: "Stage Updated!",
         description: `Application moved to "${statusNames[statusId]}".`,
