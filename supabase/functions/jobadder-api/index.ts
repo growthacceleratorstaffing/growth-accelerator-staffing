@@ -639,8 +639,14 @@ serve(async (req) => {
             { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        const placementData = await req.json();
-        data = await makeJobAdderPostRequest('/placements', placementData);
+        // Use the already parsed request body if available
+        const placementData = requestBody || await req.json();
+        
+        // Remove the endpoint field from the placement data before sending to JobAdder
+        const { endpoint: _, ...cleanPlacementData } = placementData;
+        
+        console.log('Creating placement with data:', cleanPlacementData);
+        data = await makeJobAdderPostRequest('/placements', cleanPlacementData);
         break;
 
       case 'create-company':
