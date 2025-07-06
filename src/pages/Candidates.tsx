@@ -70,7 +70,6 @@ const Candidates = () => {
           <h1 className="text-3xl font-bold">Job Applications</h1>
           <p className="text-muted-foreground mt-2">Manage your candidate applications from JobAdder</p>
         </div>
-        <Button>Export Applications</Button>
       </div>
 
       {error && useMockData && (
