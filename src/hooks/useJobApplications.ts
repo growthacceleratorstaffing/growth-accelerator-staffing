@@ -924,19 +924,22 @@ export function useJobApplications() {
 
       console.log(`JobAdder Applications Split: ${initialApplications.length} initial, ${advancedApplications.length} advanced`);
 
-      // Separate local candidates by stage
+      // Separate local candidates by stage - only truly advanced candidates go to talent pool
       const localAdvancedCandidates = localCandidates.filter(candidate => 
-        candidate.status.name !== "Available"
+        candidate.status.name !== "Available" && 
+        (candidate.status.name.includes("Interview") || 
+         candidate.status.name.includes("Passed") || 
+         candidate.status.name.includes("Completed"))
       );
       
       const localInitialCandidates = localCandidates.filter(candidate =>
         candidate.status.name === "Available"
       );
 
-      // Combine advanced applications with local advanced candidates for talent pool
+      // ONLY advanced applications and advanced local candidates go to talent pool
       const allTalentPoolCandidates = [...advancedApplications, ...localAdvancedCandidates];
       
-      // Add local initial candidates to job applications
+      // ONLY initial applications and initial local candidates go to applicants
       const allInitialApplications = [...initialApplications, ...localInitialCandidates];
 
       // Apply search filter to initial job applications (including local initial)
