@@ -88,6 +88,14 @@ const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/")}>
+                  <Link to="/">
+                    <Settings className="h-4 w-4" />
+                    <span className="text-white text-base">Home</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
                   <Link to="/dashboard">
                     <Settings className="h-4 w-4" />
