@@ -431,9 +431,10 @@ export function usePlacements() {
         useJobAdderMock = true;
       }
 
-      // Always fetch local placements
+      // Always fetch local placements - this is the key part
       let localPlacements: JobAdderPlacement[] = [];
       try {
+        console.log('Fetching local placements from database...');
         const { data: localData, error: localError } = await supabase
           .from('local_placements')
           .select('*')
@@ -442,10 +443,10 @@ export function usePlacements() {
         if (localError) {
           console.error('Error fetching local placements:', localError);
         } else {
-          console.log(`Fetched ${localData?.length || 0} local placements:`, localData);
+          console.log(`Successfully fetched ${localData?.length || 0} local placements:`, localData);
           // Convert local placements to JobAdderPlacement format
           localPlacements = (localData || []).map((local, index) => ({
-            placementId: -1000 - index, // Negative IDs to distinguish from JobAdder
+            placementId: -2000 - index, // Unique negative IDs for local placements
             status: {
               statusId: local.status_id || 1,
               name: local.status_name || 'Active',
@@ -453,10 +454,10 @@ export function usePlacements() {
               default: local.status_id === 1
             },
             candidate: {
-              candidateId: parseInt(local.candidate_id),
-              firstName: local.candidate_name.split(' ')[0] || 'Unknown',
-              lastName: local.candidate_name.split(' ').slice(1).join(' ') || '',
-              email: local.candidate_email,
+              candidateId: parseInt(local.candidate_id) || -1,
+              firstName: local.candidate_name?.split(' ')[0] || 'Unknown',
+              lastName: local.candidate_name?.split(' ').slice(1).join(' ') || '',
+              email: local.candidate_email || 'unknown@email.com',
               status: {
                 statusId: 3,
                 name: 'Placed',
@@ -465,11 +466,11 @@ export function usePlacements() {
               }
             },
             job: {
-              jobId: parseInt(local.job_id),
-              jobTitle: local.job_title,
+              jobId: parseInt(local.job_id) || -1,
+              jobTitle: local.job_title || 'Unknown Job',
               company: {
                 companyId: -1,
-                name: local.company_name,
+                name: local.company_name || 'Unknown Company',
                 status: {
                   statusId: 1,
                   name: 'Active',
@@ -489,13 +490,15 @@ export function usePlacements() {
             createdAt: local.created_at,
             updatedAt: local.updated_at
           }));
+          console.log('Converted local placements:', localPlacements);
         }
       } catch (localFetchError) {
         console.error('Error fetching local placements:', localFetchError);
       }
 
-      // Combine JobAdder and local placements
-      let allPlacements = [...jobAdderPlacements, ...localPlacements];
+      // Combine JobAdder and local placements - prioritize local placements
+      let allPlacements = [...localPlacements, ...jobAdderPlacements];
+      console.log(`Total placements: ${allPlacements.length} (${localPlacements.length} local + ${jobAdderPlacements.length} JobAdder)`);
 
       // Apply search filter
       if (searchTerm) {
@@ -508,8 +511,8 @@ export function usePlacements() {
       }
       
       setPlacements(allPlacements);
-      setUseMockData(useJobAdderMock);
-      setError(useJobAdderMock ? 'Using demo data for JobAdder - API unavailable' : null);
+      setUseMockData(useJobAdderMock && localPlacements.length === 0);
+      setError(useJobAdderMock && localPlacements.length === 0 ? 'Using demo data for JobAdder - API unavailable' : null);
     } catch (err) {
       console.error('Error fetching placements:', err);
       setError('Error loading placements data');
