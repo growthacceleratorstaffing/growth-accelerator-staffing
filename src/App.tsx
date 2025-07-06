@@ -26,6 +26,7 @@ import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
 import JobAdderAuth from "./pages/JobAdderAuth";
+import JobAdderCandidates from "./pages/JobAdderCandidates";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import AuthLogin from "./pages/AuthLogin";
@@ -136,6 +137,14 @@ const AppSidebar = () => {
                   <Link to="/job-board">
                     <User className="h-4 w-4" />
                     <span className="text-base">Job Board</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/jobadder-candidates")}>
+                  <Link to="/jobadder-candidates">
+                    <User className="h-4 w-4" />
+                    <span className="text-base">JobAdder Candidates</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -360,6 +369,11 @@ const App = () => (
           <Route path="/job-board" element={
             <AppLayout>
               <JobBoard />
+            </AppLayout>
+          } />
+          <Route path="/jobadder-candidates" element={
+            <AppLayout>
+              <JobAdderCandidates />
             </AppLayout>
           } />
           

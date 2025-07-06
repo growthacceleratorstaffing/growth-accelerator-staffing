@@ -7,14 +7,65 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Mail, Phone, Search, Star, Download, AlertCircle, Building, Calendar, User } from "lucide-react";
 import { useJobApplications } from "@/hooks/useJobApplications";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Candidates = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [importingCandidates, setImportingCandidates] = useState<Set<string>>(new Set());
   const { applications, loading, error, useMockData, refetch } = useJobApplications();
+  const { toast } = useToast();
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     refetch(value);
+  };
+
+  const handleImportCandidate = async (candidate: any) => {
+    const candidateId = candidate.candidateId?.toString() || '';
+    setImportingCandidates(prev => new Set([...prev, candidateId]));
+    
+    try {
+      // Get user access token from OAuth2 manager
+      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      
+      if (!userAccessToken) {
+        throw new Error('No JobAdder access token available. Please authenticate first.');
+      }
+
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'import-candidate',
+          candidate: candidate,
+          accessToken: userAccessToken
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      toast({
+        title: "Candidate Imported Successfully",
+        description: `${candidate.firstName} ${candidate.lastName} has been imported to your candidate database.`,
+      });
+
+      console.log('Candidate imported:', data);
+    } catch (error) {
+      console.error('Error importing candidate:', error);
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : 'Failed to import candidate',
+        variant: "destructive"
+      });
+    } finally {
+      setImportingCandidates(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(candidateId);
+        return newSet;
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -208,6 +259,24 @@ const Candidates = () => {
                     </div>
                     
                     <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleImportCandidate(application.candidate)}
+                        disabled={importingCandidates.has(application.candidate.candidateId?.toString() || '')}
+                      >
+                        {importingCandidates.has(application.candidate.candidateId?.toString() || '') ? (
+                          <>
+                            <Download className="h-4 w-4 mr-2 animate-spin" />
+                            Importing...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4 mr-2" />
+                            Import Candidate
+                          </>
+                        )}
+                      </Button>
                       <Button variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-2" />
                         Resume

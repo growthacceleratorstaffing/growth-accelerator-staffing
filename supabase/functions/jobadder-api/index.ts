@@ -214,6 +214,71 @@ serve(async (req) => {
         data = await makeJobAdderRequest(`/jobboards/${boardId}/jobads/${adId}`, userAccessToken);
         break;
 
+      case 'import-candidate':
+        if (req.method !== 'POST') {
+          return new Response(
+            JSON.stringify({ error: 'import-candidate requires POST method' }),
+            { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        const candidateToImport = requestBody?.candidate;
+        if (!candidateToImport) {
+          return new Response(
+            JSON.stringify({ error: 'candidate data is required for import-candidate endpoint' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.log('Importing JobAdder candidate:', candidateToImport.candidateId);
+        
+        // Transform JobAdder candidate to local database format
+        const localCandidateData = {
+          name: `${candidateToImport.firstName || ''} ${candidateToImport.lastName || ''}`.trim(),
+          email: candidateToImport.email || candidateToImport.emailAddress || '',
+          phone: candidateToImport.phone || candidateToImport.mobile || candidateToImport.phoneNumber || null,
+          current_position: candidateToImport.currentPosition || candidateToImport.jobTitle || null,
+          company: candidateToImport.company || candidateToImport.currentCompany || null,
+          location: candidateToImport.address ? 
+            `${candidateToImport.address.city || ''}, ${candidateToImport.address.state || ''}`.replace(/^,\s*|,\s*$/, '') || null :
+            candidateToImport.location || null,
+          linkedin_profile_url: candidateToImport.linkedinUrl || candidateToImport.linkedInProfile || null,
+          profile_picture_url: candidateToImport.photoUrl || candidateToImport.profilePictureUrl || null,
+          skills: candidateToImport.skills || candidateToImport.skillSet || [],
+          education: candidateToImport.education || candidateToImport.educationHistory || [],
+          experience_years: candidateToImport.experience || candidateToImport.yearsOfExperience || null,
+          source_platform: 'JobAdder',
+          profile_completeness_score: candidateToImport.profileCompleteness || 0,
+          workable_candidate_id: candidateToImport.candidateId?.toString() || null,
+          last_synced_at: new Date().toISOString()
+        };
+        
+        // Insert candidate into Supabase database
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data: insertedCandidate, error: insertError } = await supabase
+          .from('candidates')
+          .insert([localCandidateData])
+          .select()
+          .single();
+        
+        if (insertError) {
+          console.error('Error inserting candidate:', insertError);
+          throw new Error(`Failed to import candidate: ${insertError.message}`);
+        }
+        
+        console.log('Candidate imported successfully:', insertedCandidate.id);
+        data = { 
+          success: true, 
+          candidateId: insertedCandidate.id, 
+          message: 'Candidate imported successfully',
+          importedCandidate: insertedCandidate
+        };
+        break;
+
       case 'import-job':
         if (req.method !== 'POST') {
           return new Response(
