@@ -83,8 +83,8 @@ const JobAdvertising = () => {
 
       console.log('LinkedIn job posting successful!');
       toast({
-        title: "Job Posted",
-        description: `Job posted to LinkedIn Jobs! View at: ${data.jobUrl}`
+        title: "Job Shared!",
+        description: `Job shared on LinkedIn and added to career page! Post: ${data.postUrl}`
       });
 
       // Reset form
@@ -193,9 +193,9 @@ const JobAdvertising = () => {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Create LinkedIn Job Posting</CardTitle>
+                  <CardTitle>Share Job on LinkedIn</CardTitle>
                   <CardDescription>
-                    Post a job directly to LinkedIn's job board (linkedin.com/jobs) - Free
+                    Share job openings on your LinkedIn company page and create listings on your career page
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -311,7 +311,7 @@ const JobAdvertising = () => {
                     disabled={isCreatingJob}
                     className="w-full"
                   >
-                    {isCreatingJob ? "Creating Job Posting..." : "Post Job to LinkedIn"}
+                    {isCreatingJob ? "Sharing Job..." : "Share Job on LinkedIn"}
                   </Button>
                 </CardContent>
               </Card>
@@ -330,19 +330,19 @@ const JobAdvertising = () => {
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5"></div>
                     <div>
-                      <strong>Free:</strong> No cost to post jobs
+                      <strong>Company Page Posts:</strong> Share job openings on your LinkedIn company page
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                     <div>
-                      <strong>Professional Visibility:</strong> Jobs appear on LinkedIn's job board
+                      <strong>Career Page Integration:</strong> Jobs are added to your website's career page
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                     <div>
-                      <strong>Easy Applications:</strong> Candidates can apply directly through LinkedIn
+                      <strong>Professional Reach:</strong> Leverage your company's LinkedIn network
                     </div>
                   </div>
                 </CardContent>
