@@ -101,18 +101,18 @@ const PreOnboarding = () => {
               Select a candidate above to begin their preboarding journey through our 4-step process
             </p>
 
-            {/* Pre-Onboarding Steps */}
+            {/* Preboarding Steps */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
               <div className="text-center p-4 border rounded-lg">
                 <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <FileText className="h-6 w-6 text-primary" />
+                  <Mail className="h-6 w-6 text-primary" />
                 </div>
                 <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mx-auto mb-2">
                   1
                 </div>
-                <h4 className="font-medium mb-1">Documentation</h4>
+                <h4 className="font-medium mb-1">Welcome Email</h4>
                 <p className="text-sm text-muted-foreground">
-                  Send required documents and forms
+                  Send welcome email to new hire
                 </p>
               </div>
 
@@ -123,35 +123,35 @@ const PreOnboarding = () => {
                 <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mx-auto mb-2">
                   2
                 </div>
-                <h4 className="font-medium mb-1">Account Setup</h4>
+                <h4 className="font-medium mb-1">Create Account</h4>
                 <p className="text-sm text-muted-foreground">
-                  Create accounts and access credentials
+                  Set up company accounts and credentials
                 </p>
               </div>
 
               <div className="text-center p-4 border rounded-lg">
                 <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Mail className="h-6 w-6 text-primary" />
+                  <FileText className="h-6 w-6 text-primary" />
                 </div>
                 <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mx-auto mb-2">
                   3
                 </div>
-                <h4 className="font-medium mb-1">Welcome Package</h4>
+                <h4 className="font-medium mb-1">Sign Contract</h4>
                 <p className="text-sm text-muted-foreground">
-                  Send welcome materials and company info
+                  Complete employment contract signing
                 </p>
               </div>
 
               <div className="text-center p-4 border rounded-lg">
                 <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle className="h-6 w-6 text-primary" />
+                  <Users className="h-6 w-6 text-primary" />
                 </div>
                 <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mx-auto mb-2">
                   4
                 </div>
-                <h4 className="font-medium mb-1">Final Review</h4>
+                <h4 className="font-medium mb-1">Team Introduction</h4>
                 <p className="text-sm text-muted-foreground">
-                  Complete preboarding checklist
+                  Introduce to team members and schedule meetings
                 </p>
               </div>
             </div>
