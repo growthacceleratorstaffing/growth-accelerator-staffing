@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,28 +33,35 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Syncing candidate to systems:", { candidateId, candidateData });
 
-    // Prepare candidate data for JobAdder
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Prepare candidate data for JobAdder API
     const jobAdderCandidate = {
       firstName: candidateData.firstName,
       lastName: candidateData.lastName,
       email: candidateData.email,
-      phone: candidateData.phone,
+      phone: candidateData.phone || "",
+      mobile: candidateData.phone || "",
       address: {
-        street: candidateData.location ? [candidateData.location] : [],
+        street1: candidateData.location || "",
+        city: candidateData.location ? candidateData.location.split(',')[0] : "",
+        state: candidateData.location ? candidateData.location.split(',')[1]?.trim() : "",
+        postalCode: "",
+        country: "Netherlands"
       },
-      employment: candidateData.position ? {
-        current: {
-          position: candidateData.position,
-          employer: candidateData.company || "Unknown",
-        }
-      } : undefined,
-      skills: candidateData.skills ? candidateData.skills.split(',').map(s => s.trim()) : [],
-      notes: candidateData.notes ? [{ 
-        text: candidateData.notes,
-        type: "general",
-        createdAt: new Date().toISOString()
+      employment: candidateData.position && candidateData.company ? [{
+        position: candidateData.position,
+        employer: candidateData.company,
+        current: true,
+        startDate: new Date().toISOString().split('T')[0]
       }] : [],
-      source: "Manual Entry - Growth Accelerator Platform"
+      skills: candidateData.skills ? candidateData.skills.split(',').map(s => s.trim()) : [],
+      notes: candidateData.notes || "",
+      source: "Manual Entry - Growth Accelerator Platform",
+      status: "Available"
     };
 
     // Prepare candidate data for Workable
@@ -82,29 +90,25 @@ const handler = async (req: Request): Promise<Response> => {
       errors: [] as string[]
     };
 
-    // Sync to JobAdder
+    // Sync to JobAdder using the existing jobadder-api edge function
     try {
-      const jobAdderResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/jobadder-api`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-        },
-        body: JSON.stringify({
+      console.log("Calling JobAdder API to create candidate:", jobAdderCandidate);
+      
+      const { data: jobAdderResult, error: jobAdderError } = await supabase.functions.invoke('jobadder-api', {
+        body: {
           endpoint: 'candidates',
           method: 'POST',
           data: jobAdderCandidate
-        })
+        }
       });
 
-      if (jobAdderResponse.ok) {
-        results.jobAdder = await jobAdderResponse.json();
-        console.log("JobAdder sync successful:", results.jobAdder);
-      } else {
-        const error = await jobAdderResponse.text();
-        results.errors.push(`JobAdder sync failed: ${error}`);
-        console.error("JobAdder sync error:", error);
+      if (jobAdderError) {
+        throw jobAdderError;
       }
+
+      results.jobAdder = jobAdderResult;
+      console.log("JobAdder sync successful:", results.jobAdder);
+      
     } catch (error) {
       results.errors.push(`JobAdder sync error: ${error.message}`);
       console.error("JobAdder sync exception:", error);
@@ -116,7 +120,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (workableApiToken && workableSubdomain) {
       try {
-        const workableResponse = await fetch(`https://${workableSubdomain}.workablehr.com/spi/v3/candidates`, {
+        console.log("Calling Workable API to create candidate:", workableCandidate);
+        
+        const workableResponse = await fetch(`https://${workableSubdomain}.workable.com/spi/v3/candidates`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -131,14 +137,15 @@ const handler = async (req: Request): Promise<Response> => {
         } else {
           const error = await workableResponse.text();
           results.errors.push(`Workable sync failed: ${error}`);
-          console.error("Workable sync error:", error);
+          console.error("Workable sync error:", error, workableResponse.status);
         }
       } catch (error) {
         results.errors.push(`Workable sync error: ${error.message}`);
         console.error("Workable sync exception:", error);
       }
     } else {
-      results.errors.push("Workable credentials not configured");
+      console.log("Workable credentials not configured, skipping Workable sync");
+      results.errors.push("Workable credentials not configured - skipping sync");
     }
 
     // Return results
