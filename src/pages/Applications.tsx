@@ -559,6 +559,7 @@ const Applications = () => {
               <div className="text-center py-12">
                 <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No candidates found in talent pool matching your search.</p>
+                <p className="text-sm text-muted-foreground mt-2">Talent pool contains candidates who have progressed beyond the initial application stage.</p>
               </div>
             ) : (
               <>
