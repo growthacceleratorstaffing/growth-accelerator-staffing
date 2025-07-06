@@ -901,25 +901,35 @@ export function useJobApplications() {
         console.warn('Error fetching local candidates:', supabaseError);
       }
 
-      // Separate job applications by stage - make initial filter less restrictive  
+      // Separate job applications by stage - explicit categorization
+      const initialApplications = jobAdderApplications.filter(app => {
+        const statusName = app.status.name.toLowerCase();
+        console.log(`Checking initial application status: "${statusName}"`);
+        // Only these initial stages stay in applicants
+        return statusName.includes('application review') ||
+               statusName.includes('initial review') ||
+               statusName.includes('submitted') ||
+               statusName.includes('new') ||
+               statusName.includes('pending review') ||
+               statusName.includes('pending') ||
+               statusName.includes('received') ||
+               statusName === 'review';
+      });
+      
       const advancedApplications = jobAdderApplications.filter(app => {
         const statusName = app.status.name.toLowerCase();
         console.log(`Checking advanced application status: "${statusName}"`);
-        // These advanced stages go to talent pool
+        // These advanced stages go to talent pool ONLY
         return statusName.includes('interview') ||
                statusName.includes('offer') ||
                statusName.includes('placed') ||
                statusName.includes('shortlist') ||
                statusName.includes('on hold') ||
                statusName.includes('technical') ||
-               statusName.includes('final');
-      });
-      
-      const initialApplications = jobAdderApplications.filter(app => {
-        const statusName = app.status.name.toLowerCase();
-        console.log(`Checking initial application status: "${statusName}"`);
-        // All other stages are initial applicants (not in advanced list)
-        return !advancedApplications.some(advApp => advApp.applicationId === app.applicationId);
+               statusName.includes('final') ||
+               statusName.includes('phone') ||
+               statusName.includes('video') ||
+               statusName.includes('screening');
       });
 
       console.log(`JobAdder Applications Split: ${initialApplications.length} initial, ${advancedApplications.length} advanced`);
