@@ -440,8 +440,9 @@ export function usePlacements() {
           .order('created_at', { ascending: false });
 
         if (localError) {
-          console.warn('Error fetching local placements:', localError);
+          console.error('Error fetching local placements:', localError);
         } else {
+          console.log(`Fetched ${localData?.length || 0} local placements:`, localData);
           // Convert local placements to JobAdderPlacement format
           localPlacements = (localData || []).map((local, index) => ({
             placementId: -1000 - index, // Negative IDs to distinguish from JobAdder

@@ -1047,24 +1047,32 @@ export function useJobApplications() {
                             jobApplications.find(app => app.applicationId === applicationId) ||
                             talentPool.find(app => app.applicationId === applicationId);
           
+          console.log(`Found application for update:`, currentApp?.candidate?.email);
+          
           if (currentApp && currentApp.candidate.email) {
             // Update candidate in database by email (most reliable identifier)
-            const { error: updateError } = await supabase
+            const { data: updateData, error: updateError } = await supabase
               .from('candidates')
               .update({ 
                 interview_stage: newInterviewStage,
                 updated_at: new Date().toISOString()
               })
-              .eq('email', currentApp.candidate.email);
+              .eq('email', currentApp.candidate.email)
+              .select();
               
             if (updateError) {
-              console.warn('Failed to update local candidate:', updateError);
+              console.error('Failed to update local candidate:', updateError);
+              throw updateError;
             } else {
-              console.log(`Updated local candidate ${currentApp.candidate.email} to stage: ${newInterviewStage}`);
+              console.log(`Successfully updated local candidate ${currentApp.candidate.email} to stage: ${newInterviewStage}`, updateData);
             }
+          } else {
+            console.error('Could not find application or candidate email for applicationId:', applicationId);
+            throw new Error('Could not find application details');
           }
         } catch (dbError) {
-          console.warn('Error updating local candidate:', dbError);
+          console.error('Error updating local candidate:', dbError);
+          throw dbError;
         }
       }
       
