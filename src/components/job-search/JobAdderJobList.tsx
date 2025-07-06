@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, MapPin, Calendar, Building, DollarSign } from "lucide-react";
+import { ExternalLink, MapPin, Calendar, Building, DollarSign, Download } from "lucide-react";
 import { JobAdderJob } from "@/hooks/useJobs";
 import { JobApplicationForm } from "./JobApplicationForm";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface JobAdderJobListProps {
   jobs: JobAdderJob[];
@@ -14,6 +16,8 @@ interface JobAdderJobListProps {
 export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
   const [selectedJob, setSelectedJob] = useState<JobAdderJob | null>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [importingJobs, setImportingJobs] = useState<Set<number>>(new Set());
+  const { toast } = useToast();
 
   const handleApplyClick = (job: JobAdderJob) => {
     setSelectedJob(job);
@@ -23,6 +27,52 @@ export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
   const handleCloseForm = () => {
     setShowApplicationForm(false);
     setSelectedJob(null);
+  };
+
+  const handleImportJob = async (job: JobAdderJob) => {
+    setImportingJobs(prev => new Set([...prev, job.adId]));
+    
+    try {
+      // Get user access token from OAuth2 manager
+      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      
+      if (!userAccessToken) {
+        throw new Error('No JobAdder access token available. Please authenticate first.');
+      }
+
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'import-job',
+          job: job,
+          accessToken: userAccessToken
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      toast({
+        title: "Job Imported Successfully",
+        description: `"${job.title}" has been imported to your job database.`,
+      });
+
+      console.log('Job imported:', data);
+    } catch (error) {
+      console.error('Error importing job:', error);
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : 'Failed to import job',
+        variant: "destructive"
+      });
+    } finally {
+      setImportingJobs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(job.adId);
+        return newSet;
+      });
+    }
   };
   if (isLoading) {
     return (
@@ -120,6 +170,25 @@ export const JobAdderJobList = ({ jobs, isLoading }: JobAdderJobListProps) => {
                     {job.category.name}
                   </Badge>
                 )}
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="gap-1" 
+                  onClick={() => handleImportJob(job)}
+                  disabled={importingJobs.has(job.adId)}
+                >
+                  {importingJobs.has(job.adId) ? (
+                    <>
+                      <Download className="h-4 w-4 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Import Job
+                    </>
+                  )}
+                </Button>
                 <Button size="sm" className="gap-1" onClick={() => handleApplyClick(job)}>
                   Apply Now
                   <ExternalLink className="h-4 w-4" />

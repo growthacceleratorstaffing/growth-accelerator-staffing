@@ -214,6 +214,74 @@ serve(async (req) => {
         data = await makeJobAdderRequest(`/jobboards/${boardId}/jobads/${adId}`, userAccessToken);
         break;
 
+      case 'import-job':
+        if (req.method !== 'POST') {
+          return new Response(
+            JSON.stringify({ error: 'import-job requires POST method' }),
+            { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        const jobToImport = requestBody?.job;
+        if (!jobToImport) {
+          return new Response(
+            JSON.stringify({ error: 'job data is required for import-job endpoint' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.log('Importing JobAdder job:', jobToImport.adId);
+        
+        // Transform JobAdder job to local database format
+        const localJobData = {
+          title: jobToImport.title,
+          job_description: jobToImport.summary || jobToImport.description || '',
+          company_id: jobToImport.company?.companyId?.toString() || null,
+          company_name: jobToImport.company?.name || 'Unknown Company',
+          location_id: jobToImport.location?.locationId?.toString() || null,
+          location_name: jobToImport.location?.name || 'Unknown Location',
+          area_id: jobToImport.location?.area?.areaId?.toString() || null,
+          work_type_id: jobToImport.workType?.workTypeId?.toString() || '1',
+          work_type_name: jobToImport.workType?.name || 'Full-time',
+          category_id: jobToImport.category?.categoryId?.toString() || null,
+          category_name: jobToImport.category?.name || null,
+          sub_category_id: jobToImport.category?.subCategory?.subCategoryId?.toString() || null,
+          salary_rate_low: jobToImport.salary?.rateLow || jobToImport.portal?.salary?.rateLow || null,
+          salary_rate_high: jobToImport.salary?.rateHigh || jobToImport.portal?.salary?.rateHigh || null,
+          salary_rate_per: jobToImport.salary?.ratePer || jobToImport.portal?.salary?.ratePer || 'Year',
+          salary_currency: jobToImport.salary?.currency || 'USD',
+          skill_tags: jobToImport.bulletPoints || [],
+          source: 'JobAdder',
+          jobadder_job_id: jobToImport.adId.toString(),
+          synced_to_jobadder: true
+        };
+        
+        // Insert job into Supabase database
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data: insertedJob, error: insertError } = await supabase
+          .from('jobs')
+          .insert([localJobData])
+          .select()
+          .single();
+        
+        if (insertError) {
+          console.error('Error inserting job:', insertError);
+          throw new Error(`Failed to import job: ${insertError.message}`);
+        }
+        
+        console.log('Job imported successfully:', insertedJob.id);
+        data = { 
+          success: true, 
+          jobId: insertedJob.id, 
+          message: 'Job imported successfully',
+          importedJob: insertedJob
+        };
+        break;
+
       case 'create-job':
         if (req.method !== 'POST') {
           return new Response(
