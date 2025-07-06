@@ -139,10 +139,26 @@ const Matches = () => {
     }
 
     // Find candidate and job details for local storage
-    const selectedCandidate = availableCandidates.find(c => 
-      c.candidate.candidateId.toString() === placementData.candidateId
-    );
-    const selectedJob = jobs.find(j => 
+    console.log('Looking for candidateId:', placementData.candidateId, 'jobId:', placementData.jobId);
+    
+    let selectedCandidate;
+    let selectedJob;
+    
+    // Find candidate - could be from talent pool (negative ID) or regular candidates
+    if (parseInt(placementData.candidateId) < 0) {
+      // Local candidate from talent pool
+      selectedCandidate = availableCandidates.find(c => 
+        c.candidate.candidateId.toString() === placementData.candidateId
+      );
+    } else {
+      // JobAdder candidate - also check availableCandidates
+      selectedCandidate = availableCandidates.find(c => 
+        c.candidate.candidateId.toString() === placementData.candidateId
+      );
+    }
+    
+    // Find job - prioritize actual job data over mock
+    selectedJob = jobs.find(j => 
       j.adId.toString() === placementData.jobId
     );
 
@@ -151,10 +167,19 @@ const Matches = () => {
     console.log('Available candidates:', availableCandidates.map(c => ({ id: c.candidate.candidateId, name: `${c.candidate.firstName} ${c.candidate.lastName}` })));
     console.log('Available jobs:', jobs.map(j => ({ id: j.adId, title: j.title })));
 
-    if (!selectedCandidate || !selectedJob) {
+    if (!selectedCandidate) {
       toast({
         title: "Error",
-        description: "Could not find candidate or job details.",
+        description: "Could not find candidate details.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!selectedJob) {
+      toast({
+        title: "Error", 
+        description: "Could not find job details.",
         variant: "destructive"
       });
       return;
