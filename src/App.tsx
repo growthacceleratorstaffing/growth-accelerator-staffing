@@ -187,7 +187,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild onClick={handleAdministrationClick}>
                   <button>
                     <Settings className="h-4 w-4" />
-                    <span className="text-base">Administration</span>
+                    <span className="text-base">Backoffice</span>
                   </button>
                 </SidebarMenuButton>
               </SidebarMenuItem>
