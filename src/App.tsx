@@ -180,7 +180,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/pre-onboarding")}>
                   <Link to="/pre-onboarding">
                     <Settings className="h-4 w-4" />
-                    <span className="text-base">Pre-Onboarding</span>
+                    <span className="text-base">Preboarding</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

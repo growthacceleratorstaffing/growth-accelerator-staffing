@@ -7,9 +7,9 @@ const PreOnboarding = () => {
   return (
     <div className="container mx-auto px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Employee Pre-Onboarding</h1>
+        <h1 className="text-3xl font-bold mb-2">Employee Preboarding</h1>
         <p className="text-muted-foreground">
-          Prepare and manage pre-onboarding activities for new hires
+          Prepare and manage preboarding activities for new hires
         </p>
       </div>
 
@@ -18,11 +18,11 @@ const PreOnboarding = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending Pre-Onboarding
+              Pending Preboarding
             </CardTitle>
             <div className="text-3xl font-bold">24</div>
             <p className="text-sm text-muted-foreground">
-              Candidates awaiting pre-onboarding
+              Candidates awaiting preboarding
             </p>
           </CardHeader>
         </Card>
@@ -34,7 +34,7 @@ const PreOnboarding = () => {
             </CardTitle>
             <div className="text-3xl font-bold">12</div>
             <p className="text-sm text-muted-foreground">
-              Currently in pre-onboarding process
+              Currently in preboarding process
             </p>
           </CardHeader>
         </Card>
@@ -46,7 +46,7 @@ const PreOnboarding = () => {
             </CardTitle>
             <div className="text-3xl font-bold">8</div>
             <p className="text-sm text-muted-foreground">
-              Completed pre-onboarding steps
+              Completed preboarding steps
             </p>
           </CardHeader>
         </Card>
@@ -57,17 +57,17 @@ const PreOnboarding = () => {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            <CardTitle>Send Pre-Onboarding Email</CardTitle>
+            <CardTitle>Send Preboarding Email</CardTitle>
           </div>
           <CardDescription>
-            Select a candidate to send them a pre-onboarding email with initial requirements
+            Select a candidate to send them a preboarding email with initial requirements
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <Select>
               <SelectTrigger>
-                <SelectValue placeholder="Select a candidate for pre-onboarding" />
+                <SelectValue placeholder="Select a candidate for preboarding" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="candidate1">John Doe - Software Engineer</SelectItem>
@@ -77,7 +77,7 @@ const PreOnboarding = () => {
             </Select>
           </div>
           <Button className="w-full">
-            Begin Pre-Onboarding
+            Begin Preboarding
           </Button>
         </CardContent>
       </Card>
@@ -87,18 +87,18 @@ const PreOnboarding = () => {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            <CardTitle>Pre-Onboarding Pipeline</CardTitle>
+            <CardTitle>Preboarding Pipeline</CardTitle>
           </div>
           <CardDescription>
-            Track and manage the pre-onboarding process for new employees
+            Track and manage the preboarding process for new employees
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
             <Calendar className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Ready to Start Pre-Onboarding</h3>
+            <h3 className="text-xl font-semibold mb-2">Ready to Start Preboarding</h3>
             <p className="text-muted-foreground mb-8">
-              Select a candidate above to begin their pre-onboarding journey through our 4-step process
+              Select a candidate above to begin their preboarding journey through our 4-step process
             </p>
 
             {/* Pre-Onboarding Steps */}
@@ -151,7 +151,7 @@ const PreOnboarding = () => {
                 </div>
                 <h4 className="font-medium mb-1">Final Review</h4>
                 <p className="text-sm text-muted-foreground">
-                  Complete pre-onboarding checklist
+                  Complete preboarding checklist
                 </p>
               </div>
             </div>
