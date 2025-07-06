@@ -1,24 +1,107 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Mail, Phone, Search, Star, Download, AlertCircle, Building, Calendar, User } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MapPin, Mail, Phone, Search, Star, Download, AlertCircle, Building, Calendar, User, RefreshCw } from "lucide-react";
 import { useJobApplications } from "@/hooks/useJobApplications";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+interface JobAdderCandidate {
+  candidateId: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  address?: {
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+  currentPosition?: string;
+  company?: string;
+  skills?: string[];
+  rating?: number;
+  status?: {
+    name: string;
+    statusId: number;
+  };
+  source?: string;
+  createdAt?: string;
+  linkedinUrl?: string;
+  profilePictureUrl?: string;
+}
+
 const Candidates = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [jobAdderSearchTerm, setJobAdderSearchTerm] = useState("");
   const [importingCandidates, setImportingCandidates] = useState<Set<string>>(new Set());
+  const [jobAdderCandidates, setJobAdderCandidates] = useState<JobAdderCandidate[]>([]);
+  const [jobAdderLoading, setJobAdderLoading] = useState(false);
+  const [jobAdderError, setJobAdderError] = useState<string | null>(null);
   const { applications, loading, error, useMockData, refetch } = useJobApplications();
   const { toast } = useToast();
+
+  const fetchJobAdderCandidates = async (search?: string) => {
+    setJobAdderLoading(true);
+    setJobAdderError(null);
+
+    try {
+      // Get user access token from OAuth2 manager
+      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      
+      if (!userAccessToken) {
+        throw new Error('No JobAdder access token available. Please authenticate first.');
+      }
+
+      const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          endpoint: 'candidates',
+          limit: 50,
+          offset: 0,
+          search: search,
+          accessToken: userAccessToken
+        }
+      });
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      if (data?.items) {
+        setJobAdderCandidates(data.items);
+        console.log('Fetched JobAdder candidates:', data.items.length);
+      } else {
+        setJobAdderCandidates([]);
+        setJobAdderError('No candidates found');
+      }
+    } catch (err) {
+      console.error('Error fetching candidates:', err);
+      setJobAdderError(err instanceof Error ? err.message : 'Failed to fetch candidates');
+      setJobAdderCandidates([]);
+    } finally {
+      setJobAdderLoading(false);
+    }
+  };
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     refetch(value);
+  };
+
+  const handleJobAdderSearch = (value: string) => {
+    setJobAdderSearchTerm(value);
+    fetchJobAdderCandidates(value);
+  };
+
+  const handleRefreshJobAdder = () => {
+    fetchJobAdderCandidates(jobAdderSearchTerm);
   };
 
   const handleImportCandidate = async (candidate: any) => {
@@ -86,6 +169,27 @@ const Candidates = () => {
     }
   };
 
+  const getJobAdderStatusColor = (status?: string) => {
+    if (!status) return "bg-gray-100 text-gray-800";
+    
+    switch (status.toLowerCase()) {
+      case "available":
+      case "active": 
+        return "bg-green-100 text-green-800";
+      case "interviewing":
+      case "in process": 
+        return "bg-yellow-100 text-yellow-800"; 
+      case "hired":
+      case "placed": 
+        return "bg-blue-100 text-blue-800";
+      case "unavailable":
+      case "inactive":
+        return "bg-red-100 text-red-800";
+      default: 
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   const getWorkflowStageColor = (stage?: string) => {
     if (!stage) return "bg-gray-100 text-gray-800";
     
@@ -114,43 +218,62 @@ const Candidates = () => {
     );
   }
 
+  useEffect(() => {
+    fetchJobAdderCandidates();
+  }, []);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Job Applications</h1>
-          <p className="text-muted-foreground mt-2">Manage your candidate applications from JobAdder</p>
+          <h1 className="text-3xl font-bold">Candidates</h1>
+          <p className="text-muted-foreground mt-2">Manage candidates from your applications and JobAdder</p>
         </div>
       </div>
 
-      {error && useMockData && (
-        <Alert className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error} - Showing sample applications for demonstration.
-          </AlertDescription>
-        </Alert>
-      )}
+      <Tabs defaultValue="applications" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="applications">Job Applications</TabsTrigger>
+          <TabsTrigger value="jobadder">JobAdder Candidates</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="applications" className="space-y-6">
+          {error && useMockData && (
+            <Alert className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {error} - Showing sample applications for demonstration.
+              </AlertDescription>
+            </Alert>
+          )}
 
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search candidates by name, job title, email, or company..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-6">
-        {applications.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No applications found matching your search.</p>
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search candidates by name, job title, email, or company..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
-        ) : (
-          applications.map((application) => (
+
+          {loading ? (
+            <div className="flex justify-center items-center min-h-[400px]">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading applications...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {applications.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No applications found matching your search.</p>
+                </div>
+              ) : (
+                applications.map((application) => (
             <Card key={application.applicationId} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start gap-4">
@@ -287,10 +410,217 @@ const Candidates = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                </Card>
+                ))
+              )}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="jobadder" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="flex-1 mr-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search candidates by name, email, position, or company..."
+                  value={jobAdderSearchTerm}
+                  onChange={(e) => handleJobAdderSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            <Button 
+              onClick={handleRefreshJobAdder}
+              disabled={jobAdderLoading}
+              variant="outline"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${jobAdderLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+
+          {jobAdderError && (
+            <Alert className="mb-6" variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {jobAdderError}
+                {jobAdderError.includes('authenticate') && (
+                  <span className="block mt-2">
+                    Please go to <a href="/jobadder-auth" className="underline">JobAdder Auth</a> to connect your account.
+                  </span>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {jobAdderLoading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 bg-muted rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-3 bg-muted rounded w-1/2 mt-2"></div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-muted rounded"></div>
+                      <div className="h-3 bg-muted rounded w-4/5"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : jobAdderCandidates.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No JobAdder candidates found.</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {jobAdderCandidates.map((candidate) => (
+                <Card key={candidate.candidateId} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage 
+                          src={candidate.profilePictureUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${candidate.firstName}${candidate.lastName}`} 
+                        />
+                        <AvatarFallback className="text-lg">
+                          {`${candidate.firstName[0]}${candidate.lastName[0]}`}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg line-clamp-2">
+                              {candidate.firstName} {candidate.lastName}
+                            </CardTitle>
+                            <CardDescription className="flex items-center gap-1 mt-1">
+                              <Building className="h-4 w-4" />
+                              {candidate.currentPosition || 'Position not specified'}
+                            </CardDescription>
+                          </div>
+                          {candidate.status && (
+                            <Badge className={getJobAdderStatusColor(candidate.status.name)}>
+                              {candidate.status.name}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      {candidate.email && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="h-4 w-4" />
+                          {candidate.email}
+                        </div>
+                      )}
+                      
+                      {(candidate.phone || candidate.mobile) && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone className="h-4 w-4" />
+                          {candidate.phone || candidate.mobile}
+                        </div>
+                      )}
+                      
+                      {candidate.address && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          {candidate.address.city && candidate.address.state 
+                            ? `${candidate.address.city}, ${candidate.address.state}`
+                            : candidate.address.city || candidate.address.state || 'Location not specified'}
+                        </div>
+                      )}
+                      
+                      {candidate.company && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Building className="h-4 w-4" />
+                          {candidate.company}
+                        </div>
+                      )}
+                      
+                      {candidate.rating && (
+                        <div className="flex items-center gap-2 text-sm font-medium text-secondary">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          {candidate.rating}/5
+                        </div>
+                      )}
+                      
+                      {candidate.createdAt && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          Added: {new Date(candidate.createdAt).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {candidate.skills && candidate.skills.length > 0 && (
+                      <div className="text-sm">
+                        <span className="font-medium">Skills:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {candidate.skills.slice(0, 3).map((skill, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {candidate.skills.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{candidate.skills.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          ID: {candidate.candidateId}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="gap-1" 
+                          onClick={() => handleImportCandidate(candidate)}
+                          disabled={importingCandidates.has(candidate.candidateId)}
+                        >
+                          {importingCandidates.has(candidate.candidateId) ? (
+                            <>
+                              <Download className="h-4 w-4 animate-spin" />
+                              Importing...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4" />
+                              Import
+                            </>
+                          )}
+                        </Button>
+                        <Button size="sm" className="gap-1">
+                          View Profile
+                          <User className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
