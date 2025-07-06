@@ -146,6 +146,11 @@ const Matches = () => {
       j.adId.toString() === placementData.jobId
     );
 
+    console.log('Selected candidate:', selectedCandidate);
+    console.log('Selected job:', selectedJob);
+    console.log('Available candidates:', availableCandidates.map(c => ({ id: c.candidate.candidateId, name: `${c.candidate.firstName} ${c.candidate.lastName}` })));
+    console.log('Available jobs:', jobs.map(j => ({ id: j.adId, title: j.title })));
+
     if (!selectedCandidate || !selectedJob) {
       toast({
         title: "Error",
@@ -199,6 +204,26 @@ const Matches = () => {
 
     // Always save placement locally (whether JobAdder succeeded or failed)
     try {
+      console.log('Attempting to save placement locally with data:', {
+        candidate_id: placementData.candidateId,
+        candidate_name: `${selectedCandidate.candidate.firstName} ${selectedCandidate.candidate.lastName}`,
+        candidate_email: selectedCandidate.candidate.email,
+        job_id: placementData.jobId,
+        job_title: selectedJob.title,
+        company_name: selectedJob.company?.name || 'Unknown Company',
+        start_date: placementData.startDate,
+        end_date: placementData.endDate || null,
+        salary_rate: placementData.salaryRate ? parseFloat(placementData.salaryRate) : null,
+        salary_currency: placementData.salaryCurrency,
+        salary_rate_per: placementData.salaryRatePer,
+        work_type_id: placementData.workTypeId,
+        status_id: parseInt(placementData.statusId),
+        status_name: 'Active',
+        notes: placementData.notes,
+        synced_to_jobadder: jobAdderSuccess,
+        jobadder_placement_id: jobAdderPlacementId
+      });
+
       const { data: localPlacement, error: localError } = await supabase
         .from('local_placements')
         .insert({
@@ -207,7 +232,7 @@ const Matches = () => {
           candidate_email: selectedCandidate.candidate.email,
           job_id: placementData.jobId,
           job_title: selectedJob.title,
-          company_name: selectedJob.company.name,
+          company_name: selectedJob.company?.name || 'Unknown Company',
           start_date: placementData.startDate,
           end_date: placementData.endDate || null,
           salary_rate: placementData.salaryRate ? parseFloat(placementData.salaryRate) : null,
@@ -224,10 +249,11 @@ const Matches = () => {
         .single();
 
       if (localError) {
+        console.error('Local placement creation error:', localError);
         throw localError;
       }
 
-      console.log('Local placement saved:', localPlacement);
+      console.log('Local placement saved successfully:', localPlacement);
 
       // Show appropriate success message
       if (jobAdderSuccess) {
