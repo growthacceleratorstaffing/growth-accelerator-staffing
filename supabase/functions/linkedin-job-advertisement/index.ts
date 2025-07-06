@@ -14,10 +14,19 @@ serve(async (req) => {
   try {
     const { type, jobTitle, jobDescription, companyId, city, jobFunction, employmentType, workplaceType, duration, budget, targetAudience, campaignName } = await req.json();
 
+    console.log('Request body:', { type, jobTitle, companyId });
+
     // Get LinkedIn credentials from secrets
     const linkedinClientId = Deno.env.get('LINKEDIN_CLIENT_ID');
     const linkedinClientSecret = Deno.env.get('LINKEDIN_CLIENT_SECRET');
     const linkedinAccessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
+    
+    console.log('LinkedIn credentials check:', {
+      hasClientId: !!linkedinClientId,
+      hasClientSecret: !!linkedinClientSecret,
+      hasAccessToken: !!linkedinAccessToken,
+      tokenLength: linkedinAccessToken?.length || 0
+    });
     
     if (!linkedinClientId || !linkedinClientSecret) {
       throw new Error('LinkedIn client credentials not configured');
@@ -28,6 +37,31 @@ serve(async (req) => {
     }
 
     if (type === 'job-posting') {
+      // Test LinkedIn API authentication first
+      console.log('Testing LinkedIn API authentication...');
+      const testResponse = await fetch('https://api.linkedin.com/v2/people/~', {
+        headers: {
+          'Authorization': `Bearer ${linkedinAccessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('LinkedIn auth test response:', testResponse.status);
+      
+      if (!testResponse.ok) {
+        const testError = await testResponse.text();
+        console.error('LinkedIn authentication failed:', testError);
+        
+        return new Response(JSON.stringify({
+          error: `LinkedIn authentication failed (${testResponse.status})`,
+          details: 'Please check your LinkedIn access token. It may be expired or have insufficient permissions.',
+          needsReauth: true
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       // Create LinkedIn job posting (free)
       const jobPostingData = {
         companyId: `urn:li:organization:${companyId}`,
@@ -46,6 +80,8 @@ serve(async (req) => {
         expireAt: Date.now() + ((duration || 30) * 24 * 60 * 60 * 1000)
       };
 
+      console.log('Creating job posting with data:', jobPostingData);
+
       const jobResponse = await fetch('https://api.linkedin.com/v2/jobs', {
         method: 'POST',
         headers: {
@@ -56,10 +92,21 @@ serve(async (req) => {
         body: JSON.stringify(jobPostingData)
       });
 
+      console.log('LinkedIn job API response status:', jobResponse.status);
+
       if (!jobResponse.ok) {
         const errorText = await jobResponse.text();
         console.error('LinkedIn Jobs API error:', errorText);
-        throw new Error(`Failed to create LinkedIn job posting: ${jobResponse.status}`);
+        
+        return new Response(JSON.stringify({
+          error: `LinkedIn API Error (${jobResponse.status})`,
+          details: errorText,
+          apiEndpoint: 'LinkedIn Jobs API',
+          suggestion: 'This might be because job posting requires special LinkedIn partnership or different API endpoints'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       const jobPosting = await jobResponse.json();
