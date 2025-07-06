@@ -403,6 +403,228 @@ const mockJobApplications: JobApplicationCandidate[] = [
     updatedAt: "2024-01-22T10:30:00Z"
   },
   {
+    applicationId: 1004,
+    jobTitle: "Data Scientist",
+    jobReference: "DS-2024-004",
+    manual: false,
+    source: "Company Website",
+    rating: 4,
+    status: {
+      statusId: 1,
+      name: "Application Review",
+      active: true,
+      rejected: false,
+      default: true,
+      defaultRejected: false,
+      workflow: {
+        stage: "Initial Review",
+        stageIndex: 0,
+        step: 1,
+        progress: "Started"
+      }
+    },
+    candidate: {
+      candidateId: 5004,
+      firstName: "David",
+      lastName: "Park",
+      email: "david.park@email.com",
+      phone: "+1 (555) 234-5678",
+      mobile: "+1 (555) 234-5678",
+      contactMethod: "Email",
+      salutation: "Mr.",
+      unsubscribed: false,
+      address: {
+        street: ["456 Data Drive"],
+        city: "Seattle",
+        state: "WA",
+        postalCode: "98101",
+        country: "United States",
+        countryCode: "US"
+      },
+      status: {
+        statusId: 1,
+        name: "Available",
+        active: true,
+        default: true
+      },
+      rating: "4.6",
+      source: "Indeed",
+      seeking: "Yes"
+    },
+    job: {
+      jobId: 4,
+      jobTitle: "Data Scientist",
+      location: {
+        locationId: 204,
+        name: "Seattle, WA",
+        area: {
+          areaId: 304,
+          name: "Pacific Northwest"
+        }
+      },
+      company: {
+        companyId: 104,
+        name: "DataFlow Inc",
+        status: {
+          statusId: 1,
+          name: "Active",
+          active: true,
+          default: true
+        }
+      }
+    },
+    createdAt: "2024-01-25T14:15:00Z",
+    updatedAt: "2024-01-25T14:15:00Z"
+  },
+  {
+    applicationId: 1005,
+    jobTitle: "Backend Developer",
+    jobReference: "BD-2024-005",
+    manual: false,
+    source: "LinkedIn",
+    rating: 4,
+    status: {
+      statusId: 1,
+      name: "Submitted",
+      active: true,
+      rejected: false,
+      default: true,
+      defaultRejected: false,
+      workflow: {
+        stage: "Pending Review",
+        stageIndex: 0,
+        step: 1,
+        progress: "Submitted"
+      }
+    },
+    candidate: {
+      candidateId: 5005,
+      firstName: "Lisa",
+      lastName: "Wong",
+      email: "lisa.wong@email.com",
+      phone: "+1 (555) 345-6789",
+      mobile: "+1 (555) 345-6789",
+      contactMethod: "Email",
+      salutation: "Ms.",
+      unsubscribed: false,
+      address: {
+        street: ["789 Code Ave"],
+        city: "Portland",
+        state: "OR",
+        postalCode: "97201",
+        country: "United States",
+        countryCode: "US"
+      },
+      status: {
+        statusId: 1,
+        name: "Available",
+        active: true,
+        default: true
+      },
+      rating: "4.7",
+      source: "LinkedIn",
+      seeking: "Yes"
+    },
+    job: {
+      jobId: 5,
+      jobTitle: "Backend Developer",
+      location: {
+        locationId: 205,
+        name: "Portland, OR",
+        area: {
+          areaId: 305,
+          name: "Pacific Northwest"
+        }
+      },
+      company: {
+        companyId: 105,
+        name: "CloudTech Solutions",
+        status: {
+          statusId: 1,
+          name: "Active",
+          active: true,
+          default: true
+        }
+      }
+    },
+    createdAt: "2024-01-28T11:20:00Z",
+    updatedAt: "2024-01-28T11:20:00Z"
+  },
+  {
+    applicationId: 1006,
+    jobTitle: "DevOps Engineer",  
+    jobReference: "DO-2024-006",
+    manual: false,
+    source: "Glassdoor",
+    rating: 5,
+    status: {
+      statusId: 1,
+      name: "New",
+      active: true,
+      rejected: false,
+      default: true,
+      defaultRejected: false,
+      workflow: {
+        stage: "New Application",
+        stageIndex: 0,
+        step: 1,
+        progress: "New"
+      }
+    },
+    candidate: {
+      candidateId: 5006,
+      firstName: "Alex",
+      lastName: "Thompson",
+      email: "alex.thompson@email.com",
+      phone: "+1 (555) 456-7890",
+      mobile: "+1 (555) 456-7890",
+      contactMethod: "Email",
+      salutation: "Mr.",
+      unsubscribed: false,
+      address: {
+        street: ["321 DevOps Lane"],
+        city: "Denver",
+        state: "CO",
+        postalCode: "80201",
+        country: "United States",
+        countryCode: "US"
+      },
+      status: {
+        statusId: 1,
+        name: "Available",
+        active: true,
+        default: true
+      },
+      rating: "4.9",
+      source: "Glassdoor",
+      seeking: "Yes"
+    },
+    job: {
+      jobId: 6,
+      jobTitle: "DevOps Engineer",
+      location: {
+        locationId: 206,
+        name: "Denver, CO",
+        area: {
+          areaId: 306,
+          name: "Rocky Mountains"
+        }
+      },
+      company: {
+        companyId: 106,
+        name: "Infrastructure Plus",
+        status: {
+          statusId: 1,
+          name: "Active",
+          active: true,
+          default: true
+        }
+      }
+    },
+    createdAt: "2024-01-30T16:45:00Z",
+    updatedAt: "2024-01-30T16:45:00Z"
+  },
+  {
     applicationId: 1002,
     jobTitle: "Product Manager",
     jobReference: "PM-2024-002",
@@ -581,22 +803,21 @@ export function useJobApplications() {
         setError('Using demo data for JobAdder applications - API unavailable');
       }
 
-      // Fetch local candidates from Supabase - only those with advanced interview stages
-      let localAdvancedCandidates: JobApplicationCandidate[] = [];
+      // Fetch local candidates from Supabase - include all candidates
+      let localCandidates: JobApplicationCandidate[] = [];
       
       try {
         const { data: candidates, error: supabaseError } = await supabase
           .from('candidates')
           .select('*')
-          .in('interview_stage', ['in_progress', 'completed', 'passed'])
           .order('created_at', { ascending: false });
 
         if (supabaseError) {
           throw supabaseError;
         }
 
-        // Convert local advanced candidates to JobApplicationCandidate format
-        localAdvancedCandidates = (candidates || []).map((candidate, index) => ({
+        // Convert local candidates to JobApplicationCandidate format
+        localCandidates = (candidates || []).map((candidate, index) => ({
           applicationId: -1000 - index, // Negative IDs to distinguish from JobAdder
           jobTitle: candidate.current_position || "General Application",
           jobReference: `LOCAL-${candidate.id.slice(0, 8)}`,
@@ -604,27 +825,32 @@ export function useJobApplications() {
           source: "Manual Entry - Growth Accelerator",
           rating: 3,
           status: {
-            statusId: candidate.interview_stage === 'in_progress' ? 2 : 
+            statusId: candidate.interview_stage === 'pending' ? 1 :
+                     candidate.interview_stage === 'in_progress' ? 2 : 
                      candidate.interview_stage === 'completed' ? 4 :
                      candidate.interview_stage === 'passed' ? 5 : 1,
-            name: candidate.interview_stage === 'in_progress' ? "Interview In Progress" :
+            name: candidate.interview_stage === 'pending' ? "Available" :
+                  candidate.interview_stage === 'in_progress' ? "Interview In Progress" :
                   candidate.interview_stage === 'completed' ? "Interview Completed" :
                   candidate.interview_stage === 'passed' ? "Interview Passed" : "Available",
             active: true,
             rejected: candidate.interview_stage === 'failed',
-            default: false,
+            default: candidate.interview_stage === 'pending',
             defaultRejected: false,
             workflow: {
-              stage: candidate.interview_stage === 'in_progress' ? "Interview In Progress" :
+              stage: candidate.interview_stage === 'pending' ? "Talent Pool" :
+                     candidate.interview_stage === 'in_progress' ? "Interview In Progress" :
                      candidate.interview_stage === 'completed' ? "Interview Completed" :
                      candidate.interview_stage === 'passed' ? "Interview Passed" : "Talent Pool",
-              stageIndex: candidate.interview_stage === 'in_progress' ? 1 :
+              stageIndex: candidate.interview_stage === 'pending' ? 0 :
+                         candidate.interview_stage === 'in_progress' ? 1 :
                          candidate.interview_stage === 'completed' ? 2 :
                          candidate.interview_stage === 'passed' ? 3 : 0,
-              step: candidate.interview_stage === 'in_progress' ? 2 :
+              step: candidate.interview_stage === 'pending' ? 1 :
+                   candidate.interview_stage === 'in_progress' ? 2 :
                    candidate.interview_stage === 'completed' ? 3 :
                    candidate.interview_stage === 'passed' ? 4 : 1,
-              progress: candidate.interview_stage === 'passed' ? "Completed" : "In Progress"
+              progress: candidate.interview_stage === 'passed' ? "Completed" : "Available"
             }
           },
           candidate: {
@@ -670,7 +896,7 @@ export function useJobApplications() {
           updatedAt: candidate.updated_at
         }));
 
-        console.log(`Fetched ${localAdvancedCandidates.length} advanced local candidates from database`);
+        console.log(`Fetched ${localCandidates.length} local candidates from database`);
       } catch (supabaseError) {
         console.warn('Error fetching local candidates:', supabaseError);
       }
@@ -698,19 +924,31 @@ export function useJobApplications() {
 
       console.log(`JobAdder Applications Split: ${initialApplications.length} initial, ${advancedApplications.length} advanced`);
 
-      // Apply search filter to initial job applications
-      let filteredJobApplications = initialApplications;
+      // Separate local candidates by stage
+      const localAdvancedCandidates = localCandidates.filter(candidate => 
+        candidate.status.name !== "Available"
+      );
+      
+      const localInitialCandidates = localCandidates.filter(candidate =>
+        candidate.status.name === "Available"
+      );
+
+      // Combine advanced applications with local advanced candidates for talent pool
+      const allTalentPoolCandidates = [...advancedApplications, ...localAdvancedCandidates];
+      
+      // Add local initial candidates to job applications
+      const allInitialApplications = [...initialApplications, ...localInitialCandidates];
+
+      // Apply search filter to initial job applications (including local initial)
+      let filteredJobApplications = allInitialApplications;
       if (searchTerm) {
-        filteredJobApplications = initialApplications.filter(app => 
+        filteredJobApplications = allInitialApplications.filter(app => 
           `${app.candidate.firstName} ${app.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.job.company?.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
-
-      // Combine advanced applications with local advanced candidates for talent pool
-      const allTalentPoolCandidates = [...advancedApplications, ...localAdvancedCandidates];
       
       // Apply search filter to talent pool
       let filteredTalentPool = allTalentPoolCandidates;
@@ -731,7 +969,7 @@ export function useJobApplications() {
       const allApplications = [...filteredJobApplications, ...filteredTalentPool];
       setApplications(allApplications);
       
-      console.log(`Total applications displayed: ${filteredJobApplications.length} applicants, ${filteredTalentPool.length} talent pool (${advancedApplications.length} advanced + ${localAdvancedCandidates.length} local advanced)`);
+      console.log(`Total applications displayed: ${filteredJobApplications.length} applicants (${initialApplications.length} JobAdder + ${localInitialCandidates.length} local), ${filteredTalentPool.length} talent pool (${advancedApplications.length} advanced + ${localAdvancedCandidates.length} local advanced)`);
       
     } catch (err) {
       console.error('Error fetching applications:', err);
