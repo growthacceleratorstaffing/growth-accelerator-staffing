@@ -101,6 +101,41 @@ const AppSidebar = () => {
 
         <SidebarSeparator />
 
+        {/* Vacancies Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-pink-500 text-xl font-semibold">Vacancies</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/jobs")}>
+                  <Link to="/jobs">
+                    <Briefcase className="h-4 w-4" />
+                    <span className="text-white text-base">Vacancies</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/job-posting")}>
+                  <Link to="/job-posting">
+                    <Briefcase className="h-4 w-4" />
+                    <span className="text-base">Job Posting</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/job-board")}>
+                  <Link to="/job-board">
+                    <User className="h-4 w-4" />
+                    <span className="text-base">Job Board</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
         {/* Staffing Section */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-pink-500 text-xl font-semibold">Staffing</SidebarGroupLabel>
@@ -110,7 +145,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/candidates")}>
                   <Link to="/candidates">
                     <User className="h-4 w-4" />
-                    <span className="text-base">Applicants</span>
+                    <span className="text-base">Candidate Database</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -118,7 +153,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/applications")}>
                   <Link to="/applications">
                     <User className="h-4 w-4" />
-                    <span className="text-base">Talent Pool</span>
+                    <span className="text-base">Candidates</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
