@@ -38,7 +38,12 @@ const AppSidebar = () => {
   
   const handleOnboardingClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    window.open("https://www.contractdossier.nl", "_blank");
+    window.open("https://mijn.cootje.com/recruiter/kandidaten/b50e2506-9644-40be-8e87-08b2046ca3ee?view=Vacatures&tab=Koppelen", "_blank");
+  };
+
+  const handleAdministrationClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.open("https://mijn.cootje.com/urenregistraties", "_blank");
   };
 
   return (
@@ -151,6 +156,14 @@ const AppSidebar = () => {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/matches")}>
+                  <Link to="/matches">
+                    <UserCheck className="h-4 w-4" />
+                    <span className="text-base">Matching</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -163,18 +176,18 @@ const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/matches")}>
-                  <Link to="/matches">
-                    <UserCheck className="h-4 w-4" />
-                    <span className="text-base">Matching</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
                 <SidebarMenuButton asChild onClick={handleOnboardingClick}>
                   <button>
                     <Settings className="h-4 w-4" />
                     <span className="text-base">Onboarding</span>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild onClick={handleAdministrationClick}>
+                  <button>
+                    <Settings className="h-4 w-4" />
+                    <span className="text-base">Administration</span>
                   </button>
                 </SidebarMenuButton>
               </SidebarMenuItem>
