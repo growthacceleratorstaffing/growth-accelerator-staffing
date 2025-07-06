@@ -329,7 +329,7 @@ const Applications = () => {
             Applicants ({jobApplications.length})
           </TabsTrigger>
           <TabsTrigger value="talent-pool" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
-            Talent Pool ({talentPool.length})
+            Candidates ({talentPool.length})
           </TabsTrigger>
         </TabsList>
 
@@ -559,8 +559,8 @@ const Applications = () => {
             {paginatedTalentPool.length === 0 ? (
               <div className="text-center py-12">
                 <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No candidates found in talent pool matching your search.</p>
-                <p className="text-sm text-muted-foreground mt-2">Talent pool contains candidates who have progressed beyond the initial application stage.</p>
+                <p className="text-muted-foreground">No candidates found matching your search.</p>
+                <p className="text-sm text-muted-foreground mt-2">This section contains candidates who have progressed beyond the initial application stage.</p>
               </div>
             ) : (
               <>
@@ -595,7 +595,7 @@ const Applications = () => {
                             <Badge className={getStatusColor(candidate.status.name)}>
                               {candidate.status.name}
                             </Badge>
-                            <Badge variant="outline">Talent Pool</Badge>
+                            <Badge variant="outline">Candidate</Badge>
                           </div>
                         </div>
 

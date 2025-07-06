@@ -46,7 +46,7 @@ const Matches = () => {
   const [isPlacementDetailsOpen, setIsPlacementDetailsOpen] = useState(false);
   const [isManagePlacementOpen, setIsManagePlacementOpen] = useState(false);
   const [selectedPlacement, setSelectedPlacement] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("placement"); // placement, candidate, job
+  const [activeTab, setActiveTab] = useState("candidate"); // candidate, job
   const [placementData, setPlacementData] = useState({
     candidateId: "",
     jobId: "", 
@@ -88,16 +88,8 @@ const Matches = () => {
   const { talentPool, loading: talentPoolLoading } = useJobApplications();
   const { toast } = useToast();
 
-  // Filter out already placed candidates from talent pool
-  const availableCandidates = talentPool.filter(candidate => {
-    // Check if this candidate already has an active placement
-    const hasActivePlacement = placements.some(placement => 
-      placement.candidate?.candidateId === candidate.candidate.candidateId &&
-      (placement.status?.name?.toLowerCase() === 'active' || 
-       placement.status?.name?.toLowerCase() === 'pending start')
-    );
-    return !hasActivePlacement;
-  });
+  // Include all candidates from talent pool regardless of placement status
+  const availableCandidates = talentPool;
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -413,19 +405,6 @@ const Matches = () => {
           title: "Job Created!",
           description: `${newJobData.title} at ${newJobData.company} has been posted to JobAdder.`,
         });
-      } else {
-        if (!placementData.candidateId || !placementData.jobId || !placementData.startDate) {
-          toast({
-            title: "Error",
-            description: "Please fill in all required placement fields.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        // Handle placement creation (same as handleCreatePlacement)
-        await handleCreatePlacement(new Event('submit') as any);
-        return;
       }
       
       // Reset all forms and close modal
@@ -464,7 +443,7 @@ const Matches = () => {
         notes: ""
       });
       setIsManualPlacementOpen(false);
-      setActiveTab("placement");
+      setActiveTab("candidate");
       refetch();
     } catch (error) {
       console.error('Error in manual placement:', error);
@@ -613,7 +592,7 @@ const Matches = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Only showing talent pool candidates (advanced stage + manual entries)
+                      All candidates including already matched/placed ones
                     </p>
                   </div>
                   
@@ -783,8 +762,7 @@ const Matches = () => {
               </DialogHeader>
               
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="placement">Create Placement</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="candidate">Add Candidate</TabsTrigger>
                   <TabsTrigger value="job">Add Job</TabsTrigger>
                 </TabsList>
@@ -1082,9 +1060,7 @@ const Matches = () => {
 
               <div className="flex gap-4 pt-6">
                 <Button onClick={handleManualPlacement} className="flex-1">
-                  {activeTab === "candidate" ? "Add Candidate" : 
-                   activeTab === "job" ? "Add Job" : 
-                   "Create Placement"}
+                  {activeTab === "candidate" ? "Add Candidate" : "Add Job"}
                 </Button>
                 <Button 
                   variant="outline" 
