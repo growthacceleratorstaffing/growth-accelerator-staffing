@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import oauth2Manager from '@/lib/oauth2-manager';
+import { supabase } from '@/integrations/supabase/client';
 
 // Job Application interfaces based on API specification
 export interface JobApplicationCandidate {
@@ -559,15 +560,113 @@ export function useJobApplications() {
     setError(null);
 
     try {
-      // Try to fetch from API
-      const response = await jobApplicationsAPI.getAllJobApplications({ 
-        limit: 100,
-        activeOnly: false 
-      });
+      // Fetch JobAdder applications
+      let jobAdderApplications: JobApplicationCandidate[] = [];
       
-      let filteredApplications = response;
+      try {
+        const response = await jobApplicationsAPI.getAllJobApplications({ 
+          limit: 100,
+          activeOnly: false 
+        });
+        jobAdderApplications = response;
+      } catch (apiError) {
+        console.warn('JobAdder API unavailable:', apiError);
+        // Use mock data as fallback for JobAdder
+        jobAdderApplications = mockJobApplications;
+        setUseMockData(true);
+        setError('Using demo data for JobAdder applications - API unavailable');
+      }
+
+      // Fetch local candidates from Supabase
+      let localCandidates: JobApplicationCandidate[] = [];
+      
+      try {
+        const { data: candidates, error: supabaseError } = await supabase
+          .from('candidates')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (supabaseError) {
+          throw supabaseError;
+        }
+
+        // Convert local candidates to JobApplicationCandidate format
+        localCandidates = (candidates || []).map((candidate, index) => ({
+          applicationId: -1000 - index, // Negative IDs to distinguish from JobAdder
+          jobTitle: candidate.current_position || "General Application",
+          jobReference: `LOCAL-${candidate.id.slice(0, 8)}`,
+          manual: true,
+          source: "Manual Entry - Growth Accelerator",
+          rating: 3,
+          status: {
+            statusId: 1,
+            name: "Available",
+            active: true,
+            rejected: false,
+            default: true,
+            defaultRejected: false,
+            workflow: {
+              stage: "Talent Pool",
+              stageIndex: 0,
+              step: 1,
+              progress: "Available"
+            }
+          },
+          candidate: {
+            candidateId: -1000 - index,
+            firstName: candidate.name?.split(' ')[0] || "Unknown",
+            lastName: candidate.name?.split(' ').slice(1).join(' ') || "",
+            email: candidate.email,
+            phone: candidate.phone || undefined,
+            mobile: candidate.phone || undefined,
+            contactMethod: "Email",
+            address: candidate.location ? {
+              city: candidate.location.split(',')[0]?.trim(),
+              state: candidate.location.split(',')[1]?.trim(),
+              country: "Netherlands"
+            } : undefined,
+            status: {
+              statusId: 1,
+              name: "Available",
+              active: true,
+              default: true
+            },
+            source: candidate.source_platform || "manual"
+          },
+          job: {
+            jobId: -1,
+            jobTitle: candidate.current_position || "General Application",
+            location: {
+              locationId: -1,
+              name: candidate.location || "Netherlands"
+            },
+            company: {
+              companyId: -1,
+              name: candidate.company || "Growth Accelerator",
+              status: {
+                statusId: 1,
+                name: "Active",
+                active: true,
+                default: true
+              }
+            }
+          },
+          createdAt: candidate.created_at,
+          updatedAt: candidate.updated_at
+        }));
+
+        console.log(`Fetched ${localCandidates.length} local candidates from database`);
+      } catch (supabaseError) {
+        console.warn('Error fetching local candidates:', supabaseError);
+      }
+
+      // Combine JobAdder applications with local candidates
+      const allApplications = [...jobAdderApplications, ...localCandidates];
+      
+      // Apply search filter if provided
+      let filteredApplications = allApplications;
       if (searchTerm) {
-        filteredApplications = response.filter(app => 
+        filteredApplications = allApplications.filter(app => 
           `${app.candidate.firstName} ${app.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -576,22 +675,12 @@ export function useJobApplications() {
       }
       
       setApplications(filteredApplications);
-      setUseMockData(false);
+      console.log(`Total applications displayed: ${filteredApplications.length} (${jobAdderApplications.length} from JobAdder, ${localCandidates.length} local)`);
+      
     } catch (err) {
-      console.warn('API unavailable, using mock data:', err);
-      // Fallback to mock data
-      let filteredApplications = mockJobApplications;
-      if (searchTerm) {
-        filteredApplications = mockJobApplications.filter(app => 
-          `${app.candidate.firstName} ${app.candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          app.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          app.job.company?.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      }
-      setApplications(filteredApplications);
-      setUseMockData(true);
-      setError('Using demo data - API unavailable');
+      console.error('Error fetching applications:', err);
+      setError('Error loading talent pool data');
+      setApplications([]);
     } finally {
       setLoading(false);
     }
