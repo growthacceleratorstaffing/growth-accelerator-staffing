@@ -37,92 +37,9 @@ serve(async (req) => {
     }
 
     if (type === 'job-posting') {
-      // Test LinkedIn API authentication first
-      console.log('Testing LinkedIn API authentication...');
-      const testResponse = await fetch('https://api.linkedin.com/v2/people/~', {
-        headers: {
-          'Authorization': `Bearer ${linkedinAccessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      console.log('Creating job for career page...');
 
-      console.log('LinkedIn auth test response:', testResponse.status);
-      
-      if (!testResponse.ok) {
-        const testError = await testResponse.text();
-        console.error('LinkedIn authentication failed:', testError);
-        
-        return new Response(JSON.stringify({
-          error: `LinkedIn authentication failed (${testResponse.status})`,
-          details: 'Please check your LinkedIn access token. It may be expired or have insufficient permissions.',
-          needsReauth: true
-        }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Create LinkedIn company post about the job opening
-      const jobPostContent = `🚀 We're hiring! ${jobTitle}
-
-${jobDescription}
-
-📍 Location: ${city || 'Remote'}
-💼 Employment Type: ${employmentType?.replace('_', '-') || 'Full-time'}
-🏢 Workplace: ${workplaceType || 'Remote'}
-
-Ready to join our team? Apply now: ${req.headers.get('origin')}/jobs
-
-#hiring #jobs #${jobFunction || 'engineering'} #careers`;
-
-      const shareData = {
-        author: `urn:li:organization:${companyId}`,
-        lifecycleState: "PUBLISHED",
-        specificContent: {
-          "com.linkedin.ugc.ShareContent": {
-            shareCommentary: {
-              text: jobPostContent
-            },
-            shareMediaCategory: "NONE"
-          }
-        },
-        visibility: {
-          "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
-        }
-      };
-
-      console.log('Creating LinkedIn company post with data:', shareData);
-
-      const shareResponse = await fetch('https://api.linkedin.com/v2/ugcPosts', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${linkedinAccessToken}`,
-          'Content-Type': 'application/json',
-          'X-Restli-Protocol-Version': '2.0.0'
-        },
-        body: JSON.stringify(shareData)
-      });
-
-      console.log('LinkedIn share API response status:', shareResponse.status);
-
-      if (!shareResponse.ok) {
-        const errorText = await shareResponse.text();
-        console.error('LinkedIn Share API error:', errorText);
-        
-        return new Response(JSON.stringify({
-          error: `LinkedIn Share API Error (${shareResponse.status})`,
-          details: errorText,
-          apiEndpoint: 'LinkedIn UGC Posts API',
-          suggestion: 'Make sure your LinkedIn token has w_member_social permission and the company ID is correct'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const sharePost = await shareResponse.json();
-
-      // Also save the job to local database for the career page
+      // Save the job directly to local database for the career page
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -134,9 +51,12 @@ Ready to join our team? Apply now: ${req.headers.get('origin')}/jobs
         company_name: 'Growth Accelerator', // You can make this configurable
         location_name: city || 'Remote',
         work_type_name: employmentType?.replace('_', '-') || 'Full-time',
-        source: 'LinkedIn Career Page',
+        category_name: jobFunction || 'Engineering',
+        source: 'Career Page',
         created_by: null // Will be handled by RLS
       };
+
+      console.log('Saving job to database:', jobData);
 
       const { data: createdJob, error: jobError } = await supabase
         .from('jobs')
@@ -145,22 +65,22 @@ Ready to join our team? Apply now: ${req.headers.get('origin')}/jobs
         .single();
 
       if (jobError) {
-        console.warn('Failed to save job to database:', jobError);
+        console.error('Failed to save job to database:', jobError);
+        throw new Error('Failed to create job posting');
       }
 
-      console.log('LinkedIn job post shared successfully:', {
-        postId: sharePost.id,
+      console.log('Job created successfully:', {
+        jobId: createdJob.id,
         jobTitle,
-        localJobId: createdJob?.id
+        jobUrl: `${req.headers.get('origin')}/jobs/${createdJob.id}`
       });
 
       return new Response(JSON.stringify({
         success: true,
-        postId: sharePost.id,
-        postUrl: `https://www.linkedin.com/feed/update/${sharePost.id}`,
-        jobId: createdJob?.id,
-        jobUrl: `${req.headers.get('origin')}/jobs/${createdJob?.id}`,
-        message: 'Job shared on LinkedIn company page successfully!'
+        jobId: createdJob.id,
+        jobUrl: `${req.headers.get('origin')}/jobs/${createdJob.id}`,
+        careerPageUrl: `${req.headers.get('origin')}/jobs`,
+        message: 'Job posted to career page successfully!'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

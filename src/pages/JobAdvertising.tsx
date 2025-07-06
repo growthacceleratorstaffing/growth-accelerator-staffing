@@ -17,7 +17,6 @@ const JobAdvertising = () => {
   const [jobFormData, setJobFormData] = useState({
     jobTitle: "",
     jobDescription: "",
-    companyId: "",
     city: "",
     jobFunction: "",
     employmentType: "FULL_TIME",
@@ -47,20 +46,20 @@ const JobAdvertising = () => {
   };
 
   const handleCreateJob = async () => {
-    console.log('Starting LinkedIn job posting creation...');
+    console.log('Starting career page job creation...');
     console.log('Form data:', jobFormData);
     
-    if (!jobFormData.jobTitle || !jobFormData.jobDescription || !jobFormData.companyId) {
+    if (!jobFormData.jobTitle || !jobFormData.jobDescription) {
       toast({
         title: "Missing Information",
-        description: "Please fill in job title, description, and company ID",
+        description: "Please fill in job title and description",
         variant: "destructive"
       });
       return;
     }
 
     setIsCreatingJob(true);
-    console.log('Invoking LinkedIn job advertisement function...');
+    console.log('Invoking job creation function...');
     
     try {
       const { data, error } = await supabase.functions.invoke('linkedin-job-advertisement', {
@@ -68,7 +67,6 @@ const JobAdvertising = () => {
           type: 'job-posting',
           jobTitle: jobFormData.jobTitle,
           jobDescription: jobFormData.jobDescription,
-          companyId: jobFormData.companyId,
           city: jobFormData.city,
           jobFunction: jobFormData.jobFunction,
           employmentType: jobFormData.employmentType,
@@ -81,17 +79,16 @@ const JobAdvertising = () => {
 
       if (error) throw error;
 
-      console.log('LinkedIn job posting successful!');
+      console.log('Career page job creation successful!');
       toast({
-        title: "Job Shared!",
-        description: `Job shared on LinkedIn and added to career page! Post: ${data.postUrl}`
+        title: "Job Created!",
+        description: `Job added to career page! View at: ${data.careerPageUrl}`
       });
 
       // Reset form
       setJobFormData({
         jobTitle: "",
         jobDescription: "",
-        companyId: "",
         city: "",
         jobFunction: "",
         employmentType: "FULL_TIME",
@@ -100,10 +97,10 @@ const JobAdvertising = () => {
       });
 
     } catch (error) {
-      console.error('Error creating LinkedIn job posting:', error);
+      console.error('Error creating career page job:', error);
       toast({
         title: "Error",
-        description: "Failed to create LinkedIn job posting. Please try again.",
+        description: "Failed to create job posting. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -168,10 +165,10 @@ const JobAdvertising = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3 mb-6">
-        <Linkedin className="h-8 w-8 text-blue-600" />
+        <Briefcase className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">LinkedIn Job Management</h1>
-          <p className="text-muted-foreground">Post jobs and create advertisements on LinkedIn</p>
+          <h1 className="text-3xl font-bold">Job Management</h1>
+          <p className="text-muted-foreground">Create jobs for your career page and LinkedIn advertisements</p>
         </div>
       </div>
 
@@ -193,31 +190,31 @@ const JobAdvertising = () => {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Share Job on LinkedIn</CardTitle>
+                  <CardTitle>Create Career Page Job</CardTitle>
                   <CardDescription>
-                    Share job openings on your LinkedIn company page and create listings on your career page
+                    Add job openings directly to your career page for candidates to discover and apply
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="jobTitle">Job Title *</Label>
-                      <Input
-                        id="jobTitle"
-                        placeholder="e.g. Senior Software Engineer"
-                        value={jobFormData.jobTitle}
-                        onChange={(e) => handleJobInputChange("jobTitle", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="companyId">Company ID *</Label>
-                      <Input
-                        id="companyId"
-                        placeholder="LinkedIn Company ID"
-                        value={jobFormData.companyId}
-                        onChange={(e) => handleJobInputChange("companyId", e.target.value)}
-                      />
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="jobTitle">Job Title *</Label>
+                  <Input
+                    id="jobTitle"
+                    placeholder="e.g. Senior Software Engineer"
+                    value={jobFormData.jobTitle}
+                    onChange={(e) => handleJobInputChange("jobTitle", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    placeholder="e.g. San Francisco (leave empty for Remote)"
+                    value={jobFormData.city}
+                    onChange={(e) => handleJobInputChange("city", e.target.value)}
+                  />
+                </div>
                   </div>
 
                   <div className="space-y-2">
@@ -232,15 +229,6 @@ const JobAdvertising = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        placeholder="e.g. San Francisco (leave empty for Remote)"
-                        value={jobFormData.city}
-                        onChange={(e) => handleJobInputChange("city", e.target.value)}
-                      />
-                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="jobFunction">Job Function</Label>
                       <Select onValueChange={(value) => handleJobInputChange("jobFunction", value)}>
@@ -257,9 +245,6 @@ const JobAdvertising = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="employmentType">Employment Type</Label>
                       <Select onValueChange={(value) => handleJobInputChange("employmentType", value)}>
@@ -275,6 +260,9 @@ const JobAdvertising = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="workplaceType">Workplace Type</Label>
                       <Select onValueChange={(value) => handleJobInputChange("workplaceType", value)}>
@@ -288,22 +276,21 @@ const JobAdvertising = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="duration">Duration (Days)</Label>
-                    <Select onValueChange={(value) => handleJobInputChange("duration", value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="30 days (default)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="7">7 days</SelectItem>
-                        <SelectItem value="14">14 days</SelectItem>
-                        <SelectItem value="30">30 days</SelectItem>
-                        <SelectItem value="60">60 days</SelectItem>
-                        <SelectItem value="90">90 days</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <Label htmlFor="duration">Duration (Days)</Label>
+                      <Select onValueChange={(value) => handleJobInputChange("duration", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="30 days (default)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="7">7 days</SelectItem>
+                          <SelectItem value="14">14 days</SelectItem>
+                          <SelectItem value="30">30 days</SelectItem>
+                          <SelectItem value="60">60 days</SelectItem>
+                          <SelectItem value="90">90 days</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <Button 
@@ -311,7 +298,7 @@ const JobAdvertising = () => {
                     disabled={isCreatingJob}
                     className="w-full"
                   >
-                    {isCreatingJob ? "Sharing Job..." : "Share Job on LinkedIn"}
+                    {isCreatingJob ? "Creating Job..." : "Create Career Page Job"}
                   </Button>
                 </CardContent>
               </Card>
@@ -323,26 +310,26 @@ const JobAdvertising = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Target className="h-5 w-5" />
-                    Job Posting Benefits
+                    Career Page Benefits
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5"></div>
                     <div>
-                      <strong>Company Page Posts:</strong> Share job openings on your LinkedIn company page
+                      <strong>Direct Applications:</strong> Candidates apply directly through your website
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                     <div>
-                      <strong>Career Page Integration:</strong> Jobs are added to your website's career page
+                      <strong>SEO Benefits:</strong> Jobs are indexed by search engines
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full mt-1.5"></div>
                     <div>
-                      <strong>Professional Reach:</strong> Leverage your company's LinkedIn network
+                      <strong>Brand Control:</strong> Full control over job presentation and application process
                     </div>
                   </div>
                 </CardContent>
@@ -352,13 +339,10 @@ const JobAdvertising = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <DollarSign className="h-5 w-5" />
-                    Required Information
+                    Job Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
-                  <div>
-                    <strong>Company ID:</strong> Your LinkedIn Company Page ID
-                  </div>
                   <div>
                     <strong>Job Function:</strong> Helps categorize the role
                   </div>
@@ -367,6 +351,9 @@ const JobAdvertising = () => {
                   </div>
                   <div>
                     <strong>Workplace Type:</strong> Remote, On-site, or Hybrid
+                  </div>
+                  <div>
+                    <strong>Location:</strong> Leave empty for Remote positions
                   </div>
                 </CardContent>
               </Card>
