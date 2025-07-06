@@ -103,7 +103,7 @@ const handler = async (req: Request): Promise<Response> => {
             </p>
             <div style="margin-top: 15px;">
               <strong style="color: #333;">Growth Accelerator Team</strong><br>
-              <a href="mailto:hr@growthaccelerator.nl" style="color: #667eea; text-decoration: none;">hr@growthaccelerator.nl</a>
+              <a href="mailto:bart@growthaccelerator.nl" style="color: #667eea; text-decoration: none;">bart@growthaccelerator.nl</a>
             </div>
           </div>
         </div>
