@@ -230,7 +230,7 @@ serve(async (req) => {
       case 'jobboards':
         const jobboardId = url.searchParams.get('jobboardId') || url.searchParams.get('boardId') || requestBody?.boardId || '8734';
         console.log(`Fetching jobboard ${jobboardId} job ads`);
-        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/jobads`, userAccessToken, params);
+        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/ads`, userAccessToken, params);
         break;
 
       case 'find-jobboards':
@@ -285,7 +285,7 @@ serve(async (req) => {
             fields.forEach(field => jobAdParams['Fields'] = field);
           }
           
-          data = await makeJobAdderRequest(`/jobboards/${boardIdForAds}/jobads`, userAccessToken, jobAdParams);
+          data = await makeJobAdderRequest(`/jobboards/${boardIdForAds}/ads`, userAccessToken, jobAdParams);
         } else {
           // Return mock job ad data
           const mockJobs = Array.from({ length: 85 }, (_, i) => ({
@@ -319,7 +319,7 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        data = await makeJobAdderRequest(`/jobboards/${boardId}/jobads/${adId}`, userAccessToken);
+        data = await makeJobAdderRequest(`/jobboards/${boardId}/ads/${adId}`, userAccessToken);
         break;
 
       case 'submit-job-application':
@@ -342,7 +342,7 @@ serve(async (req) => {
         }
         
         console.log(`Submitting job application to board ${submitBoardId}, ad ${submitAdId}`);
-        data = await makeJobAdderPostRequest(`/jobboards/${submitBoardId}/jobads/${submitAdId}/applications`, userAccessToken, applicationData);
+        data = await makeJobAdderPostRequest(`/jobboards/${submitBoardId}/ads/${submitAdId}/applications`, userAccessToken, applicationData);
         break;
 
       case 'import-candidate':
