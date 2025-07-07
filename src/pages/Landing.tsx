@@ -46,9 +46,9 @@ const Landing = () => {
             need into one platform, or separate if you prefer.
           </p>
           
-          <div className="flex flex-row gap-4 justify-center mb-12 max-w-2xl mx-auto w-full">
+          <div className="flex flex-row gap-4 justify-center items-center mb-12 max-w-2xl mx-auto w-full">
             <Link to="/auth" className="flex-1">
-              <Button size="lg" className="w-full px-8 py-4 text-lg bg-white text-black hover:bg-gray-100">
+              <Button size="lg" className="w-full px-8 py-4 text-lg bg-white text-black hover:bg-gray-100 flex items-center justify-center">
                 Sign in as an agency
               </Button>
             </Link>
@@ -62,7 +62,7 @@ const Landing = () => {
                 href="https://startup-accelerator.hiringmanager.com/Account/login" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full"
+                className="flex items-center justify-center gap-2 w-full h-full"
               >
                 Hiring Manager Portal
                 <ExternalLink className="h-4 w-4" />
