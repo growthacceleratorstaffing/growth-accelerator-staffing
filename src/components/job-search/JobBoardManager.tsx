@@ -122,8 +122,21 @@ export const JobBoardManager = () => {
   const loadJobBoards = async () => {
     setLoading(true);
     try {
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      if (!userAccessToken) {
+        toast({
+          title: "Authentication Required",
+          description: "Please authenticate with JobAdder first",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
-        body: { endpoint: 'find-jobboards' }
+        body: { 
+          endpoint: 'find-jobboards',
+          accessToken: userAccessToken 
+        }
       });
 
       if (error) {
@@ -153,11 +166,22 @@ export const JobBoardManager = () => {
   const loadJobAds = async (boardId: number, searchTerm?: string) => {
     setLoading(true);
     try {
+      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      if (!userAccessToken) {
+        toast({
+          title: "Authentication Required", 
+          description: "Please authenticate with JobAdder first",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const requestBody: any = { 
         endpoint: 'jobboard-jobads',
         boardId: boardId.toString(),
-        limit: '50',
-        offset: '0'
+        limit: '100',
+        offset: '0',
+        accessToken: userAccessToken
       };
 
       // Add search filters if provided
