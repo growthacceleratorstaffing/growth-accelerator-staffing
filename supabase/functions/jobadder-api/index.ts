@@ -228,6 +228,47 @@ serve(async (req) => {
         data = await makeJobAdderRequest(`/jobboards/${jobboardId}/jobads`, userAccessToken, params);
         break;
 
+      case 'find-jobboards':
+        // Get list of all job boards
+        console.log('Fetching available job boards');
+        data = await makeJobAdderRequest('/jobboards', userAccessToken);
+        break;
+
+      case 'get-jobboard':
+        const boardIdToGet = url.searchParams.get('boardId') || requestBody?.boardId || '8734';
+        console.log(`Fetching job board details for ${boardIdToGet}`);
+        data = await makeJobAdderRequest(`/jobboards/${boardIdToGet}`, userAccessToken);
+        break;
+
+      case 'jobboard-jobads':
+        const boardIdForAds = url.searchParams.get('boardId') || requestBody?.boardId || '8734';
+        console.log(`Fetching job ads from board ${boardIdForAds}`);
+        
+        // Build query parameters for job ads
+        const jobAdParams: Record<string, string> = { ...params };
+        
+        // Add job board specific filters
+        const adIds = url.searchParams.getAll('AdId') || requestBody?.adIds || [];
+        const references = url.searchParams.getAll('Reference') || requestBody?.references || [];
+        const hotJob = url.searchParams.get('Portal.HotJob') || requestBody?.hotJob;
+        const fields = url.searchParams.getAll('Fields') || requestBody?.fields || [];
+        
+        if (adIds.length > 0) {
+          adIds.forEach(id => jobAdParams['AdId'] = id);
+        }
+        if (references.length > 0) {
+          references.forEach(ref => jobAdParams['Reference'] = ref);
+        }
+        if (hotJob) {
+          jobAdParams['Portal.HotJob'] = hotJob;
+        }
+        if (fields.length > 0) {
+          fields.forEach(field => jobAdParams['Fields'] = field);
+        }
+        
+        data = await makeJobAdderRequest(`/jobboards/${boardIdForAds}/jobads`, userAccessToken, jobAdParams);
+        break;
+
       case 'jobboard-ad':
         const adId = url.searchParams.get('adId') || requestBody?.adId;
         const boardId = url.searchParams.get('boardId') || requestBody?.boardId || '8734';
@@ -238,6 +279,29 @@ serve(async (req) => {
           );
         }
         data = await makeJobAdderRequest(`/jobboards/${boardId}/jobads/${adId}`, userAccessToken);
+        break;
+
+      case 'submit-job-application':
+        if (req.method !== 'POST') {
+          return new Response(
+            JSON.stringify({ error: 'submit-job-application requires POST method' }),
+            { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        const submitAdId = requestBody?.adId;
+        const submitBoardId = requestBody?.boardId || '8734';
+        const applicationData = requestBody?.application;
+        
+        if (!submitAdId || !applicationData) {
+          return new Response(
+            JSON.stringify({ error: 'adId and application data are required for submit-job-application endpoint' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.log(`Submitting job application to board ${submitBoardId}, ad ${submitAdId}`);
+        data = await makeJobAdderPostRequest(`/jobboards/${submitBoardId}/jobads/${submitAdId}/applications`, userAccessToken, applicationData);
         break;
 
       case 'import-candidate':

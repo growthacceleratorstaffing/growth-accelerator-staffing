@@ -5,6 +5,7 @@ import { JobAdderJobList } from "@/components/job-search/JobAdderJobList";
 import { JobAdderSearchBar } from "@/components/job-search/JobAdderSearchBar";
 import { JobAdderSearchStats } from "@/components/job-search/JobAdderSearchStats";
 import { JobSyncStatus } from "@/components/job-search/JobSyncStatus";
+import { JobBoardManager } from "@/components/job-search/JobBoardManager";
 import { useJobSearch } from "@/hooks/useJobSearch";
 import { useJobs } from "@/hooks/useJobs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -80,30 +81,18 @@ const JobBoard = () => {
           <JobSyncStatus />
         </div>
         
-        <Tabs defaultValue="jobadder" className="mt-8">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="jobadder">JobAdder Jobs</TabsTrigger>
+        <Tabs defaultValue="jobadder-board" className="mt-8">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="jobadder-board">JobAdder Board API</TabsTrigger>
+            <TabsTrigger value="jobadder-jobs">JobAdder Jobs</TabsTrigger>
             <TabsTrigger value="crawled">Career Page</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="crawled" className="space-y-6">
-            <div className="flex justify-center">
-              <CrawlJobsButton onCrawl={crawlJobs} />
-            </div>
-            
-            <SearchStats 
-              query={searchQuery}
-              totalResults={totalResults}
-              isLoading={isLoading}
-            />
-            
-            <JobList 
-              jobs={jobs}
-              isLoading={isLoading}
-            />
+          <TabsContent value="jobadder-board" className="space-y-6">
+            <JobBoardManager />
           </TabsContent>
           
-          <TabsContent value="jobadder" className="space-y-6">
+          <TabsContent value="jobadder-jobs" className="space-y-6">
             <JobAdderSearchBar 
               onSearch={handleJobAdderSearch}
               isLoading={jobAdderLoading}
@@ -127,6 +116,23 @@ const JobBoard = () => {
                 </p>
               </div>
             )}
+          </TabsContent>
+          
+          <TabsContent value="crawled" className="space-y-6">
+            <div className="flex justify-center">
+              <CrawlJobsButton onCrawl={crawlJobs} />
+            </div>
+            
+            <SearchStats 
+              query={searchQuery}
+              totalResults={totalResults}
+              isLoading={isLoading}
+            />
+            
+            <JobList 
+              jobs={jobs}
+              isLoading={isLoading}
+            />
           </TabsContent>
         </Tabs>
       </div>
