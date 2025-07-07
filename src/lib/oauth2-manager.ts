@@ -312,7 +312,7 @@ class JobAdderOAuth2Manager {
 // Create singleton instance with JobAdder credentials
 const oauth2Manager = new JobAdderOAuth2Manager(
   'ldyp7mapnxdevgowsnmr34o2j4',
-  'ruhqysfa2zaulmsuukhjfokiwmjnpwkzkcs2durgxjezubqqesba',
+  'veuyhueqmifufjfo4hoqx6obcy5tucoxp45xpe7aixl5bu4ztdh4',
   `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080'}/auth/callback`
 );
 
