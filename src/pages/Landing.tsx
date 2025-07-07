@@ -48,26 +48,24 @@ const Landing = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 max-w-4xl mx-auto">
             <Link to="/auth">
-              <Button size="lg" className="w-full h-12 px-8 py-4 text-lg bg-white text-black hover:bg-gray-100">
+              <Button size="lg" className="w-full h-12 px-8 py-4 text-lg bg-white text-black hover:bg-gray-100 flex items-center justify-center">
                 Sign in as an agency
               </Button>
             </Link>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="w-full h-12 px-8 py-4 text-lg bg-white text-black border-white hover:bg-gray-100"
-              asChild
+            <a 
+              href="https://startup-accelerator.hiringmanager.com/Account/login" 
+              target="_blank" 
+              rel="noopener noreferrer"
             >
-              <a 
-                href="https://startup-accelerator.hiringmanager.com/Account/login" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full h-full"
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="w-full h-12 px-8 py-4 text-lg bg-white text-black border-white hover:bg-gray-100 flex items-center justify-center gap-2"
               >
                 Hiring Manager Portal
                 <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
+              </Button>
+            </a>
           </div>
         </div>
 
