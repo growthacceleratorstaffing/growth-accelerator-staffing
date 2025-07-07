@@ -7,7 +7,7 @@ import { SidebarProvider, SidebarInset, Sidebar, SidebarContent, SidebarGroup, S
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, User, LogOut, UserCheck, Settings, ExternalLink } from "lucide-react";
+import { Briefcase, User, LogOut, UserCheck, Settings, ExternalLink, Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformChatbot from "./components/PlatformChatbot";
@@ -27,6 +27,7 @@ import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
 import JobAdderAuth from "./pages/JobAdderAuth";
+import JobAdderImport from "./pages/JobAdderImport";
 
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
@@ -146,6 +147,14 @@ const AppSidebar = () => {
                   <Link to="/job-board">
                     <User className="h-4 w-4" />
                     <span className="text-base">Job Board</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/jobadder-import")}>
+                  <Link to="/jobadder-import">
+                    <Download className="h-4 w-4" />
+                    <span className="text-base">Import from JobAdder</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -378,6 +387,13 @@ const App = () => (
             <AppLayout>
               <JobBoard />
             </AppLayout>
+          } />
+          <Route path="/jobadder-import" element={
+            <ProtectedRoute requiredScope="read_job">
+              <AppLayout>
+                <JobAdderImport />
+              </AppLayout>
+            </ProtectedRoute>
           } />
           
           {/* Catch-all route */}

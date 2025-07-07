@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, Building, Clock, DollarSign, Search, AlertCircle, ExternalLink } from "lucide-react";
+import { MapPin, Building, Clock, DollarSign, Search, AlertCircle, ExternalLink, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useJobs } from "@/hooks/useJobs";
 import { JobSyncStatus } from "@/components/job-search/JobSyncStatus";
@@ -96,7 +96,7 @@ const Jobs = () => {
       {/* Sync Status */}
       <div className="mb-8">
         <JobSyncStatus />
-        <div className="mt-4">
+        <div className="mt-4 flex gap-2">
           <Button 
             onClick={testJobAdderAPI} 
             disabled={isTestingAPI}
@@ -106,6 +106,12 @@ const Jobs = () => {
             <AlertCircle className="h-4 w-4" />
             {isTestingAPI ? "Testing API..." : "Test JobAdder API"}
           </Button>
+          <Link to="/jobadder-import">
+            <Button variant="default" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Import from JobAdder
+            </Button>
+          </Link>
         </div>
       </div>
 
