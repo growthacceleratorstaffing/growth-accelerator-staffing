@@ -46,16 +46,16 @@ const Landing = () => {
             need into one platform, or separate if you prefer.
           </p>
           
-          <div className="flex flex-row gap-4 justify-center items-center mb-12 max-w-2xl mx-auto w-full">
-            <Link to="/auth" className="flex-1">
-              <Button size="lg" className="w-full px-8 py-4 text-lg bg-white text-black hover:bg-gray-100 flex items-center justify-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 max-w-4xl mx-auto">
+            <Link to="/auth">
+              <Button size="lg" className="w-full px-8 py-4 text-lg bg-white text-black hover:bg-gray-100">
                 Sign in as an agency
               </Button>
             </Link>
             <Button 
               size="lg" 
               variant="outline" 
-              className="flex-1 px-8 py-4 text-lg bg-white text-black border-white hover:bg-gray-100"
+              className="w-full px-8 py-4 text-lg bg-white text-black border-white hover:bg-gray-100"
               asChild
             >
               <a 
