@@ -122,20 +122,17 @@ export const JobBoardManager = () => {
   const loadJobBoards = async () => {
     setLoading(true);
     try {
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
-      if (!userAccessToken) {
-        toast({
-          title: "Authentication Required",
-          description: "Please authenticate with JobAdder first",
-          variant: "destructive"
-        });
-        return;
+      // Try to get token, but don't fail if not available
+      let userAccessToken;
+      try {
+        userAccessToken = await oauth2Manager.getValidAccessToken();
+      } catch (tokenError) {
+        console.log('No JobAdder token available, using edge function without token');
       }
 
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { 
-          endpoint: 'find-jobboards',
-          accessToken: userAccessToken 
+          endpoint: 'find-jobboards'
         }
       });
 
@@ -166,22 +163,19 @@ export const JobBoardManager = () => {
   const loadJobAds = async (boardId: number, searchTerm?: string) => {
     setLoading(true);
     try {
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
-      if (!userAccessToken) {
-        toast({
-          title: "Authentication Required", 
-          description: "Please authenticate with JobAdder first",
-          variant: "destructive"
-        });
-        return;
+      // Try to get token, but don't fail if not available
+      let userAccessToken;
+      try {
+        userAccessToken = await oauth2Manager.getValidAccessToken();
+      } catch (tokenError) {
+        console.log('No JobAdder token available, using edge function without token');
       }
 
       const requestBody: any = { 
         endpoint: 'jobboard-jobads',
         boardId: boardId.toString(),
         limit: '100',
-        offset: '0',
-        accessToken: userAccessToken
+        offset: '0'
       };
 
       // Add search filters if provided

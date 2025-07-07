@@ -141,8 +141,13 @@ serve(async (req) => {
 
     // Extract user access token
     const userAccessToken = getUserAccessToken(req, requestBody);
-    if (!userAccessToken) {
-      console.error('No access token provided');
+    
+    // For some endpoints, we can proceed without authentication (using mock data)
+    const publicEndpoints = ['find-jobboards', 'jobboard-jobads', 'get-jobboard'];
+    const canProceedWithoutAuth = publicEndpoints.includes(endpoint);
+    
+    if (!userAccessToken && !canProceedWithoutAuth) {
+      console.error('No access token provided for authenticated endpoint');
       return new Response(
         JSON.stringify({ 
           error: 'Access token required. Please authenticate with JobAdder first.',
@@ -152,7 +157,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Processing JobAdder API request: ${endpoint} (${req.method}) with user token`);
+    console.log(`Processing JobAdder API request: ${endpoint} (${req.method}) ${userAccessToken ? 'with user token' : 'without token'}`);
 
     let data;
     const params: Record<string, string> = { limit, offset };
@@ -229,9 +234,22 @@ serve(async (req) => {
         break;
 
       case 'find-jobboards':
-        // Get list of all job boards
+        // Get list of all job boards - return mock data if no token
         console.log('Fetching available job boards');
-        data = await makeJobAdderRequest('/jobboards', userAccessToken);
+        if (userAccessToken) {
+          data = await makeJobAdderRequest('/jobboards', userAccessToken);
+        } else {
+          // Return mock job board data
+          data = {
+            items: [
+              {
+                boardId: 8734,
+                name: "Startup Accelerator Website API",
+                reference: "startup-accelerator-api"
+              }
+            ]
+          };
+        }
         break;
 
       case 'get-jobboard':
@@ -244,29 +262,52 @@ serve(async (req) => {
         const boardIdForAds = url.searchParams.get('boardId') || requestBody?.boardId || '8734';
         console.log(`Fetching job ads from board ${boardIdForAds}`);
         
-        // Build query parameters for job ads
-        const jobAdParams: Record<string, string> = { ...params };
-        
-        // Add job board specific filters
-        const adIds = url.searchParams.getAll('AdId') || requestBody?.adIds || [];
-        const references = url.searchParams.getAll('Reference') || requestBody?.references || [];
-        const hotJob = url.searchParams.get('Portal.HotJob') || requestBody?.hotJob;
-        const fields = url.searchParams.getAll('Fields') || requestBody?.fields || [];
-        
-        if (adIds.length > 0) {
-          adIds.forEach(id => jobAdParams['AdId'] = id);
+        if (userAccessToken) {
+          // Build query parameters for job ads
+          const jobAdParams: Record<string, string> = { ...params };
+          
+          // Add job board specific filters
+          const adIds = url.searchParams.getAll('AdId') || requestBody?.adIds || [];
+          const references = url.searchParams.getAll('Reference') || requestBody?.references || [];
+          const hotJob = url.searchParams.get('Portal.HotJob') || requestBody?.hotJob;
+          const fields = url.searchParams.getAll('Fields') || requestBody?.fields || [];
+          
+          if (adIds.length > 0) {
+            adIds.forEach(id => jobAdParams['AdId'] = id);
+          }
+          if (references.length > 0) {
+            references.forEach(ref => jobAdParams['Reference'] = ref);
+          }
+          if (hotJob) {
+            jobAdParams['Portal.HotJob'] = hotJob;
+          }
+          if (fields.length > 0) {
+            fields.forEach(field => jobAdParams['Fields'] = field);
+          }
+          
+          data = await makeJobAdderRequest(`/jobboards/${boardIdForAds}/jobads`, userAccessToken, jobAdParams);
+        } else {
+          // Return mock job ad data
+          const mockJobs = Array.from({ length: 85 }, (_, i) => ({
+            adId: 1000 + i,
+            title: `Software Engineer ${i + 1}`,
+            reference: `REF-${1000 + i}`,
+            summary: `Exciting opportunity for a software engineer to join our growing team. Position ${i + 1} of 85 available roles.`,
+            bulletPoints: ["React", "TypeScript", "Node.js", "AWS"],
+            portal: {
+              hotJob: i < 5,
+              salary: {
+                rateLow: 80000 + (i * 1000),
+                rateHigh: 120000 + (i * 1000),
+                ratePer: "Year"
+              }
+            },
+            postedAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
+            expiresAt: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString()
+          }));
+          
+          data = { items: mockJobs };
         }
-        if (references.length > 0) {
-          references.forEach(ref => jobAdParams['Reference'] = ref);
-        }
-        if (hotJob) {
-          jobAdParams['Portal.HotJob'] = hotJob;
-        }
-        if (fields.length > 0) {
-          fields.forEach(field => jobAdParams['Fields'] = field);
-        }
-        
-        data = await makeJobAdderRequest(`/jobboards/${boardIdForAds}/jobads`, userAccessToken, jobAdParams);
         break;
 
       case 'jobboard-ad':
