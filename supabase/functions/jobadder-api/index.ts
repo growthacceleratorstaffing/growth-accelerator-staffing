@@ -284,9 +284,13 @@ serve(async (req) => {
 
     switch (endpoint) {
       case 'get-client-id':
+        console.log('Get client ID endpoint called');
+        console.log('JOBADDER_CLIENT_ID available:', !!JOBADDER_CLIENT_ID);
+        
         // Return the client ID for OAuth URL generation
         return new Response(JSON.stringify({ 
-          clientId: JOBADDER_CLIENT_ID 
+          clientId: JOBADDER_CLIENT_ID,
+          success: true 
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

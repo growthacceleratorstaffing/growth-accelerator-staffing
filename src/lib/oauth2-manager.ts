@@ -47,13 +47,23 @@ class JobAdderOAuth2Manager {
     try {
       const { supabase } = await import('@/integrations/supabase/client');
       
+      console.log('Requesting JobAdder client ID from server...');
+      
       // Get the client ID from the server-side function
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { endpoint: 'get-client-id' }
       });
       
-      if (error || !data?.clientId) {
-        throw new Error('Failed to get JobAdder client ID');
+      console.log('JobAdder client ID response:', { data, error });
+      
+      if (error) {
+        console.error('Supabase function invoke error:', error);
+        throw new Error(`Failed to call JobAdder API: ${error.message}`);
+      }
+      
+      if (!data || !data.clientId) {
+        console.error('Invalid client ID response:', data);
+        throw new Error('Failed to get JobAdder client ID from server');
       }
       
       // Ensure we use the exact same redirect URI that will be used in token exchange
@@ -67,6 +77,8 @@ class JobAdderOAuth2Manager {
       });
       
       console.log('OAuth Step 1 - Authorization URL redirect_uri:', redirectUri);
+      console.log('Generated authorization URL:', `${this.AUTH_URL}?${params.toString()}`);
+      
       return `${this.AUTH_URL}?${params.toString()}`;
     } catch (error) {
       console.error('Error generating authorization URL:', error);
@@ -151,9 +163,15 @@ class JobAdderOAuth2Manager {
         .from('jobadder_tokens')
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
-      return !error && !!data;
+      // If error is returned or no data found, user is not authenticated
+      if (error) {
+        console.error('Error checking JobAdder authentication:', error);
+        return false;
+      }
+      
+      return !!data;
     } catch (error) {
       console.error('Error checking authentication status:', error);
       return false;
