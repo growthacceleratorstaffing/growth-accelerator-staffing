@@ -56,13 +56,17 @@ class JobAdderOAuth2Manager {
         throw new Error('Failed to get JobAdder client ID');
       }
       
+      // Ensure we use the exact same redirect URI that will be used in token exchange
+      const redirectUri = this.REDIRECT_URI;
+      
       const params = new URLSearchParams({
         response_type: 'code',
         client_id: data.clientId,
         scope: 'read write offline_access',
-        redirect_uri: this.REDIRECT_URI
+        redirect_uri: redirectUri
       });
       
+      console.log('OAuth Step 1 - Authorization URL redirect_uri:', redirectUri);
       return `${this.AUTH_URL}?${params.toString()}`;
     } catch (error) {
       console.error('Error generating authorization URL:', error);

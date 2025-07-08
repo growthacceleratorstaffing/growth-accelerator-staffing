@@ -341,11 +341,13 @@ serve(async (req) => {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code: code,
-            redirect_uri: redirectUri || `${req.headers.get('origin') || 'http://localhost:8080'}/auth/callback`,
+            redirect_uri: redirectUri, // Use the exact same redirect_uri from Step 1
             client_id: JOBADDER_CLIENT_ID!,
             client_secret: JOBADDER_CLIENT_SECRET!
           })
         });
+
+        console.log('OAuth Step 3 - Token exchange redirect_uri:', redirectUri);
 
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text();
