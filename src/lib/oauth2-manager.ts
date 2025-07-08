@@ -36,13 +36,8 @@ class JobAdderOAuth2Manager {
     this.CLIENT_SECRET = clientSecret;
     this.REDIRECT_URI = redirectUri;
     
-    // Load tokens from storage on initialization
-    this.loadTokensFromStorage();
-    
-    // Start automatic token refresh if we have valid tokens
-    if (this.tokens) {
-      this.startTokenRefreshScheduler();
-    }
+    // Note: Server-side token management - no local storage needed
+    console.log('JobAdder OAuth2Manager initialized with server-side token management');
   }
 
   /**
@@ -80,31 +75,31 @@ class JobAdderOAuth2Manager {
    */
   async exchangeCodeForTokens(code: string): Promise<TokenResponse> {
     try {
-      // Get current user ID if authenticated, otherwise create anonymous session
       const userId = await this.getCurrentUserId();
       if (!userId) {
-        console.warn('No authenticated user found - proceeding with anonymous JobAdder authentication');
-        // For now, we'll use a placeholder user ID - this should be improved to handle proper user association
         throw new Error('Please sign in to the app first before connecting your JobAdder account');
       }
 
       const { supabase } = await import('@/integrations/supabase/client');
       
-      // Call server-side OAuth exchange endpoint
+      // Call server-side OAuth exchange endpoint with correct headers
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           endpoint: 'oauth-exchange',
           code: code,
-          userId: userId
+          userId: userId,
+          redirectUri: this.REDIRECT_URI
         }
       });
 
       if (error) {
-        throw new Error(error.message);
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to exchange OAuth code');
       }
 
-      if (!data.success) {
-        throw new Error('OAuth exchange failed');
+      if (!data || !data.success) {
+        console.error('OAuth exchange failed:', data);
+        throw new Error(data?.error || 'OAuth exchange failed');
       }
 
       console.log('JobAdder OAuth exchange successful');
@@ -182,55 +177,34 @@ class JobAdderOAuth2Manager {
   }
 
   /**
-   * Store tokens securely
+   * Clear authentication (removes server-side tokens)
    */
-  private async storeTokens(tokenResponse: TokenResponse): Promise<void> {
-    const expiresAt = Date.now() + (tokenResponse.expires_in * 1000);
-    
-    this.tokens = {
-      accessToken: tokenResponse.access_token,
-      refreshToken: tokenResponse.refresh_token,
-      expiresAt: expiresAt,
-      apiUrl: tokenResponse.api,
-      instance: tokenResponse.instance,
-      account: tokenResponse.account,
-      lastRefreshed: Date.now()
-    };
-
-    // Store in localStorage (in production, use secure storage)
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.tokens));
-    
-    console.log(`Tokens stored. Access token expires at: ${new Date(expiresAt).toISOString()}`);
-  }
-
-  /**
-   * Load tokens from storage
-   */
-  private loadTokensFromStorage(): void {
+  async clearTokens(): Promise<void> {
     try {
-      const storedTokens = localStorage.getItem(this.STORAGE_KEY);
-      if (storedTokens) {
-        this.tokens = JSON.parse(storedTokens);
-        console.log('Tokens loaded from storage');
+      const userId = await this.getCurrentUserId();
+      if (userId) {
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        // Delete tokens from server-side storage
+        await supabase
+          .from('jobadder_tokens')
+          .delete()
+          .eq('user_id', userId);
       }
+      
+      // Clear any legacy local storage
+      localStorage.removeItem(this.STORAGE_KEY);
+      this.tokens = null;
+      
+      if (this.refreshInterval) {
+        clearInterval(this.refreshInterval);
+        this.refreshInterval = null;
+      }
+      
+      console.log('JobAdder tokens cleared');
     } catch (error) {
-      console.error('Error loading tokens from storage:', error);
+      console.error('Error clearing tokens:', error);
     }
-  }
-
-  /**
-   * Clear all tokens
-   */
-  clearTokens(): void {
-    this.tokens = null;
-    localStorage.removeItem(this.STORAGE_KEY);
-    
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
-      this.refreshInterval = null;
-    }
-    
-    console.log('Tokens cleared');
   }
 
   /**

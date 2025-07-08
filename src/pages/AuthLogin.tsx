@@ -37,8 +37,8 @@ const AuthLogin = () => {
     }
   };
 
-  const handleLogout = () => {
-    oauth2Manager.clearTokens();
+  const handleLogout = async () => {
+    await oauth2Manager.clearTokens();
     setIsAuthenticated(false);
     setAccountInfo(null);
     navigate('/jobs');

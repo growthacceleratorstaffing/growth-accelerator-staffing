@@ -85,8 +85,8 @@ const JobAdderAuth = () => {
     }
   };
 
-  const disconnectAuth = () => {
-    oauth2Manager.clearTokens();
+  const disconnectAuth = async () => {
+    await oauth2Manager.clearTokens();
     setIsConnected(false);
     setAuthStatus('idle');
     setAuthMessage('');

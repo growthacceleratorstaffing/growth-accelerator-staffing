@@ -321,7 +321,7 @@ serve(async (req) => {
           );
         }
         
-        const { code, userId: exchangeUserId } = requestBody;
+        const { code, userId: exchangeUserId, redirectUri } = requestBody;
         if (!code || !exchangeUserId) {
           return new Response(
             JSON.stringify({ error: 'code and userId are required for oauth-exchange' }),
@@ -330,6 +330,7 @@ serve(async (req) => {
         }
         
         console.log('Exchanging OAuth code for tokens for user:', exchangeUserId);
+        console.log('Using redirect URI:', redirectUri);
         
         // Exchange authorization code for tokens
         const tokenResponse = await fetch(JOBADDER_TOKEN_URL, {
@@ -340,7 +341,7 @@ serve(async (req) => {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code: code,
-            redirect_uri: `${req.headers.get('origin') || 'http://localhost:8080'}/auth/callback`,
+            redirect_uri: redirectUri || `${req.headers.get('origin') || 'http://localhost:8080'}/auth/callback`,
             client_id: JOBADDER_CLIENT_ID!,
             client_secret: JOBADDER_CLIENT_SECRET!
           })
