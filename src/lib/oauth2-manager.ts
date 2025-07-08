@@ -65,7 +65,7 @@ class JobAdderOAuth2Manager {
   async exchangeCodeForTokens(code: string): Promise<TokenResponse> {
     try {
       // Get current user ID (this should be set by the app after authentication)
-      const userId = this.getCurrentUserId();
+      const userId = await this.getCurrentUserId();
       if (!userId) {
         throw new Error('User must be authenticated before connecting JobAdder account');
       }
