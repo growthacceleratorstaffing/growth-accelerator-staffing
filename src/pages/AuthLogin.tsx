@@ -28,9 +28,13 @@ const AuthLogin = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleLogin = () => {
-    const authUrl = oauth2Manager.getAuthorizationUrl();
-    window.location.href = authUrl;
+  const handleLogin = async () => {
+    try {
+      const authUrl = await oauth2Manager.getAuthorizationUrl();
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Failed to get authorization URL:', error);
+    }
   };
 
   const handleLogout = () => {

@@ -76,9 +76,13 @@ const JobAdderAuth = () => {
     }
   };
 
-  const initiateAuth = () => {
-    const authUrl = oauth2Manager.getAuthorizationUrl();
-    window.location.href = authUrl;
+  const initiateAuth = async () => {
+    try {
+      const authUrl = await oauth2Manager.getAuthorizationUrl();
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Failed to get authorization URL:', error);
+    }
   };
 
   const disconnectAuth = () => {

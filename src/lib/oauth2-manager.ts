@@ -46,17 +46,33 @@ class JobAdderOAuth2Manager {
   }
 
   /**
-   * Generate OAuth2 authorization URL
+   * Generate OAuth2 authorization URL using server-side client ID
    */
-  getAuthorizationUrl(): string {
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: this.CLIENT_ID,
-      scope: 'read write offline_access',
-      redirect_uri: this.REDIRECT_URI
-    });
-    
-    return `${this.AUTH_URL}?${params.toString()}`;
+  async getAuthorizationUrl(): Promise<string> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Get the client ID from the server-side function
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { endpoint: 'get-client-id' }
+      });
+      
+      if (error || !data?.clientId) {
+        throw new Error('Failed to get JobAdder client ID');
+      }
+      
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: data.clientId,
+        scope: 'read write offline_access',
+        redirect_uri: this.REDIRECT_URI
+      });
+      
+      return `${this.AUTH_URL}?${params.toString()}`;
+    } catch (error) {
+      console.error('Error generating authorization URL:', error);
+      throw error;
+    }
   }
 
   /**
@@ -235,10 +251,11 @@ class JobAdderOAuth2Manager {
   }
 }
 
-// Create singleton instance with JobAdder credentials
+// Create singleton instance with JobAdder credentials from environment
 const oauth2Manager = new JobAdderOAuth2Manager(
-  'ldyp7mapnxdevgowsnmr34o2j4',
-  'veuyhueqmifufjfo4hoqx6obcy5tucoxp45xpe7aixl5bu4ztdh4',
+  // These will be passed from the backend during the OAuth flow
+  'CLIENT_ID_PLACEHOLDER',
+  'CLIENT_SECRET_PLACEHOLDER', 
   `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080'}/auth/callback`
 );
 

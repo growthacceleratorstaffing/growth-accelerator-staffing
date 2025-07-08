@@ -247,7 +247,7 @@ serve(async (req) => {
     const userId = req.headers.get('x-user-id') || requestBody?.userId;
     
     // For some endpoints, we can proceed without authentication (using mock data)
-    const publicEndpoints = ['find-jobboards', 'jobboard-jobads', 'get-jobboard'];
+    const publicEndpoints = ['find-jobboards', 'jobboard-jobads', 'get-jobboard', 'get-client-id'];
     const canProceedWithoutAuth = publicEndpoints.includes(endpoint);
     
     if (!userId && !canProceedWithoutAuth) {
@@ -283,6 +283,14 @@ serve(async (req) => {
     const params: Record<string, string> = { limit, offset };
 
     switch (endpoint) {
+      case 'get-client-id':
+        // Return the client ID for OAuth URL generation
+        return new Response(JSON.stringify({ 
+          clientId: JOBADDER_CLIENT_ID 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+
       case 'health':
         // Simple health check endpoint with token validation
         try {
