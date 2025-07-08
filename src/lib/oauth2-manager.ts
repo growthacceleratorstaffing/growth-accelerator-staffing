@@ -50,9 +50,9 @@ class JobAdderOAuth2Manager {
       console.log('Requesting JobAdder client ID from server...');
       
       // Get the client ID from the server-side function
-      const { data, error } = await supabase.functions.invoke('test-client-id');
-      
-      console.log('Test client ID response:', { data, error });
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { endpoint: 'get-client-id' }
+      });
       
       console.log('JobAdder client ID response:', { data, error });
       
@@ -252,7 +252,7 @@ const oauth2Manager = new JobAdderOAuth2Manager(
   // These will be passed from the backend during the OAuth flow
   'CLIENT_ID_PLACEHOLDER',
   'CLIENT_SECRET_PLACEHOLDER', 
-  `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080'}/auth/callback`
+  'https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback'
 );
 
 export default oauth2Manager;
