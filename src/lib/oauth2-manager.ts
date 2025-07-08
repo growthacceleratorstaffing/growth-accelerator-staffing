@@ -50,9 +50,9 @@ class JobAdderOAuth2Manager {
       console.log('Requesting JobAdder client ID from server...');
       
       // Get the client ID from the server-side function
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
-        body: { endpoint: 'get-client-id' }
-      });
+      const { data, error } = await supabase.functions.invoke('test-client-id');
+      
+      console.log('Test client ID response:', { data, error });
       
       console.log('JobAdder client ID response:', { data, error });
       

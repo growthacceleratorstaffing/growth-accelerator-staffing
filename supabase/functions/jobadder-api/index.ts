@@ -721,7 +721,7 @@ serve(async (req) => {
         };
         
         console.log('Mapped job payload:', jobPayload);
-        data = await makeJobAdderPostRequest('/jobs', userAccessToken, jobPayload);
+        data = await makeJobAdderPostRequest('/jobs', accessToken, jobPayload);
         break;
       
       default:
