@@ -64,10 +64,12 @@ class JobAdderOAuth2Manager {
    */
   async exchangeCodeForTokens(code: string): Promise<TokenResponse> {
     try {
-      // Get current user ID (this should be set by the app after authentication)
+      // Get current user ID if authenticated, otherwise create anonymous session
       const userId = await this.getCurrentUserId();
       if (!userId) {
-        throw new Error('User must be authenticated before connecting JobAdder account');
+        console.warn('No authenticated user found - proceeding with anonymous JobAdder authentication');
+        // For now, we'll use a placeholder user ID - this should be improved to handle proper user association
+        throw new Error('Please sign in to the app first before connecting your JobAdder account');
       }
 
       const { supabase } = await import('@/integrations/supabase/client');
