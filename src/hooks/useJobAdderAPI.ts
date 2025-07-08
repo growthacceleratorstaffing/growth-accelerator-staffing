@@ -1,31 +1,44 @@
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 // Comprehensive hook for all JobAdder API operations
 export function useJobAdderAPI() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const callAPI = async (endpoint: string, params?: Record<string, any>, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET') => {
     setLoading(true);
     setError(null);
 
     try {
-      let body;
+      const headers: Record<string, string> = {};
+      
+      // Add user ID to headers for server-side token management
+      if (user?.id) {
+        headers['x-user-id'] = user.id;
+      }
+
       if (method === 'GET') {
         const queryParams = new URLSearchParams({ endpoint, ...params });
-        const { data, error: supabaseError } = await supabase.functions.invoke(`jobadder-api?${queryParams.toString()}`);
+        const { data, error: supabaseError } = await supabase.functions.invoke(
+          `jobadder-api?${queryParams.toString()}`,
+          { headers }
+        );
         
         if (supabaseError) {
           throw new Error(supabaseError.message);
         }
         return data;
       } else {
-        // For POST, PUT, DELETE
+        // For POST, PUT, DELETE - include userId in body
+        const requestBody = { endpoint, userId: user?.id, ...params };
         const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
-          body: { endpoint, ...params }
+          body: requestBody,
+          headers
         });
         
         if (supabaseError) {

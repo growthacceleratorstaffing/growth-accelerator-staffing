@@ -13,8 +13,8 @@ const AuthLogin = () => {
   const [accountInfo, setAccountInfo] = useState<any>(null);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const authenticated = oauth2Manager.isAuthenticated();
+    const checkAuth = async () => {
+      const authenticated = await oauth2Manager.isAuthenticated();
       const info = oauth2Manager.getAccountInfo();
       
       setIsAuthenticated(authenticated);

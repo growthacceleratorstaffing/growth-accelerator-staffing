@@ -117,7 +117,7 @@ const Jobs = () => {
   const checkAuthentication = async () => {
     try {
       setImportLoading(true);
-      const authenticated = oauth2Manager.isAuthenticated();
+      const authenticated = await oauth2Manager.isAuthenticated();
       setIsAuthenticated(authenticated);
       
       if (authenticated) {

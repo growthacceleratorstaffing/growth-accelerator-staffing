@@ -60,38 +60,47 @@ class JobAdderOAuth2Manager {
   }
 
   /**
-   * Exchange authorization code for tokens
+   * Exchange authorization code for tokens using server-side endpoint
    */
   async exchangeCodeForTokens(code: string): Promise<TokenResponse> {
     try {
-      const response = await fetch(this.TOKEN_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code: code,
-          redirect_uri: this.REDIRECT_URI,
-          client_id: this.CLIENT_ID,
-          client_secret: this.CLIENT_SECRET
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Token exchange failed: ${response.status} ${errorText}`);
+      // Get current user ID (this should be set by the app after authentication)
+      const userId = this.getCurrentUserId();
+      if (!userId) {
+        throw new Error('User must be authenticated before connecting JobAdder account');
       }
 
-      const tokenResponse: TokenResponse = await response.json();
+      const { supabase } = await import('@/integrations/supabase/client');
       
-      // Store tokens
-      await this.storeTokens(tokenResponse);
+      // Call server-side OAuth exchange endpoint
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: {
+          endpoint: 'oauth-exchange',
+          code: code,
+          userId: userId
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!data.success) {
+        throw new Error('OAuth exchange failed');
+      }
+
+      console.log('JobAdder OAuth exchange successful');
       
-      // Start automatic refresh
-      this.startTokenRefreshScheduler();
-      
-      return tokenResponse;
+      // Return a simplified response for compatibility
+      return {
+        access_token: 'stored-server-side',
+        expires_in: 3600,
+        token_type: 'Bearer',
+        refresh_token: 'stored-server-side',
+        api: 'https://api.jobadder.com/v2',
+        instance: data.instance || 'startup-accelerator',
+        account: data.account || 4809
+      };
     } catch (error) {
       console.error('Error exchanging code for tokens:', error);
       throw error;
@@ -99,99 +108,59 @@ class JobAdderOAuth2Manager {
   }
 
   /**
-   * Refresh access token using refresh token
+   * Get current user ID from Supabase session
    */
-  async refreshAccessToken(): Promise<TokenResponse> {
-    if (!this.tokens?.refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
+  private async getCurrentUserId(): Promise<string | null> {
     try {
-      console.log('Refreshing JobAdder access token...');
-      
-      const response = await fetch(this.TOKEN_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          client_id: this.CLIENT_ID,
-          client_secret: this.CLIENT_SECRET,
-          refresh_token: this.tokens.refreshToken
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        
-        // Handle invalid_grant or invalid_request errors (user deleted/revoked access)
-        if (response.status === 400 && (errorText.includes('invalid_grant') || errorText.includes('invalid_request'))) {
-          console.warn('Refresh token is invalid or user access has been revoked. Clearing tokens.');
-          this.clearTokens();
-          throw new Error('User access has been revoked. Please re-authenticate.');
-        }
-        
-        throw new Error(`Token refresh failed: ${response.status} ${errorText}`);
-      }
-
-      const tokenResponse: TokenResponse = await response.json();
-      
-      // Store new tokens
-      await this.storeTokens(tokenResponse);
-      
-      console.log('JobAdder access token refreshed successfully');
-      return tokenResponse;
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.user?.id || null;
     } catch (error) {
-      console.error('Error refreshing access token:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get current valid access token (refresh if needed)
-   */
-  async getValidAccessToken(): Promise<string | null> {
-    if (!this.tokens) {
+      console.error('Error getting user ID:', error);
       return null;
     }
-
-    // Check if token is expired or will expire in the next 5 minutes
-    const now = Date.now();
-    const fiveMinutes = 5 * 60 * 1000;
-    
-    if (now >= (this.tokens.expiresAt - fiveMinutes)) {
-      try {
-        await this.refreshAccessToken();
-      } catch (error) {
-        console.error('Failed to refresh token:', error);
-        return null;
-      }
-    }
-
-    return this.tokens.accessToken;
   }
 
   /**
-   * Check if we have valid authentication
+   * Check if we have valid authentication (now checks server-side storage)
    */
-  isAuthenticated(): boolean {
-    return this.tokens !== null && this.tokens.refreshToken !== null;
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const userId = await this.getCurrentUserId();
+      if (!userId) return false;
+
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data, error } = await supabase
+        .from('jobadder_tokens')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      return !error && !!data;
+    } catch (error) {
+      console.error('Error checking authentication status:', error);
+      return false;
+    }
   }
 
   /**
-   * Get current account information
+   * Get current account information (legacy compatibility)
    */
   getAccountInfo(): { instance: string; account: number; apiUrl: string } | null {
-    if (!this.tokens) {
-      return null;
-    }
-    
+    // Return default values for backward compatibility
     return {
-      instance: this.tokens.instance,
-      account: this.tokens.account,
-      apiUrl: this.tokens.apiUrl
+      instance: 'startup-accelerator',
+      account: 4809,
+      apiUrl: 'https://api.jobadder.com/v2'
     };
+  }
+
+  /**
+   * Legacy compatibility method - always returns null since tokens are server-side
+   */
+  async getValidAccessToken(): Promise<string | null> {
+    console.warn('getValidAccessToken is deprecated. Use server-side API calls instead.');
+    return null;
   }
 
   /**
@@ -247,55 +216,10 @@ class JobAdderOAuth2Manager {
   }
 
   /**
-   * Start automatic token refresh scheduler
+   * Legacy method - no longer needed with server-side token management
    */
   private startTokenRefreshScheduler(): void {
-    // Clear any existing interval
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
-    }
-
-    // Refresh token every 50 minutes (10 minutes before expiry)
-    const refreshIntervalMs = 50 * 60 * 1000; // 50 minutes
-    
-    this.refreshInterval = setInterval(async () => {
-      try {
-        if (this.tokens) {
-          await this.refreshAccessToken();
-        }
-      } catch (error) {
-        console.error('Scheduled token refresh failed:', error);
-        
-        // If refresh fails, try one more time in 5 minutes
-        setTimeout(async () => {
-          try {
-            if (this.tokens) {
-              await this.refreshAccessToken();
-            }
-          } catch (retryError) {
-            console.error('Retry token refresh also failed:', retryError);
-            // Clear tokens if refresh consistently fails
-            this.clearTokens();
-          }
-        }, 5 * 60 * 1000); // 5 minutes
-      }
-    }, refreshIntervalMs);
-
-    // Also schedule a refresh token usage to prevent it from expiring (every 10 days)
-    const refreshTokenKeepAliveMs = 10 * 24 * 60 * 60 * 1000; // 10 days
-    
-    setInterval(async () => {
-      try {
-        if (this.tokens) {
-          console.log('Performing refresh token keep-alive...');
-          await this.refreshAccessToken();
-        }
-      } catch (error) {
-        console.error('Refresh token keep-alive failed:', error);
-      }
-    }, refreshTokenKeepAliveMs);
-
-    console.log('Token refresh scheduler started');
+    console.log('Token refresh scheduler disabled - using server-side token management');
   }
 
   /**

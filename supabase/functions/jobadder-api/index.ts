@@ -1,12 +1,116 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// JobAdder API configuration
+// JobAdder OAuth2 and API Configuration
+const JOBADDER_CLIENT_ID = Deno.env.get('JOBADDER_CLIENT_ID');
+const JOBADDER_CLIENT_SECRET = Deno.env.get('JOBADDER_CLIENT_SECRET');
+const JOBADDER_TOKEN_URL = 'https://id.jobadder.com/connect/token';
 const JOBADDER_API_URL = 'https://api.jobadder.com/v2';
+
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+interface StoredTokens {
+  access_token: string;
+  refresh_token: string | null;
+  expires_at: string;
+  api_base_url: string;
+  user_id: string;
+}
+
+// Get valid access token for user (refresh if needed)
+async function getValidAccessToken(userId: string): Promise<string | null> {
+  try {
+    // Get current tokens from database
+    const { data: tokenData, error } = await supabase
+      .from('jobadder_tokens')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !tokenData) {
+      console.log('No tokens found for user:', userId);
+      return null;
+    }
+
+    // Check if token is expired or will expire in next 5 minutes
+    const expiresAt = new Date(tokenData.expires_at);
+    const now = new Date();
+    const fiveMinutes = 5 * 60 * 1000;
+
+    if (now.getTime() >= (expiresAt.getTime() - fiveMinutes)) {
+      console.log('Access token expired or expiring soon, refreshing...');
+      
+      if (!tokenData.refresh_token) {
+        console.error('No refresh token available');
+        return null;
+      }
+
+      // Refresh the token
+      const refreshResponse = await fetch(JOBADDER_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: JOBADDER_CLIENT_ID!,
+          client_secret: JOBADDER_CLIENT_SECRET!,
+          refresh_token: tokenData.refresh_token
+        })
+      });
+
+      if (!refreshResponse.ok) {
+        const errorText = await refreshResponse.text();
+        console.error('Token refresh failed:', refreshResponse.status, errorText);
+        
+        // If refresh token is invalid, delete the stored tokens
+        if (refreshResponse.status === 400) {
+          await supabase
+            .from('jobadder_tokens')
+            .delete()
+            .eq('user_id', userId);
+        }
+        return null;
+      }
+
+      const tokenResponse = await refreshResponse.json();
+      
+      // Update stored tokens
+      const newExpiresAt = new Date(Date.now() + (tokenResponse.expires_in * 1000));
+      
+      const { error: updateError } = await supabase
+        .from('jobadder_tokens')
+        .update({
+          access_token: tokenResponse.access_token,
+          refresh_token: tokenResponse.refresh_token || tokenData.refresh_token,
+          expires_at: newExpiresAt.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+
+      if (updateError) {
+        console.error('Failed to update tokens:', updateError);
+        return null;
+      }
+
+      console.log('Access token refreshed successfully');
+      return tokenResponse.access_token;
+    }
+
+    return tokenData.access_token;
+  } catch (error) {
+    console.error('Error getting valid access token:', error);
+    return null;
+  }
+}
 
 // Extract user access token from request headers or body
 function getUserAccessToken(req: Request, requestBody?: any): string | null {
@@ -139,25 +243,41 @@ serve(async (req) => {
       );
     }
 
-    // Extract user access token
-    const userAccessToken = getUserAccessToken(req, requestBody);
+    // Get user ID from request (assuming it's passed in headers or body)
+    const userId = req.headers.get('x-user-id') || requestBody?.userId;
     
     // For some endpoints, we can proceed without authentication (using mock data)
     const publicEndpoints = ['find-jobboards', 'jobboard-jobads', 'get-jobboard'];
     const canProceedWithoutAuth = publicEndpoints.includes(endpoint);
     
-    if (!userAccessToken && !canProceedWithoutAuth) {
-      console.error('No access token provided for authenticated endpoint');
+    if (!userId && !canProceedWithoutAuth) {
+      console.error('No user ID provided for authenticated endpoint');
       return new Response(
         JSON.stringify({ 
-          error: 'Access token required. Please authenticate with JobAdder first.',
-          authUrl: '/jobadder-auth' 
+          error: 'User authentication required. Please sign in first.',
+          authUrl: '/auth/login' 
         }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Processing JobAdder API request: ${endpoint} (${req.method}) ${userAccessToken ? 'with user token' : 'without token'}`);
+    // Get valid access token from database for authenticated endpoints
+    let accessToken = null;
+    if (userId && !canProceedWithoutAuth) {
+      accessToken = await getValidAccessToken(userId);
+      
+      if (!accessToken) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'JobAdder authentication required. Please connect your JobAdder account first.',
+            authUrl: '/auth/login' 
+          }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    console.log(`Processing JobAdder API request: ${endpoint} (${req.method}) ${accessToken ? 'with user token' : 'without token'}`);
 
     let data;
     const params: Record<string, string> = { limit, offset };
@@ -166,7 +286,7 @@ serve(async (req) => {
       case 'health':
         // Simple health check endpoint with token validation
         try {
-          await makeJobAdderRequest('/users/current', userAccessToken);
+          await makeJobAdderRequest('/users/current', accessToken);
           return new Response(JSON.stringify({ 
             status: 'ok', 
             timestamp: new Date().toISOString(),
@@ -185,20 +305,91 @@ serve(async (req) => {
           });
         }
 
+      case 'oauth-exchange':
+        if (req.method !== 'POST') {
+          return new Response(
+            JSON.stringify({ error: 'oauth-exchange requires POST method' }),
+            { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        const { code, userId: exchangeUserId } = requestBody;
+        if (!code || !exchangeUserId) {
+          return new Response(
+            JSON.stringify({ error: 'code and userId are required for oauth-exchange' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.log('Exchanging OAuth code for tokens for user:', exchangeUserId);
+        
+        // Exchange authorization code for tokens
+        const tokenResponse = await fetch(JOBADDER_TOKEN_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: `${req.headers.get('origin') || 'http://localhost:8080'}/auth/callback`,
+            client_id: JOBADDER_CLIENT_ID!,
+            client_secret: JOBADDER_CLIENT_SECRET!
+          })
+        });
+
+        if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text();
+          console.error('Token exchange failed:', tokenResponse.status, errorText);
+          throw new Error(`Token exchange failed: ${tokenResponse.status} ${errorText}`);
+        }
+
+        const tokens = await tokenResponse.json();
+        const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
+
+        // Store tokens in database
+        const { error: storeError } = await supabase
+          .from('jobadder_tokens')
+          .upsert({
+            user_id: exchangeUserId,
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            token_type: tokens.token_type || 'Bearer',
+            expires_at: expiresAt.toISOString(),
+            api_base_url: tokens.api || JOBADDER_API_URL,
+            scopes: tokens.scope ? tokens.scope.split(' ') : ['read', 'write', 'offline_access'],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (storeError) {
+          console.error('Failed to store tokens:', storeError);
+          throw new Error('Failed to store authentication tokens');
+        }
+
+        console.log('Tokens stored successfully for user:', exchangeUserId);
+        data = {
+          success: true,
+          message: 'JobAdder authentication successful',
+          account: tokens.account,
+          instance: tokens.instance
+        };
+        break;
+
       case 'current-user':
-        data = await makeJobAdderRequest('/users/current', userAccessToken);
+        data = await makeJobAdderRequest('/users/current', accessToken);
         break;
 
       case 'jobs':
-        data = await makeJobAdderRequest('/jobs', userAccessToken, params);
+        data = await makeJobAdderRequest('/jobs', accessToken, params);
         break;
       
       case 'candidates':
-        data = await makeJobAdderRequest('/candidates', userAccessToken, params);
+        data = await makeJobAdderRequest('/candidates', accessToken, params);
         break;
 
       case 'applications':
-        data = await makeJobAdderRequest('/jobapplications', userAccessToken, params);
+        data = await makeJobAdderRequest('/jobapplications', accessToken, params);
         break;
       
       case 'job-applications':
@@ -209,7 +400,7 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        data = await makeJobAdderRequest(`/jobs/${jobId}/applications`, userAccessToken, params);
+        data = await makeJobAdderRequest(`/jobs/${jobId}/applications`, accessToken, params);
         break;
 
       case 'job-applications-active':
@@ -220,24 +411,24 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        data = await makeJobAdderRequest(`/jobs/${activeJobId}/applications/active`, userAccessToken, params);
+        data = await makeJobAdderRequest(`/jobs/${activeJobId}/applications/active`, accessToken, params);
         break;
       
       case 'placements':
-        data = await makeJobAdderRequest('/placements', userAccessToken, params);
+        data = await makeJobAdderRequest('/placements', accessToken, params);
         break;
       
       case 'jobboards':
         const jobboardId = url.searchParams.get('jobboardId') || url.searchParams.get('boardId') || requestBody?.boardId || '8734';
         console.log(`Fetching jobboard ${jobboardId} job ads`);
-        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/ads`, userAccessToken, params);
+        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/ads`, accessToken, params);
         break;
 
       case 'find-jobboards':
         // Get list of all job boards - return mock data if no token
         console.log('Fetching available job boards');
-        if (userAccessToken) {
-          data = await makeJobAdderRequest('/jobboards', userAccessToken);
+        if (accessToken) {
+          data = await makeJobAdderRequest('/jobboards', accessToken);
         } else {
           // Return mock job board data
           data = {
@@ -255,14 +446,14 @@ serve(async (req) => {
       case 'get-jobboard':
         const boardIdToGet = url.searchParams.get('boardId') || requestBody?.boardId || '8734';
         console.log(`Fetching job board details for ${boardIdToGet}`);
-        data = await makeJobAdderRequest(`/jobboards/${boardIdToGet}`, userAccessToken);
+        data = await makeJobAdderRequest(`/jobboards/${boardIdToGet}`, accessToken);
         break;
 
       case 'jobboard-jobads':
         const boardIdForAds = url.searchParams.get('boardId') || requestBody?.boardId || '8734';
         console.log(`Fetching job ads from board ${boardIdForAds}`);
         
-        if (userAccessToken) {
+        if (accessToken) {
           // Build query parameters for job ads
           const jobAdParams: Record<string, string> = { ...params };
           
@@ -285,7 +476,7 @@ serve(async (req) => {
             fields.forEach(field => jobAdParams['Fields'] = field);
           }
           
-          data = await makeJobAdderRequest(`/jobboards/${boardIdForAds}/ads`, userAccessToken, jobAdParams);
+          data = await makeJobAdderRequest(`/jobboards/${boardIdForAds}/ads`, accessToken, jobAdParams);
         } else {
           // Return mock job ad data
           const mockJobs = Array.from({ length: 85 }, (_, i) => ({
@@ -319,7 +510,7 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        data = await makeJobAdderRequest(`/jobboards/${boardId}/ads/${adId}`, userAccessToken);
+        data = await makeJobAdderRequest(`/jobboards/${boardId}/ads/${adId}`, accessToken);
         break;
 
       case 'submit-job-application':
@@ -342,7 +533,7 @@ serve(async (req) => {
         }
         
         console.log(`Submitting job application to board ${submitBoardId}, ad ${submitAdId}`);
-        data = await makeJobAdderPostRequest(`/jobboards/${submitBoardId}/ads/${submitAdId}/applications`, userAccessToken, applicationData);
+        data = await makeJobAdderPostRequest(`/jobboards/${submitBoardId}/ads/${submitAdId}/applications`, accessToken, applicationData);
         break;
 
       case 'import-candidate':

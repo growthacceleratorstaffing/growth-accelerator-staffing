@@ -34,8 +34,8 @@ const JobAdderAuth = () => {
     }
   }, [searchParams]);
 
-  const checkExistingAuth = () => {
-    const isAuth = oauth2Manager.isAuthenticated();
+  const checkExistingAuth = async () => {
+    const isAuth = await oauth2Manager.isAuthenticated();
     setIsConnected(isAuth);
     
     if (isAuth) {
