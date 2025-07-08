@@ -252,7 +252,7 @@ const oauth2Manager = new JobAdderOAuth2Manager(
   // These will be passed from the backend during the OAuth flow
   'CLIENT_ID_PLACEHOLDER',
   'CLIENT_SECRET_PLACEHOLDER', 
-  'https://staffing.workable.com/auth/callback'
+  'https://staffing.growthaccelerator.nl/auth/callback'
 );
 
 export default oauth2Manager;
