@@ -98,6 +98,12 @@ class JobAdderOAuth2Manager {
 
       const { supabase } = await import('@/integrations/supabase/client');
       
+      console.log('Exchanging OAuth code with:', {
+        userId,
+        redirectUri: this.REDIRECT_URI,
+        codeLength: code.length
+      });
+      
       // Call server-side OAuth exchange endpoint with correct headers
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
@@ -105,6 +111,9 @@ class JobAdderOAuth2Manager {
           code: code,
           userId: userId,
           redirectUri: this.REDIRECT_URI
+        },
+        headers: {
+          'x-user-id': userId
         }
       });
 

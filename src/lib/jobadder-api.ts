@@ -76,12 +76,20 @@ class JobAdderAPI {
     search?: string;
   } = {}): Promise<{ items: JobAdderJob[]; totalCount: number }> {
     try {
-      // Get user access token from OAuth2 manager
+      // Check if user is authenticated with JobAdder
       const { default: oauth2Manager } = await import('./oauth2-manager');
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      const isAuth = await oauth2Manager.isAuthenticated();
       
-      if (!userAccessToken) {
-        throw new Error('No JobAdder access token available. Please authenticate first.');
+      if (!isAuth) {
+        throw new Error('No JobAdder authentication. Please connect your JobAdder account first.');
+      }
+
+      // Get current user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      
+      if (!userId) {
+        throw new Error('Please sign in to the app first.');
       }
 
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
@@ -91,7 +99,10 @@ class JobAdderAPI {
           limit: options.limit?.toString() || '50',
           offset: options.offset?.toString() || '0',
           search: options.search,
-          accessToken: userAccessToken
+          userId: userId
+        },
+        headers: {
+          'x-user-id': userId
         }
       });
 
@@ -114,19 +125,30 @@ class JobAdderAPI {
    */
   async importJob(job: JobAdderJob): Promise<any> {
     try {
-      // Get user access token from OAuth2 manager
+      // Check if user is authenticated with JobAdder
       const { default: oauth2Manager } = await import('./oauth2-manager');
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      const isAuth = await oauth2Manager.isAuthenticated();
       
-      if (!userAccessToken) {
-        throw new Error('No JobAdder access token available. Please authenticate first.');
+      if (!isAuth) {
+        throw new Error('No JobAdder authentication. Please connect your JobAdder account first.');
+      }
+
+      // Get current user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      
+      if (!userId) {
+        throw new Error('Please sign in to the app first.');
       }
 
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { 
           endpoint: 'import-job',
           job: job,
-          accessToken: userAccessToken
+          userId: userId
+        },
+        headers: {
+          'x-user-id': userId
         }
       });
 
@@ -152,12 +174,20 @@ class JobAdderAPI {
 
   async getJobBoardJobAd(adId: number): Promise<JobAdderJobDetail> {
     try {
-      // Get user access token from OAuth2 manager
+      // Check if user is authenticated with JobAdder
       const { default: oauth2Manager } = await import('./oauth2-manager');
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      const isAuth = await oauth2Manager.isAuthenticated();
       
-      if (!userAccessToken) {
-        throw new Error('No JobAdder access token available. Please authenticate first.');
+      if (!isAuth) {
+        throw new Error('No JobAdder authentication. Please connect your JobAdder account first.');
+      }
+
+      // Get current user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      
+      if (!userId) {
+        throw new Error('Please sign in to the app first.');
       }
 
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
@@ -165,7 +195,10 @@ class JobAdderAPI {
           endpoint: 'jobboard-ad',
           adId: adId.toString(),
           boardId: JOBBOARD_ID.toString(),
-          accessToken: userAccessToken
+          userId: userId
+        },
+        headers: {
+          'x-user-id': userId
         }
       });
 

@@ -29,12 +29,20 @@ export function useJobSync() {
       let candidatesSynced = 0;
 
       if (direction === 'from-jobadder' || direction === 'bidirectional') {
-        // Get user access token from OAuth2 manager
+        // Check if user is authenticated with JobAdder
         const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
-        const userAccessToken = await oauth2Manager.getValidAccessToken();
+        const isAuth = await oauth2Manager.isAuthenticated();
         
-        if (!userAccessToken) {
-          throw new Error('No JobAdder access token available. Please authenticate first.');
+        if (!isAuth) {
+          throw new Error('No JobAdder authentication. Please connect your JobAdder account first.');
+        }
+
+        // Get current user ID
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        
+        if (!userId) {
+          throw new Error('Please sign in to the app first.');
         }
 
         // Fetch latest jobs from JobAdder
@@ -43,7 +51,10 @@ export function useJobSync() {
             endpoint: 'jobs', 
             limit: 100, 
             offset: 0,
-            accessToken: userAccessToken
+            userId: userId
+          },
+          headers: {
+            'x-user-id': userId
           }
         });
 
@@ -61,7 +72,10 @@ export function useJobSync() {
             endpoint: 'candidates', 
             limit: 100, 
             offset: 0,
-            accessToken: userAccessToken
+            userId: userId
+          },
+          headers: {
+            'x-user-id': userId
           }
         });
 
@@ -109,14 +123,26 @@ export function useJobSync() {
 
   const checkSyncStatus = useCallback(async () => {
     try {
-      // Get user access token from OAuth2 manager
+      // Check if user is authenticated with JobAdder
       const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
+      const isAuth = await oauth2Manager.isAuthenticated();
       
-      if (!userAccessToken) {
+      if (!isAuth) {
         return {
           connected: false,
-          error: 'No JobAdder access token available. Please authenticate first.',
+          error: 'No JobAdder authentication. Please connect your JobAdder account first.',
+          apiHealth: 'unauthenticated'
+        };
+      }
+
+      // Get current user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      
+      if (!userId) {
+        return {
+          connected: false,
+          error: 'Please sign in to the app first.',
           apiHealth: 'unauthenticated'
         };
       }
@@ -125,7 +151,10 @@ export function useJobSync() {
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { 
           endpoint: 'current-user',
-          accessToken: userAccessToken
+          userId: userId
+        },
+        headers: {
+          'x-user-id': userId
         }
       });
 
