@@ -100,9 +100,8 @@ class JobAdderOAuth2Manager {
   }
 
   private generateDirectOAuthUrl(): string {
-    // Use environment/hardcoded client ID as fallback
-    // Based on secrets, the actual JobAdder client ID should be available
-    const fallbackClientId = '6dd0bd01-64eb-4b4b-b3a1-88c1db7fbe9b'; // Replace with actual client ID from secrets
+    // Use correct JobAdder client ID for fallback
+    const fallbackClientId = 'ldyp7mapnxdevgowsnmr34o2j4';
     console.warn('Using fallback OAuth URL generation with client ID:', fallbackClientId);
     return this.generateOAuthUrl(fallbackClientId);
   }
