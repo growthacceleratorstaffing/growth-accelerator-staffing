@@ -41,6 +41,7 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
     }
 
     // Check if token is expired or will expire in next 5 minutes
+    // JobAdder access tokens have a 60-minute lifetime
     const expiresAt = new Date(tokenData.expires_at);
     const now = new Date();
     const fiveMinutes = 5 * 60 * 1000;
@@ -143,6 +144,7 @@ async function makeJobAdderRequest(endpoint: string, accessToken: string, params
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     },
   });
 
@@ -150,19 +152,28 @@ async function makeJobAdderRequest(endpoint: string, accessToken: string, params
     const errorText = await response.text();
     console.error('JobAdder API request failed:', response.status, errorText);
     
+    // Parse error response if it's JSON
+    let errorDetails = errorText;
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorDetails = errorJson.message || errorJson.error || errorText;
+    } catch (e) {
+      // Keep original error text
+    }
+    
     // Handle specific auth errors
     if (response.status === 401) {
       throw new Error('JobAdder authentication failed. Please re-authenticate.');
     }
     if (response.status === 403) {
-      throw new Error('Access forbidden. Check your JobAdder permissions.');
+      throw new Error('Access forbidden. Check your JobAdder permissions and scopes.');
     }
     if (response.status === 429) {
       const retryAfter = response.headers.get('Retry-After');
       throw new Error(`Rate limited. Retry after ${retryAfter || '60'} seconds.`);
     }
     
-    throw new Error(`JobAdder API request failed: ${response.status} ${errorText}`);
+    throw new Error(`JobAdder API request failed: ${response.status} ${errorDetails}`);
   }
 
   return await response.json();
@@ -177,6 +188,7 @@ async function makeJobAdderPostRequest(endpoint: string, accessToken: string, bo
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     },
     body: JSON.stringify(body)
   });
@@ -185,15 +197,27 @@ async function makeJobAdderPostRequest(endpoint: string, accessToken: string, bo
     const errorText = await response.text();
     console.error('JobAdder API POST request failed:', response.status, errorText);
     
+    // Parse error response if it's JSON
+    let errorDetails = errorText;
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorDetails = errorJson.message || errorJson.error || errorText;
+    } catch (e) {
+      // Keep original error text
+    }
+    
     // Handle specific auth errors
     if (response.status === 401) {
       throw new Error('JobAdder authentication failed. Please re-authenticate.');
     }
     if (response.status === 403) {
-      throw new Error('Access forbidden. Check your JobAdder permissions.');
+      throw new Error('Access forbidden. Check your JobAdder permissions and scopes.');
+    }
+    if (response.status === 422) {
+      throw new Error(`Validation error: ${errorDetails}`);
     }
     
-    throw new Error(`JobAdder API POST request failed: ${response.status} ${errorText}`);
+    throw new Error(`JobAdder API POST request failed: ${response.status} ${errorDetails}`);
   }
 
   return await response.json();
@@ -356,23 +380,45 @@ serve(async (req) => {
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text();
           console.error('Token exchange failed:', tokenResponse.status, errorText);
-          throw new Error(`Token exchange failed: ${tokenResponse.status} ${errorText}`);
+          
+          // Parse error response if it's JSON
+          let errorDetails = errorText;
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorDetails = errorJson.error_description || errorJson.error || errorText;
+          } catch (e) {
+            // Keep original error text
+          }
+          
+          throw new Error(`OAuth token exchange failed: ${errorDetails}`);
         }
 
         const tokens = await tokenResponse.json();
-        const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
+        
+        // Validate required token fields based on JobAdder API documentation
+        if (!tokens.access_token) {
+          throw new Error('Invalid token response: missing access_token');
+        }
+        
+        // Calculate expiration time - JobAdder tokens expire in 60 minutes
+        const expiresIn = tokens.expires_in || 3600; // Default to 1 hour if not specified
+        const expiresAt = new Date(Date.now() + (expiresIn * 1000));
+        
+        // Extract additional fields from token response
+        const apiBaseUrl = tokens.api || JOBADDER_API_URL;
+        const scopes = tokens.scope ? tokens.scope.split(' ') : ['read', 'write', 'offline_access'];
 
-        // Store tokens in database
+        // Store tokens in database with correct structure
         const { error: storeError } = await supabase
           .from('jobadder_tokens')
           .upsert({
             user_id: exchangeUserId,
             access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
+            refresh_token: tokens.refresh_token || null,
             token_type: tokens.token_type || 'Bearer',
             expires_at: expiresAt.toISOString(),
-            api_base_url: tokens.api || JOBADDER_API_URL,
-            scopes: tokens.scope ? tokens.scope.split(' ') : ['read', 'write', 'offline_access'],
+            api_base_url: apiBaseUrl,
+            scopes: scopes,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
@@ -386,8 +432,10 @@ serve(async (req) => {
         data = {
           success: true,
           message: 'JobAdder authentication successful',
-          account: tokens.account,
-          instance: tokens.instance
+          account: tokens.account || null,
+          instance: tokens.instance || null,
+          api: apiBaseUrl,
+          scopes: scopes
         };
         break;
 
@@ -436,7 +484,7 @@ serve(async (req) => {
       case 'jobboards':
         const jobboardId = url.searchParams.get('jobboardId') || url.searchParams.get('boardId') || requestBody?.boardId || '8734';
         console.log(`Fetching jobboard ${jobboardId} job ads`);
-        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/ads`, accessToken, params);
+        data = await makeJobAdderRequest(`/jobboards/${jobboardId}/jobads`, accessToken, params);
         break;
 
       case 'find-jobboards':
@@ -491,7 +539,7 @@ serve(async (req) => {
             fields.forEach(field => jobAdParams['Fields'] = field);
           }
           
-          data = await makeJobAdderRequest(`/jobboards/${boardIdForAds}/ads`, accessToken, jobAdParams);
+          data = await makeJobAdderRequest(`/jobboards/${boardIdForAds}/jobads`, accessToken, jobAdParams);
         } else {
           // Return mock job ad data
           const mockJobs = Array.from({ length: 85 }, (_, i) => ({
@@ -525,7 +573,7 @@ serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        data = await makeJobAdderRequest(`/jobboards/${boardId}/ads/${adId}`, accessToken);
+        data = await makeJobAdderRequest(`/jobboards/${boardId}/jobads/${adId}`, accessToken);
         break;
 
       case 'submit-job-application':
@@ -548,7 +596,7 @@ serve(async (req) => {
         }
         
         console.log(`Submitting job application to board ${submitBoardId}, ad ${submitAdId}`);
-        data = await makeJobAdderPostRequest(`/jobboards/${submitBoardId}/ads/${submitAdId}/applications`, accessToken, applicationData);
+        data = await makeJobAdderPostRequest(`/jobboards/${submitBoardId}/jobads/${submitAdId}/applications`, accessToken, applicationData);
         break;
 
       case 'import-candidate':

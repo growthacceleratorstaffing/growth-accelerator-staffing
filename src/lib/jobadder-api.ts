@@ -94,7 +94,7 @@ class JobAdderAPI {
 
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { 
-          endpoint: 'jobboards',
+          endpoint: 'jobboard-jobads',
           boardId: JOBBOARD_ID.toString(),
           limit: options.limit?.toString() || '50',
           offset: options.offset?.toString() || '0',
