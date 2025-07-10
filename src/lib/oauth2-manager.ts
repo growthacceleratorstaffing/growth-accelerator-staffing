@@ -291,11 +291,17 @@ class JobAdderOAuth2Manager {
 }
 
 // Create singleton instance with JobAdder credentials from environment
+// Check if we're on the deployed domain or local development
+const isProduction = window.location.hostname === 'staffing.growthaccelerator.nl';
+const redirectUri = isProduction 
+  ? 'https://staffing.growthaccelerator.nl/auth/callback'
+  : window.location.origin + '/jobadder-auth';
+
 const oauth2Manager = new JobAdderOAuth2Manager(
   // These will be passed from the backend during the OAuth flow
   'CLIENT_ID_PLACEHOLDER',
   'CLIENT_SECRET_PLACEHOLDER', 
-  'https://staffing.growthaccelerator.nl/auth/callback'
+  redirectUri
 );
 
 export default oauth2Manager;

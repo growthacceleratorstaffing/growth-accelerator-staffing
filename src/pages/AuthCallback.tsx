@@ -44,7 +44,7 @@ const AuthCallback = () => {
 
         // Redirect to dashboard after successful authentication
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/job-board');
         }, 2000);
         
       } catch (error) {
@@ -94,11 +94,11 @@ const AuthCallback = () => {
             </Alert>
             
             <div className="flex gap-4">
-              <Button onClick={() => navigate('/auth/login')}>
+              <Button onClick={() => navigate('/jobadder-auth')}>
                 Try Again
               </Button>
-              <Button variant="outline" onClick={() => navigate('/jobs')}>
-                Continue with Demo
+              <Button variant="outline" onClick={() => navigate('/job-board')}>
+                Continue to Job Board
               </Button>
             </div>
           </CardContent>
@@ -127,8 +127,8 @@ const AuthCallback = () => {
               </AlertDescription>
             </Alert>
             
-            <Button onClick={() => navigate('/jobs')}>
-              Go to Jobs
+            <Button onClick={() => navigate('/job-board')}>
+              Go to Job Board
             </Button>
           </CardContent>
         </Card>
