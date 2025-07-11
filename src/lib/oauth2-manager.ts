@@ -31,15 +31,14 @@ class JobAdderOAuth2Manager {
   
   constructor() {
     // Force the correct redirect URI format for Lovable apps
-    const baseUrl = window.location.hostname.includes('lovable.app') 
-      ? window.location.origin 
-      : window.location.origin.replace('lovableproject.com', 'lovable.app').replace('--', '-preview--');
+    // Always use the lovable.app domain format for OAuth
+    const correctDomain = 'https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovable.app';
     
-    this.REDIRECT_URI = `${baseUrl}/auth/callback`;
+    this.REDIRECT_URI = `${correctDomain}/auth/callback`;
     console.log('JobAdder OAuth2Manager initialized');
     console.log('Window origin:', window.location.origin);
-    console.log('Using redirect URI:', this.REDIRECT_URI);
-    console.log('Current environment:', window.location.origin);
+    console.log('FORCED redirect URI:', this.REDIRECT_URI);
+    console.log('This should match JobAdder config exactly');
   }
 
   /**
