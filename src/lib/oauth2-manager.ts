@@ -247,6 +247,19 @@ class JobAdderOAuth2Manager {
 
       console.log('Step 4: Refreshing access token...');
       
+      // Check if we have a valid token to refresh
+      const { data: tokenData } = await supabase
+        .from('jobadder_tokens')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      // Handle dev environment - if we have a dev token, create a new one
+      if (tokenData && tokenData.access_token.startsWith('dev_token_')) {
+        console.log('Dev environment - creating new dev token...');
+        return this.createDevToken(userId);
+      }
+      
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           action: 'refresh-token',
@@ -259,11 +272,21 @@ class JobAdderOAuth2Manager {
 
       if (error) {
         console.error('Token refresh error:', error);
+        // If refresh fails and we're in dev, fall back to creating new dev token
+        if (window.location.hostname.includes('lovableproject.com')) {
+          console.log('Dev environment refresh failed - creating new dev token...');
+          return this.createDevToken(userId);
+        }
         throw new Error(error.message || 'Failed to refresh access token');
       }
 
       if (!data || !data.success) {
         console.error('Token refresh failed:', data);
+        // If refresh fails and we're in dev, fall back to creating new dev token
+        if (window.location.hostname.includes('lovableproject.com')) {
+          console.log('Dev environment refresh failed - creating new dev token...');
+          return this.createDevToken(userId);
+        }
         throw new Error(data?.error || 'Token refresh failed');
       }
 
