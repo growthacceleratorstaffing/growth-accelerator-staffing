@@ -351,7 +351,7 @@ serve(async (req) => {
 
           try {
             // Refresh the token
-            const refreshResponse = await fetch('https://api.jobadder.com/v2/oauth/token', {
+            const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -447,7 +447,7 @@ serve(async (req) => {
 
           try {
             // Refresh the token
-            const refreshResponse = await fetch('https://api.jobadder.com/v2/oauth/token', {
+            const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -544,7 +544,7 @@ serve(async (req) => {
             throw new Error('Token expired and no refresh token available')
           }
 
-          const refreshResponse = await fetch('https://api.jobadder.com/v2/oauth/token', {
+          const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -629,7 +629,7 @@ serve(async (req) => {
             throw new Error('Token expired and no refresh token available')
           }
 
-          const refreshResponse = await fetch('https://api.jobadder.com/v2/oauth/token', {
+          const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -717,7 +717,7 @@ serve(async (req) => {
             throw new Error('Token expired and no refresh token available')
           }
 
-          const refreshResponse = await fetch('https://api.jobadder.com/v2/oauth/token', {
+          const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -797,7 +797,7 @@ serve(async (req) => {
             throw new Error('Token expired and no refresh token available')
           }
 
-          const refreshResponse = await fetch('https://api.jobadder.com/v2/oauth/token', {
+          const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -879,7 +879,7 @@ serve(async (req) => {
             throw new Error('Token expired and no refresh token available')
           }
 
-          const refreshResponse = await fetch('https://api.jobadder.com/v2/oauth/token', {
+          const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
