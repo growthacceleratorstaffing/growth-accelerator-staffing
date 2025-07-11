@@ -5,19 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { LogIn, User, ExternalLink, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { LogIn, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import oauth2Manager from "@/lib/oauth2-manager";
-import { useLocation } from "react-router-dom";
 
 const Auth = () => {
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
@@ -25,105 +18,8 @@ const Auth = () => {
   const [signUpName, setSignUpName] = useState("");
   const [loading, setLoading] = useState(false);
   
-  // JobAdder auth states
-  const [jobAdderAuthStatus, setJobAdderAuthStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
-  const [jobAdderAuthMessage, setJobAdderAuthMessage] = useState<string>('');
-  const [isJobAdderConnected, setIsJobAdderConnected] = useState(false);
   
   const { signIn, signUp, isAuthenticated } = useAuth();
-
-  // Check if this is a JobAdder OAuth callback or direct visit
-  const isJobAdderRoute = location.pathname === '/jobadder-auth';
-
-  useEffect(() => {
-    checkJobAdderAuth();
-    
-    // Handle JobAdder OAuth callback
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-    
-    if (error) {
-      setJobAdderAuthStatus('error');
-      setJobAdderAuthMessage(`JobAdder authentication failed: ${error}`);
-      return;
-    }
-    
-    if (code) {
-      handleJobAdderCallback(code);
-    }
-  }, [searchParams]);
-
-  const checkJobAdderAuth = async () => {
-    const isAuth = await oauth2Manager.isAuthenticated();
-    setIsJobAdderConnected(isAuth);
-    
-    if (isAuth) {
-      const accountInfo = oauth2Manager.getAccountInfo();
-      setJobAdderAuthMessage(`Connected to ${accountInfo?.instance || 'JobAdder'}`);
-    }
-  };
-
-  const handleJobAdderCallback = async (code: string) => {
-    setJobAdderAuthStatus('processing');
-    setJobAdderAuthMessage('Processing JobAdder authorization...');
-    
-    try {
-      const tokenResponse = await oauth2Manager.exchangeCodeForTokens(code);
-      setJobAdderAuthStatus('success');
-      setJobAdderAuthMessage('Successfully connected to JobAdder!');
-      setIsJobAdderConnected(true);
-      
-      toast({
-        title: "JobAdder Connected",
-        description: "Your JobAdder account has been connected successfully.",
-      });
-      
-    } catch (error) {
-      setJobAdderAuthStatus('error');
-      setJobAdderAuthMessage(error instanceof Error ? error.message : 'JobAdder authentication failed');
-      
-      toast({
-        title: "JobAdder Connection Failed",
-        description: "Failed to connect to JobAdder. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const initiateJobAdderAuth = async () => {
-    try {
-      setJobAdderAuthStatus('processing');
-      console.log('Starting JobAdder authentication...');
-      
-      const authUrl = await oauth2Manager.getAuthorizationUrl();
-      console.log('Got authorization URL:', authUrl);
-      
-      // Redirect to JobAdder
-      window.location.href = authUrl;
-    } catch (error) {
-      console.error('Failed to get JobAdder authorization URL:', error);
-      setJobAdderAuthStatus('error');
-      setJobAdderAuthMessage(error instanceof Error ? error.message : 'Unknown error');
-      
-      toast({
-        title: "Error",
-        description: `Failed to initiate JobAdder authentication: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive"
-      });
-    }
-  };
-
-  const disconnectJobAdder = async () => {
-    await oauth2Manager.clearTokens();
-    setIsJobAdderConnected(false);
-    setJobAdderAuthStatus('idle');
-    setJobAdderAuthMessage('');
-    
-    toast({
-      title: "Disconnected",
-      description: "JobAdder account has been disconnected.",
-    });
-  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,16 +45,12 @@ const Auth = () => {
     }
   };
 
-  // Redirect authenticated users if they're not doing JobAdder OAuth
+  // Redirect authenticated users to dashboard
   useEffect(() => {
-    const hasOAuthCode = searchParams.get('code');
-    const hasOAuthError = searchParams.get('error');
-    const isJobAdderOAuth = searchParams.get('tab') === 'jobadder' || hasOAuthCode || hasOAuthError;
-    
-    if (isAuthenticated && !isJobAdderRoute && !isJobAdderOAuth) {
+    if (isAuthenticated) {
       navigate('/dashboard');
     }
-  }, [isAuthenticated, isJobAdderRoute, searchParams, navigate]);
+  }, [isAuthenticated, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center">
@@ -174,10 +66,9 @@ const Auth = () => {
           </div>
 
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              <TabsTrigger value="jobadder">JobAdder</TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin">
@@ -272,95 +163,6 @@ const Auth = () => {
                       {loading ? "Creating account..." : "Create Account"}
                     </Button>
                   </form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="jobadder">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ExternalLink className="h-5 w-5" />
-                    JobAdder Integration
-                  </CardTitle>
-                  <CardDescription>
-                    Connect your JobAdder account to access job postings and applications
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Connection Status */}
-                  <div className="flex items-center justify-between p-3 rounded-lg border">
-                    <span className="font-medium">JobAdder Status</span>
-                    <Badge variant={isJobAdderConnected ? "default" : "secondary"} className="flex items-center gap-1">
-                      {isJobAdderConnected ? (
-                        <>
-                          <CheckCircle className="h-3 w-3" />
-                          Connected
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-3 w-3" />
-                          Not Connected
-                        </>
-                      )}
-                    </Badge>
-                  </div>
-
-                  {/* Status Message */}
-                  {jobAdderAuthMessage && (
-                    <Alert variant={jobAdderAuthStatus === 'error' ? 'destructive' : 'default'}>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{jobAdderAuthMessage}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    {!isJobAdderConnected ? (
-                      <Button 
-                        onClick={initiateJobAdderAuth} 
-                        className="w-full"
-                        disabled={jobAdderAuthStatus === 'processing'}
-                      >
-                        {jobAdderAuthStatus === 'processing' ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Connect to JobAdder
-                          </>
-                        )}
-                      </Button>
-                    ) : (
-                      <>
-                        <Button 
-                          onClick={() => navigate('/job-board')} 
-                          className="w-full"
-                        >
-                          Go to Job Board
-                        </Button>
-                        
-                        <Button 
-                          onClick={disconnectJobAdder} 
-                          variant="destructive" 
-                          size="sm" 
-                          className="w-full"
-                        >
-                          Disconnect JobAdder
-                        </Button>
-                      </>
-                    )}
-                  </div>
-
-                  {/* OAuth Info */}
-                  <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t">
-                    <p><strong>Scopes:</strong> read, write, offline_access</p>
-                    <p><strong>Permissions:</strong> Access to jobs, candidates, and job boards</p>
-                    <p><strong>Security:</strong> OAuth2 with refresh tokens</p>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

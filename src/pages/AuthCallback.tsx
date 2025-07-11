@@ -27,6 +27,22 @@ const AuthCallback = () => {
         hasError: !!errorParam
       });
 
+      // If no OAuth parameters, redirect directly to JobAdder OAuth
+      if (!code && !errorParam) {
+        console.log('No OAuth parameters found, initiating JobAdder OAuth...');
+        try {
+          const authUrl = await oauth2Manager.getAuthorizationUrl();
+          console.log('Redirecting to JobAdder OAuth:', authUrl);
+          window.location.href = authUrl;
+          return;
+        } catch (error) {
+          console.error('Failed to get JobAdder OAuth URL:', error);
+          setError('Failed to initiate JobAdder authentication');
+          setLoading(false);
+          return;
+        }
+      }
+
       // Handle production callback - forward to preview environment with OAuth parameters
       if (window.location.hostname === 'staffing.growthaccelerator.nl') {
         if (code) {
@@ -43,13 +59,13 @@ const AuthCallback = () => {
       }
 
       if (errorParam) {
-        setError(`Authentication failed: ${errorDescription || errorParam}`);
+        setError(`JobAdder authentication failed: ${errorDescription || errorParam}`);
         setLoading(false);
         return;
       }
 
       if (!code) {
-        setError('No authorization code received');
+        setError('No authorization code received from JobAdder');
         setLoading(false);
         return;
       }
@@ -60,8 +76,8 @@ const AuthCallback = () => {
         
         setSuccess(true);
         toast({
-          title: "Authentication Successful!",
-          description: `Connected to JobAdder (Account: ${tokenResponse.account})`,
+          title: "JobAdder Connected!",
+          description: `Successfully connected to JobAdder (Account: ${tokenResponse.account})`,
         });
 
         // Redirect to job board after successful authentication
@@ -71,7 +87,7 @@ const AuthCallback = () => {
         
       } catch (error) {
         console.error('Token exchange failed:', error);
-        setError(error instanceof Error ? error.message : 'Authentication failed');
+        setError(error instanceof Error ? error.message : 'JobAdder authentication failed');
       } finally {
         setLoading(false);
       }
@@ -122,7 +138,7 @@ const AuthCallback = () => {
                   window.location.href = authUrl;
                 } catch (error) {
                   console.error('Failed to get OAuth URL:', error);
-                  navigate('/auth?tab=jobadder');
+                  navigate('/auth');
                 }
               }}>
                 Try Again
