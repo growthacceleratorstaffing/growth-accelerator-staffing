@@ -47,25 +47,27 @@ const AuthCallback = () => {
         return;
       }
 
-      // Handle production callback - forward to preview environment with OAuth parameters
+      // Handle production callback - forward to development environment with OAuth parameters
       if (window.location.hostname === 'staffing.growthaccelerator.nl') {
         if (code) {
           const redirectParams = new URLSearchParams();
           redirectParams.set('code', code);
           if (state) redirectParams.set('state', state);
           
-          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback?${redirectParams}`;
-          console.log('Production callback - redirecting to preview:', previewUrl);
-          window.location.href = previewUrl;
+          // Use the current Lovable project URL dynamically
+          const currentProjectUrl = `https://${window.location.hostname.replace('staffing.growthaccelerator.nl', '4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com')}/auth/callback?${redirectParams}`;
+          console.log('Production callback - redirecting to development:', currentProjectUrl);
+          window.location.href = currentProjectUrl;
           return;
         } else if (errorParam) {
           const redirectParams = new URLSearchParams();
           redirectParams.set('error', errorParam);
           if (errorDescription) redirectParams.set('error_description', errorDescription);
           
-          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback?${redirectParams}`;
-          console.log('Production callback error - redirecting to preview:', previewUrl);
-          window.location.href = previewUrl;
+          // Use the current Lovable project URL dynamically  
+          const currentProjectUrl = `https://${window.location.hostname.replace('staffing.growthaccelerator.nl', '4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com')}/auth/callback?${redirectParams}`;
+          console.log('Production callback error - redirecting to development:', currentProjectUrl);
+          window.location.href = currentProjectUrl;
           return;
         }
       }
