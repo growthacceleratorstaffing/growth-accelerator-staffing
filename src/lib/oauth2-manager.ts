@@ -100,7 +100,7 @@ class JobAdderOAuth2Manager {
   }
 
   private generateDirectOAuthUrl(): string {
-    // Use correct JobAdder client ID for fallback
+    // Use correct JobAdder client ID for fallback - from your screenshot
     const fallbackClientId = 'ldyp7mapnxdevgowsnmr34o2j4';
     console.warn('Using fallback OAuth URL generation with client ID:', fallbackClientId);
     return this.generateOAuthUrl(fallbackClientId);
@@ -291,11 +291,20 @@ class JobAdderOAuth2Manager {
 }
 
 // Create singleton instance with JobAdder credentials from environment
-// Check if we're on the deployed domain or local development
+// Check redirect URI based on environment and match your JobAdder app settings
+const currentOrigin = window.location.origin;
+const isLovablePreview = currentOrigin.includes('lovableproject.com');
 const isProduction = window.location.hostname === 'staffing.growthaccelerator.nl';
-const redirectUri = isProduction 
-  ? 'https://staffing.growthaccelerator.nl/auth/callback'
-  : window.location.origin + '/jobadder-auth';
+
+let redirectUri: string;
+if (isProduction) {
+  redirectUri = 'https://staffing.growthaccelerator.nl/auth/callback';
+} else if (isLovablePreview) {
+  redirectUri = currentOrigin + '/jobadder-auth';
+} else {
+  // Local development
+  redirectUri = 'http://localhost:8080/auth/callback';
+}
 
 const oauth2Manager = new JobAdderOAuth2Manager(
   // These will be passed from the backend during the OAuth flow
