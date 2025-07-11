@@ -16,6 +16,7 @@ const AuthCallback = () => {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    console.log('AuthCallback component mounted, current URL:', window.location.href);
     const handleCallback = async () => {
       const code = searchParams.get('code');
       const state = searchParams.get('state');

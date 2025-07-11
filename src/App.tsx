@@ -26,6 +26,7 @@ import ApplyJob from "./pages/ApplyJob";
 import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
+import Integrations from "./pages/Integrations";
 
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
@@ -377,6 +378,13 @@ const App = () => (
             <AppLayout>
               <JobBoard />
             </AppLayout>
+          } />
+          <Route path="/integrations" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Integrations />
+              </AppLayout>
+            </ProtectedRoute>
           } />
           
           {/* Catch-all route */}
