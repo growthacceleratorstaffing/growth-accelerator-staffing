@@ -316,12 +316,17 @@ serve(async (req) => {
         console.log('Get client ID endpoint called');
         console.log('JOBADDER_CLIENT_ID available:', !!JOBADDER_CLIENT_ID);
         console.log('JOBADDER_CLIENT_SECRET available:', !!JOBADDER_CLIENT_SECRET);
+        console.log('JOBADDER_CLIENT_ID value (first 10 chars):', JOBADDER_CLIENT_ID?.substring(0, 10));
         
         if (!JOBADDER_CLIENT_ID) {
           console.error('JOBADDER_CLIENT_ID not found in environment variables');
           return new Response(JSON.stringify({ 
-            error: 'JobAdder client credentials not configured',
-            success: false 
+            error: 'JobAdder client credentials not configured - JOBADDER_CLIENT_ID secret is missing',
+            success: false,
+            debug: {
+              hasClientId: !!JOBADDER_CLIENT_ID,
+              hasClientSecret: !!JOBADDER_CLIENT_SECRET
+            }
           }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -329,6 +334,7 @@ serve(async (req) => {
         }
         
         // Return the client ID for OAuth URL generation
+        console.log('Returning client ID successfully');
         return new Response(JSON.stringify({ 
           clientId: JOBADDER_CLIENT_ID,
           success: true 

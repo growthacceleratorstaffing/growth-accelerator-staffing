@@ -103,6 +103,8 @@ class JobAdderOAuth2Manager {
     // Use correct JobAdder client ID for fallback - from your screenshot
     const fallbackClientId = 'ldyp7mapnxdevgowsnmr34o2j4';
     console.warn('Using fallback OAuth URL generation with client ID:', fallbackClientId);
+    console.warn('Edge functions appear to be unavailable, using hardcoded client ID');
+    console.warn('Please ensure JOBADDER_CLIENT_ID is properly configured in Supabase secrets');
     return this.generateOAuthUrl(fallbackClientId);
   }
 
