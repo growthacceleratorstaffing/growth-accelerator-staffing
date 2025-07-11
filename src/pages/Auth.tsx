@@ -59,9 +59,16 @@ export default function Auth() {
 
   const handleJobAdderConnect = async () => {
     try {
+      console.log('=== Starting JobAdder OAuth flow ===');
+      console.log('Current window.location.origin:', window.location.origin);
+      console.log('Current full URL:', window.location.href);
+      
       const authUrl = await oauth2Manager.getAuthorizationUrl();
+      console.log('Generated OAuth URL:', authUrl);
+      
       // Store the current page to redirect back after OAuth
       sessionStorage.setItem('jobadder_redirect', '/auth');
+      console.log('About to redirect to:', authUrl);
       window.location.href = authUrl;
     } catch (error) {
       console.error('Failed to initiate OAuth:', error);
