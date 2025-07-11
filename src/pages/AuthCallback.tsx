@@ -24,9 +24,11 @@ const AuthCallback = () => {
 
       console.log('AuthCallback - Processing OAuth callback:', {
         hostname: window.location.hostname,
+        fullUrl: window.location.href,
         hasCode: !!code,
         hasState: !!state,
-        hasError: !!errorParam
+        hasError: !!errorParam,
+        searchParams: Array.from(searchParams.entries())
       });
 
       // Step 2: Handle authorization errors

@@ -43,6 +43,9 @@ class JobAdderOAuth2Manager {
    */
   async getAuthorizationUrl(): Promise<string> {
     try {
+      console.log('Current window.location.origin:', window.location.origin);
+      console.log('Using redirect URI:', this.REDIRECT_URI);
+      
       const params = new URLSearchParams({
         response_type: 'code',
         client_id: this.CLIENT_ID,
@@ -53,6 +56,12 @@ class JobAdderOAuth2Manager {
       
       const authUrl = `${this.AUTH_URL}?${params.toString()}`;
       console.log('Step 1: Generated JobAdder authorization URL:', authUrl);
+      console.log('Authorization URL breakdown:', {
+        baseUrl: this.AUTH_URL,
+        clientId: this.CLIENT_ID,
+        redirectUri: this.REDIRECT_URI,
+        scope: 'read write offline_access'
+      });
       
       // Store state for verification in step 2
       localStorage.setItem('jobadder_oauth_state', params.get('state') || '');
