@@ -260,8 +260,11 @@ export function useJobAdderAPI() {
   const getCandidateStatuses = () => callAPI('candidate-statuses');
 
   // ===== JOB BOARDS =====
+  const getJobBoards = () => 
+    callAPI('jobboards');
+
   const getJobBoardAds = (jobboardId?: string, params?: { limit?: number; offset?: number; search?: string }) => 
-    callAPI('jobboards', { jobboardId, ...params });
+    callAPI('jobboard-jobads', { jobboardId, ...params });
 
   return {
     loading,
@@ -363,6 +366,7 @@ export function useJobAdderAPI() {
     getCandidateStatuses,
     
     // Job boards
+    getJobBoards,
     getJobBoardAds,
   };
 }

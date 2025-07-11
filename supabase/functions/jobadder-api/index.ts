@@ -23,10 +23,11 @@ serve(async (req) => {
   }
 
   try {
-    const { action, ...params } = await req.json()
+    const { action, endpoint, ...params } = await req.json()
+    const requestAction = endpoint || action
     const userId = req.headers.get('x-user-id')
 
-    console.log('JobAdder API request:', { action, userId: userId ? 'present' : 'missing' })
+    console.log('JobAdder API request:', { action: requestAction, userId: userId ? 'present' : 'missing' })
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -41,7 +42,7 @@ serve(async (req) => {
       throw new Error('JobAdder credentials not configured')
     }
 
-    switch (action) {
+    switch (requestAction) {
       case 'get-client-id': {
         // Return the client ID for frontend OAuth URL generation
         if (!clientId) {
@@ -519,7 +520,7 @@ serve(async (req) => {
       }
 
       default:
-        throw new Error(`Unknown action: ${action}`)
+        throw new Error(`Unknown action: ${requestAction}`)
     }
 
   } catch (error) {

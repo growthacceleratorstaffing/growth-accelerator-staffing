@@ -158,7 +158,7 @@ export const JobBoardManager = () => {
 
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { 
-          action: 'jobboards'
+          endpoint: 'jobboards'
         },
         headers: {
           'x-user-id': user.id
@@ -203,7 +203,7 @@ export const JobBoardManager = () => {
       }
 
       const requestBody: any = { 
-        action: 'jobboard-jobads',
+        endpoint: 'jobboard-jobads',
         jobboardId: boardId.toString(),
         limit: 100,
         offset: 0
