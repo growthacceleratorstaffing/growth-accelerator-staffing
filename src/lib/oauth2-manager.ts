@@ -293,16 +293,17 @@ class JobAdderOAuth2Manager {
 // Create singleton instance with JobAdder credentials from environment
 // Check redirect URI based on environment and match your JobAdder app settings
 const currentOrigin = window.location.origin;
-const isLovablePreview = currentOrigin.includes('lovableproject.com');
-const isProduction = window.location.hostname === 'staffing.growthaccelerator.nl';
+const currentHostname = window.location.hostname;
 
 let redirectUri: string;
-if (isProduction) {
+if (currentHostname === 'staffing.growthaccelerator.nl') {
+  // Production domain
   redirectUri = 'https://staffing.growthaccelerator.nl/auth/callback';
-} else if (isLovablePreview) {
-  redirectUri = currentOrigin + '/jobadder-auth';
+} else if (currentOrigin.includes('4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com')) {
+  // Lovable preview - use the specific URI from your JobAdder config
+  redirectUri = 'https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/jobadder-auth';
 } else {
-  // Local development
+  // Local development fallback
   redirectUri = 'http://localhost:8080/auth/callback';
 }
 
