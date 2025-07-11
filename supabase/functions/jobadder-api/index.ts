@@ -33,9 +33,14 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
       .from('jobadder_tokens')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error || !tokenData) {
+    if (error) {
+      console.log('Error fetching tokens for user:', userId, error);
+      return null;
+    }
+
+    if (!tokenData) {
       console.log('No tokens found for user:', userId);
       return null;
     }
@@ -310,6 +315,18 @@ serve(async (req) => {
       case 'get-client-id':
         console.log('Get client ID endpoint called');
         console.log('JOBADDER_CLIENT_ID available:', !!JOBADDER_CLIENT_ID);
+        console.log('JOBADDER_CLIENT_SECRET available:', !!JOBADDER_CLIENT_SECRET);
+        
+        if (!JOBADDER_CLIENT_ID) {
+          console.error('JOBADDER_CLIENT_ID not found in environment variables');
+          return new Response(JSON.stringify({ 
+            error: 'JobAdder client credentials not configured',
+            success: false 
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         
         // Return the client ID for OAuth URL generation
         return new Response(JSON.stringify({ 
@@ -321,6 +338,17 @@ serve(async (req) => {
 
       case 'health':
         // Simple health check endpoint with token validation
+        if (!accessToken) {
+          return new Response(JSON.stringify({ 
+            status: 'ok', 
+            timestamp: new Date().toISOString(),
+            authenticated: false,
+            message: 'No access token provided'
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
         try {
           await makeJobAdderRequest('/users/current', accessToken);
           return new Response(JSON.stringify({ 
