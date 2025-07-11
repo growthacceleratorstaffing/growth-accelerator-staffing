@@ -116,7 +116,15 @@ const AuthCallback = () => {
             </Alert>
             
             <div className="flex gap-4">
-              <Button onClick={() => navigate('/auth?tab=jobadder')}>
+              <Button onClick={async () => {
+                try {
+                  const authUrl = await oauth2Manager.getAuthorizationUrl();
+                  window.location.href = authUrl;
+                } catch (error) {
+                  console.error('Failed to get OAuth URL:', error);
+                  navigate('/auth?tab=jobadder');
+                }
+              }}>
                 Try Again
               </Button>
               <Button variant="outline" onClick={() => navigate('/job-board')}>
