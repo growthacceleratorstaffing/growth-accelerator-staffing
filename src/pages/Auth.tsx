@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import oauth2Manager from "@/lib/oauth2-manager";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +30,7 @@ export default function Auth() {
   const [signUpName, setSignUpName] = useState("");
   const [isJobAdderConnected, setIsJobAdderConnected] = useState(false);
   const [jobAdderLoading, setJobAdderLoading] = useState(true);
+  const [jobAdderUser, setJobAdderUser] = useState(null);
   const { signIn, signUp, isAuthenticated, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -47,11 +49,40 @@ export default function Auth() {
   const checkJobAdderConnection = async () => {
     setJobAdderLoading(true);
     try {
+      // First check if user is authenticated with JobAdder OAuth tokens
       const authenticated = await oauth2Manager.isAuthenticated();
-      setIsJobAdderConnected(authenticated);
+      
+      if (authenticated) {
+        setIsJobAdderConnected(true);
+        setJobAdderUser(null); // Clear any JobAdder user data since OAuth is active
+      } else if (profile?.email) {
+        // Check if user's email matches a JobAdder user account
+        const { data: jobAdderUserData, error } = await supabase
+          .from('jobadder_users')
+          .select('*')
+          .eq('jobadder_email', profile.email)
+          .maybeSingle();
+
+        if (!error && jobAdderUserData) {
+          console.log('Found matching JobAdder user:', jobAdderUserData);
+          setJobAdderUser(jobAdderUserData);
+          setIsJobAdderConnected(false); // Still needs OAuth connection
+          toast({
+            title: "JobAdder Account Found",
+            description: `We found your JobAdder account (${jobAdderUserData.jobadder_email}). Click Connect to complete the OAuth integration.`,
+          });
+        } else {
+          setIsJobAdderConnected(false);
+          setJobAdderUser(null);
+        }
+      } else {
+        setIsJobAdderConnected(false);
+        setJobAdderUser(null);
+      }
     } catch (error) {
       console.error('Failed to check JobAdder connection:', error);
       setIsJobAdderConnected(false);
+      setJobAdderUser(null);
     } finally {
       setJobAdderLoading(false);
     }
@@ -298,16 +329,36 @@ export default function Auth() {
                       </AlertDescription>
                     </Alert>
                   ) : (
-                    <div className="space-y-4">
-                      <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
-                        <AlertCircle className="h-4 w-4 text-orange-600" />
-                        <AlertDescription className="text-orange-800 dark:text-orange-200">
-                          <strong>JobAdder Not Connected</strong>
-                          <p className="text-sm mt-1">
-                            Connect your JobAdder account to access job boards, listings, and submit applications.
-                          </p>
-                        </AlertDescription>
-                      </Alert>
+                  <div className="space-y-4">
+                    <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
+                      <AlertCircle className="h-4 w-4 text-orange-600" />
+                      <AlertDescription className="text-orange-800 dark:text-orange-200">
+                        <strong>JobAdder Not Connected</strong>
+                        <p className="text-sm mt-1">
+                          {jobAdderUser 
+                            ? `We found your JobAdder account (${jobAdderUser.jobadder_email}). Complete OAuth integration to access job boards.`
+                            : "Connect your JobAdder account to access job boards, listings, and submit applications."
+                          }
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                    
+                    {jobAdderUser && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle className="h-4 w-4 text-blue-600" />
+                          <span className="font-medium text-blue-800 dark:text-blue-200">JobAdder Account Recognized</span>
+                        </div>
+                        <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                          <p><strong>Email:</strong> {jobAdderUser.jobadder_email}</p>
+                          <p><strong>Role:</strong> {jobAdderUser.jobadder_role}</p>
+                          <p><strong>User ID:</strong> {jobAdderUser.jobadder_user_id}</p>
+                          {jobAdderUser.assigned_jobs?.length > 0 && (
+                            <p><strong>Assigned Jobs:</strong> {jobAdderUser.assigned_jobs.length} jobs</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                       
                       <div className="space-y-3">
                         <Button 
@@ -315,7 +366,7 @@ export default function Auth() {
                           className="w-full"
                         >
                           <ExternalLink className="h-4 w-4 mr-2" />
-                          Connect JobAdder Account
+                          {jobAdderUser ? 'Complete OAuth Integration' : 'Connect JobAdder Account'}
                         </Button>
                         
                         <div className="text-sm text-muted-foreground">
