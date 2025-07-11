@@ -484,7 +484,6 @@ serve(async (req) => {
           }
         }
 
-
         // Build query parameters for real API call
         const queryParams = new URLSearchParams({
           limit: limit.toString(),
@@ -507,6 +506,176 @@ serve(async (req) => {
 
         if (!response.ok) {
           throw new Error(`Failed to fetch job ads: ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        return new Response(JSON.stringify({
+          success: true,
+          data
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'jobs': {
+        // Get regular JobAdder jobs
+        const { limit = 20, offset = 0, search } = params
+        
+        if (!userId) {
+          throw new Error('User ID required for job access')
+        }
+
+        const { data: tokenData, error: fetchError } = await supabase
+          .from('jobadder_tokens')
+          .select('access_token, expires_at, api_base_url, refresh_token')
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (fetchError || !tokenData) {
+          throw new Error('No authentication tokens found - please reconnect to JobAdder')
+        }
+
+        // Check if token is expired and refresh if needed
+        let currentToken = tokenData.access_token
+        if (new Date(tokenData.expires_at) <= new Date()) {
+          // Token refresh logic (same as above)
+          if (!tokenData.refresh_token) {
+            throw new Error('Token expired and no refresh token available')
+          }
+
+          const refreshResponse = await fetch('https://api.jobadder.com/v2/oauth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              grant_type: 'refresh_token',
+              refresh_token: tokenData.refresh_token,
+              client_id: Deno.env.get('JOBADDER_CLIENT_ID') || '',
+              client_secret: Deno.env.get('JOBADDER_CLIENT_SECRET') || ''
+            })
+          })
+
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json()
+            await supabase
+              .from('jobadder_tokens')
+              .update({
+                access_token: refreshData.access_token,
+                expires_at: new Date(Date.now() + (refreshData.expires_in * 1000)).toISOString(),
+                refresh_token: refreshData.refresh_token || tokenData.refresh_token
+              })
+              .eq('user_id', userId)
+            currentToken = refreshData.access_token
+          }
+        }
+
+        // Build query parameters
+        const queryParams = new URLSearchParams({
+          limit: limit.toString(),
+          offset: offset.toString()
+        })
+        
+        if (search) {
+          queryParams.append('search', search)
+        }
+
+        // Make API call to get jobs
+        const apiUrl = `${tokenData.api_base_url}/jobs?${queryParams}`
+        
+        const response = await fetch(apiUrl, {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`,
+            'Content-Type': 'application/json',
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch jobs: ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        return new Response(JSON.stringify({
+          success: true,
+          data
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'candidates': {
+        // Get candidates
+        const { limit = 20, offset = 0, search } = params
+        
+        if (!userId) {
+          throw new Error('User ID required for candidate access')
+        }
+
+        const { data: tokenData, error: fetchError } = await supabase
+          .from('jobadder_tokens')
+          .select('access_token, expires_at, api_base_url, refresh_token')
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (fetchError || !tokenData) {
+          throw new Error('No authentication tokens found - please reconnect to JobAdder')
+        }
+
+        // Check if token is expired and refresh if needed
+        let currentToken = tokenData.access_token
+        if (new Date(tokenData.expires_at) <= new Date()) {
+          // Token refresh logic (same as above)
+          if (!tokenData.refresh_token) {
+            throw new Error('Token expired and no refresh token available')
+          }
+
+          const refreshResponse = await fetch('https://api.jobadder.com/v2/oauth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              grant_type: 'refresh_token',
+              refresh_token: tokenData.refresh_token,
+              client_id: Deno.env.get('JOBADDER_CLIENT_ID') || '',
+              client_secret: Deno.env.get('JOBADDER_CLIENT_SECRET') || ''
+            })
+          })
+
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json()
+            await supabase
+              .from('jobadder_tokens')
+              .update({
+                access_token: refreshData.access_token,
+                expires_at: new Date(Date.now() + (refreshData.expires_in * 1000)).toISOString(),
+                refresh_token: refreshData.refresh_token || tokenData.refresh_token
+              })
+              .eq('user_id', userId)
+            currentToken = refreshData.access_token
+          }
+        }
+
+        // Build query parameters
+        const queryParams = new URLSearchParams({
+          limit: limit.toString(),
+          offset: offset.toString()
+        })
+        
+        if (search) {
+          queryParams.append('search', search)
+        }
+
+        // Make API call to get candidates
+        const apiUrl = `${tokenData.api_base_url}/candidates?${queryParams}`
+        
+        const response = await fetch(apiUrl, {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`,
+            'Content-Type': 'application/json',
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch candidates: ${response.status}`)
         }
 
         const data = await response.json()
