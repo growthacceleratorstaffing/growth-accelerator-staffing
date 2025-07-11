@@ -31,9 +31,10 @@ class JobAdderOAuth2Manager {
   private readonly REDIRECT_URI: string;
   
   constructor() {
-    // Use production redirect URI as configured with JobAdder
-    this.REDIRECT_URI = 'https://staffing.growthaccelerator.nl/auth/callback';
+    // Use current domain for redirect URI to support both production and preview
+    this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     console.log('JobAdder OAuth2Manager initialized with client ID:', this.CLIENT_ID);
+    console.log('Using redirect URI:', this.REDIRECT_URI);
   }
 
   /**
