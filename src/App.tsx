@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from "@/components/ui/sidebar";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,12 +29,6 @@ import JobBoard from "./pages/JobBoard";
 
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
-import AuthLogin from "./pages/AuthLogin";
-
-// JobAdder Auth component without AuthLoader to prevent redirect
-const JobAdderAuth = () => {
-  return <Auth />;
-};
 
 const queryClient = new QueryClient();
 
@@ -282,12 +276,12 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Public routes without sidebar */}
+          {/* Authentication routes */}
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/auth/login" element={<AuthLogin />} />
-          {/* Redirect old JobAdder auth route to main auth page without AuthLoader */}
-          <Route path="/jobadder-auth" element={<JobAdderAuth />} />
+          {/* Redirect old routes to main auth page */}
+          <Route path="/jobadder-auth" element={<Navigate to="/auth" replace />} />
+          <Route path="/auth/login" element={<Navigate to="/auth" replace />} />
           
           {/* Routes with sidebar */}
           <Route path="/" element={
