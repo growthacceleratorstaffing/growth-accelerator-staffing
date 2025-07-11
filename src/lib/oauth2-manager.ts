@@ -25,7 +25,7 @@ interface StoredTokens {
 }
 
 class JobAdderOAuth2Manager {
-  private readonly CLIENT_ID = 'ldyp7mapnxdevgowsnmr34o2j4'; // Provided by Mike from JobAdder
+  private readonly CLIENT_ID = 'ldyp7mapnxdevgowsnmr34o2j4'; // Provided by Mike from JobAdder - this should match the JOBADDER_CLIENT_ID secret
   private readonly AUTH_URL = 'https://id.jobadder.com/connect/authorize';
   private readonly TOKEN_URL = 'https://id.jobadder.com/connect/token';
   private readonly REDIRECT_URI: string;
@@ -33,8 +33,10 @@ class JobAdderOAuth2Manager {
   constructor() {
     // Use current domain for redirect URI to support both production and preview
     this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
-    console.log('JobAdder OAuth2Manager initialized with client ID:', this.CLIENT_ID);
+    console.log('JobAdder OAuth2Manager initialized');
+    console.log('Client ID:', this.CLIENT_ID);
     console.log('Using redirect URI:', this.REDIRECT_URI);
+    console.log('Current environment:', window.location.origin);
   }
 
   /**
@@ -48,6 +50,7 @@ class JobAdderOAuth2Manager {
       console.log('Current window.location.href:', window.location.href);
       console.log('Using redirect URI:', this.REDIRECT_URI);
       console.log('Expected dev redirect URI should be:', `${window.location.origin}/auth/callback`);
+      console.log('Client ID being used:', this.CLIENT_ID);
       
       const params = new URLSearchParams({
         response_type: 'code',
@@ -61,7 +64,12 @@ class JobAdderOAuth2Manager {
       console.log('=== FINAL OAUTH URL ===');
       console.log('Generated URL:', authUrl);
       console.log('Redirect URI in URL:', this.REDIRECT_URI);
-      console.log('=== Should match what JobAdder expects ===');
+      console.log('Client ID in URL:', this.CLIENT_ID);
+      console.log('=== Check: Do these values match JobAdder config? ===');
+      console.log('Expected in JobAdder:');
+      console.log('- Client ID should be:', this.CLIENT_ID);  
+      console.log('- Redirect URI should be whitelisted:', this.REDIRECT_URI);
+      console.log('=== END DEBUG INFO ===');
       
       // Store state for verification in step 2
       localStorage.setItem('jobadder_oauth_state', params.get('state') || '');
