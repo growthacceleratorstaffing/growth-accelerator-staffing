@@ -39,20 +39,11 @@ const AuthCallback = () => {
         return;
       }
 
-      // If no OAuth parameters, initiate Step 1: Redirect to authorization URL
+      // If no OAuth parameters, redirect to auth page instead of initiating OAuth
       if (!code && !errorParam) {
-        console.log('No OAuth parameters found, initiating Step 1: JobAdder OAuth...');
-        try {
-          const authUrl = await oauth2Manager.getAuthorizationUrl();
-          console.log('Redirecting to JobAdder authorization:', authUrl);
-          window.location.href = authUrl;
-          return;
-        } catch (error) {
-          console.error('Failed to get JobAdder OAuth URL:', error);
-          setError('Failed to initiate JobAdder authentication');
-          setLoading(false);
-          return;
-        }
+        console.log('No OAuth parameters found, redirecting to auth page...');
+        navigate('/auth?tab=integrations');
+        return;
       }
 
       // Handle production callback - forward to preview environment with OAuth parameters
