@@ -291,21 +291,12 @@ class JobAdderOAuth2Manager {
 }
 
 // Create singleton instance with JobAdder credentials from environment
-// Check redirect URI based on environment and match your JobAdder app settings
-const currentOrigin = window.location.origin;
-const currentHostname = window.location.hostname;
+// IMPORTANT: According to JobAdder OAuth2 documentation, the redirect_uri must be EXACTLY 
+// the same in both Step 1 (authorization) and Step 3 (token exchange).
+// Since JobAdder app is configured with production redirect URI, we must use it consistently.
+const PRODUCTION_REDIRECT_URI = 'https://staffing.growthaccelerator.nl/auth/callback';
 
-let redirectUri: string;
-if (currentHostname === 'staffing.growthaccelerator.nl') {
-  // Production domain
-  redirectUri = 'https://staffing.growthaccelerator.nl/auth/callback';
-} else if (currentOrigin.includes('4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com')) {
-  // Lovable preview - use production redirect URI for JobAdder compatibility
-  redirectUri = 'https://staffing.growthaccelerator.nl/auth/callback';
-} else {
-  // Local development fallback
-  redirectUri = 'https://staffing.growthaccelerator.nl/auth/callback';
-}
+let redirectUri: string = PRODUCTION_REDIRECT_URI;
 
 const oauth2Manager = new JobAdderOAuth2Manager(
   // These will be passed from the backend during the OAuth flow

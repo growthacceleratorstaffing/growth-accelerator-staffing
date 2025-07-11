@@ -21,6 +21,27 @@ const AuthCallback = () => {
       const errorParam = searchParams.get('error');
       const errorDescription = searchParams.get('error_description');
 
+      console.log('AuthCallback - Processing OAuth callback:', {
+        hostname: window.location.hostname,
+        hasCode: !!code,
+        hasError: !!errorParam
+      });
+
+      // Handle production callback - forward to preview environment with OAuth parameters
+      if (window.location.hostname === 'staffing.growthaccelerator.nl') {
+        if (code) {
+          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback?code=${code}`;
+          console.log('Production callback - redirecting to preview:', previewUrl);
+          window.location.href = previewUrl;
+          return;
+        } else if (errorParam) {
+          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback?error=${errorParam}&error_description=${errorDescription || ''}`;
+          console.log('Production callback error - redirecting to preview:', previewUrl);
+          window.location.href = previewUrl;
+          return;
+        }
+      }
+
       if (errorParam) {
         setError(`Authentication failed: ${errorDescription || errorParam}`);
         setLoading(false);
@@ -34,14 +55,7 @@ const AuthCallback = () => {
       }
 
       try {
-        // If we're on the production callback URL, redirect back to the preview environment with the code
-        if (window.location.hostname === 'staffing.growthaccelerator.nl') {
-          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth?code=${code}`;
-          console.log('Redirecting from production callback to preview:', previewUrl);
-          window.location.href = previewUrl;
-          return;
-        }
-
+        console.log('Exchanging OAuth code for tokens...');
         const tokenResponse = await oauth2Manager.exchangeCodeForTokens(code);
         
         setSuccess(true);
