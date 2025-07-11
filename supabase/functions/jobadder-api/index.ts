@@ -334,31 +334,6 @@ serve(async (req) => {
           throw new Error('No authentication tokens found')
         }
 
-        // Check if this is a dev token
-        if (tokenData.access_token.startsWith('dev_token_')) {
-          console.log('Dev token detected - returning mock job boards data')
-          return new Response(JSON.stringify({
-            success: true,
-            data: [
-              {
-                jobBoardId: 1,
-                name: "Development Job Board",
-                description: "Mock job board for development environment",
-                isActive: true,
-                jobCount: 5
-              },
-              {
-                jobBoardId: 2,
-                name: "Career Portal",
-                description: "Mock career portal for testing",
-                isActive: true,
-                jobCount: 3
-              }
-            ]
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
 
         // Make API call to get job boards for real tokens
         const apiUrl = `${tokenData.api_base_url}/jobboards`
@@ -402,42 +377,6 @@ serve(async (req) => {
           throw new Error('No authentication tokens found')
         }
 
-        // Check if this is a dev token
-        if (tokenData.access_token.startsWith('dev_token_')) {
-          console.log('Dev token detected - returning mock job ads data')
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              items: [
-                {
-                  jobAdId: 1,
-                  title: "Senior React Developer",
-                  description: "Mock job ad for development testing",
-                  location: "Remote",
-                  company: "Dev Company Inc",
-                  salary: "€60,000 - €80,000",
-                  postedDate: new Date().toISOString(),
-                  jobBoardId: jobboardId
-                },
-                {
-                  jobAdId: 2,
-                  title: "Full Stack Engineer",
-                  description: "Another mock job for testing purposes",
-                  location: "Amsterdam",
-                  company: "Test Corp",
-                  salary: "€70,000 - €90,000",
-                  postedDate: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-                  jobBoardId: jobboardId
-                }
-              ],
-              total: 2,
-              limit: parseInt(limit),
-              offset: parseInt(offset)
-            }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
 
         // Build query parameters for real API call
         const queryParams = new URLSearchParams({
