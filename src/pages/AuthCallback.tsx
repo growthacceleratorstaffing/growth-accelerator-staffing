@@ -76,7 +76,10 @@ const AuthCallback = () => {
       // Step 3: Exchange authorization code for tokens
       try {
         console.log('Step 3: Exchanging OAuth code for tokens...');
-        const tokenResponse = await oauth2Manager.exchangeCodeForTokens(code!);
+        
+        // Use placeholder for dev environment if no real code
+        const tokenCode = code || 'dev_environment_placeholder';
+        const tokenResponse = await oauth2Manager.exchangeCodeForTokens(tokenCode);
         
         setSuccess(true);
         toast({
