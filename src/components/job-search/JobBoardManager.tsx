@@ -418,7 +418,7 @@ export const JobBoardManager = () => {
 
   return (
     <div className="space-y-6">
-      {/* JobAdder Connection Status */}
+      {/* JobAdder Connection Status - Information Only */}
       {!isJobAdderConnected && (
         <Card className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
           <CardHeader>
@@ -427,20 +427,10 @@ export const JobBoardManager = () => {
               JobAdder Not Connected
             </CardTitle>
             <CardDescription>
-              Connect your JobAdder account to access job listings and applications
+              JobAdder integration is required to access job boards and submit applications. 
+              Please complete the authentication setup in your account settings.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Set up your JobAdder integration to access job boards and submit applications.
-              </p>
-              <Button onClick={() => window.location.href = '/jobadder-auth'} variant="default">
-                <Settings className="h-4 w-4 mr-2" />
-                Setup Integration
-              </Button>
-            </div>
-          </CardContent>
         </Card>
       )}
       {/* Job Board Selection */}
