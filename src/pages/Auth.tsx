@@ -92,13 +92,22 @@ const Auth = () => {
 
   const initiateJobAdderAuth = async () => {
     try {
+      setJobAdderAuthStatus('processing');
+      console.log('Starting JobAdder authentication...');
+      
       const authUrl = await oauth2Manager.getAuthorizationUrl();
+      console.log('Got authorization URL:', authUrl);
+      
+      // Redirect to JobAdder
       window.location.href = authUrl;
     } catch (error) {
       console.error('Failed to get JobAdder authorization URL:', error);
+      setJobAdderAuthStatus('error');
+      setJobAdderAuthMessage(error instanceof Error ? error.message : 'Unknown error');
+      
       toast({
         title: "Error",
-        description: "Failed to initiate JobAdder authentication",
+        description: `Failed to initiate JobAdder authentication: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }
