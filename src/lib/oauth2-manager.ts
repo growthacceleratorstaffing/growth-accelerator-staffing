@@ -69,43 +69,36 @@ class JobAdderOAuth2Manager {
    */
   async getAuthorizationUrl(): Promise<string> {
     try {
-      console.log('=== JobAdder OAuth URL Generation ===');
-      console.log('Current window.location.origin:', window.location.origin);
-      console.log('Current window.location.href:', window.location.href);
-      console.log('Using redirect URI:', this.REDIRECT_URI);
-      console.log('Expected dev redirect URI should be:', `${window.location.origin}/auth/callback`);
+      console.log('=== JobAdder OAuth Step 1: Authorization URL ===');
       
       // Get client ID from server
       const clientId = await this.getClientId();
-      console.log('Client ID being used:', clientId);
-      
       const state = this.generateState();
       
-      // Manual URL construction to ensure proper encoding and avoid URLSearchParams issues
-      const authUrl = `${this.AUTH_URL}?response_type=code&client_id=${encodeURIComponent(clientId)}&scope=${encodeURIComponent('read write offline_access')}&redirect_uri=${encodeURIComponent(this.REDIRECT_URI)}&state=${encodeURIComponent(state)}`;
+      // Build authorization URL exactly as per JobAdder API docs
+      // https://id.jobadder.com/connect/authorize
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: clientId,
+        scope: 'read write offline_access',
+        redirect_uri: this.REDIRECT_URI,
+        state: state
+      });
       
-      console.log('=== MANUAL URL CONSTRUCTION ===');
-      console.log('Auth URL Base:', this.AUTH_URL);
-      console.log('Client ID (encoded):', encodeURIComponent(clientId));
-      console.log('Scope (encoded):', encodeURIComponent('read write offline_access'));
-      console.log('Redirect URI (encoded):', encodeURIComponent(this.REDIRECT_URI));
-      console.log('State (encoded):', encodeURIComponent(state));
-      console.log('=== FINAL OAUTH URL ===');
-      console.log('Generated URL:', authUrl);
-      console.log('Redirect URI in URL:', this.REDIRECT_URI);
-      console.log('Client ID in URL:', clientId);
-      console.log('=== Check: Do these values match JobAdder config? ===');
-      console.log('Expected in JobAdder:');
-      console.log('- Client ID should be:', clientId);  
-      console.log('- Redirect URI should be whitelisted:', this.REDIRECT_URI);
-      console.log('=== END DEBUG INFO ===');
+      const authUrl = `${this.AUTH_URL}?${params.toString()}`;
       
-      // Store state for verification in step 2
+      console.log('Authorization URL:', authUrl);
+      console.log('Client ID:', clientId);
+      console.log('Redirect URI:', this.REDIRECT_URI);
+      console.log('Scopes:', 'read write offline_access');
+      console.log('State:', state);
+      
+      // Store state for step 2 validation
       localStorage.setItem('jobadder_oauth_state', state);
       
       return authUrl;
     } catch (error) {
-      console.error('Error generating authorization URL:', error);
+      console.error('Step 1 failed:', error);
       throw new Error(`Failed to generate JobAdder authorization URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
