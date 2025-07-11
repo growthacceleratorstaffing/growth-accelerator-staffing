@@ -144,13 +144,14 @@ class JobAdderOAuth2Manager {
       }
 
       console.log('Step 3: Exchanging authorization code for tokens...');
+      console.log('Using redirect URI for token exchange:', this.REDIRECT_URI);
       
       // Call server-side function to handle token exchange securely
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           action: 'exchange-token',
           code: code,
-          redirect_uri: this.REDIRECT_URI,
+          redirect_uri: this.REDIRECT_URI, // Use SAME redirect URI as Step 1
           grant_type: 'authorization_code'
         },
         headers: {
