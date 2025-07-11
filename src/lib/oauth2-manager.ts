@@ -300,11 +300,11 @@ if (currentHostname === 'staffing.growthaccelerator.nl') {
   // Production domain
   redirectUri = 'https://staffing.growthaccelerator.nl/auth/callback';
 } else if (currentOrigin.includes('4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com')) {
-  // Lovable preview - use the specific URI from your JobAdder config
-  redirectUri = 'https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/jobadder-auth';
+  // Lovable preview - redirect to auth page to handle JobAdder OAuth
+  redirectUri = 'https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth';
 } else {
   // Local development fallback
-  redirectUri = 'http://localhost:8080/auth/callback';
+  redirectUri = 'http://localhost:8080/auth';
 }
 
 const oauth2Manager = new JobAdderOAuth2Manager(
