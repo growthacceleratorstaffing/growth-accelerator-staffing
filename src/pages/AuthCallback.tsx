@@ -18,21 +18,31 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       const code = searchParams.get('code');
+      const state = searchParams.get('state');
       const errorParam = searchParams.get('error');
       const errorDescription = searchParams.get('error_description');
 
       console.log('AuthCallback - Processing OAuth callback:', {
         hostname: window.location.hostname,
         hasCode: !!code,
+        hasState: !!state,
         hasError: !!errorParam
       });
 
-      // If no OAuth parameters, redirect directly to JobAdder OAuth
+      // Step 2: Handle authorization errors
+      if (errorParam) {
+        console.error('OAuth authorization error:', errorParam, errorDescription);
+        setError(`JobAdder authorization failed: ${errorDescription || errorParam}`);
+        setLoading(false);
+        return;
+      }
+
+      // If no OAuth parameters, initiate Step 1: Redirect to authorization URL
       if (!code && !errorParam) {
-        console.log('No OAuth parameters found, initiating JobAdder OAuth...');
+        console.log('No OAuth parameters found, initiating Step 1: JobAdder OAuth...');
         try {
           const authUrl = await oauth2Manager.getAuthorizationUrl();
-          console.log('Redirecting to JobAdder OAuth:', authUrl);
+          console.log('Redirecting to JobAdder authorization:', authUrl);
           window.location.href = authUrl;
           return;
         } catch (error) {
@@ -46,38 +56,42 @@ const AuthCallback = () => {
       // Handle production callback - forward to preview environment with OAuth parameters
       if (window.location.hostname === 'staffing.growthaccelerator.nl') {
         if (code) {
-          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback?code=${code}`;
+          const redirectParams = new URLSearchParams();
+          redirectParams.set('code', code);
+          if (state) redirectParams.set('state', state);
+          
+          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback?${redirectParams}`;
           console.log('Production callback - redirecting to preview:', previewUrl);
           window.location.href = previewUrl;
           return;
         } else if (errorParam) {
-          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback?error=${errorParam}&error_description=${errorDescription || ''}`;
+          const redirectParams = new URLSearchParams();
+          redirectParams.set('error', errorParam);
+          if (errorDescription) redirectParams.set('error_description', errorDescription);
+          
+          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback?${redirectParams}`;
           console.log('Production callback error - redirecting to preview:', previewUrl);
           window.location.href = previewUrl;
           return;
         }
       }
 
-      if (errorParam) {
-        setError(`JobAdder authentication failed: ${errorDescription || errorParam}`);
+      // Step 2: Validate the authorization code and state
+      if (!oauth2Manager.validateCallback(code!, state || undefined)) {
+        setError('Invalid authorization callback - security validation failed');
         setLoading(false);
         return;
       }
 
-      if (!code) {
-        setError('No authorization code received from JobAdder');
-        setLoading(false);
-        return;
-      }
-
+      // Step 3: Exchange authorization code for tokens
       try {
-        console.log('Exchanging OAuth code for tokens...');
-        const tokenResponse = await oauth2Manager.exchangeCodeForTokens(code);
+        console.log('Step 3: Exchanging OAuth code for tokens...');
+        const tokenResponse = await oauth2Manager.exchangeCodeForTokens(code!);
         
         setSuccess(true);
         toast({
           title: "JobAdder Connected!",
-          description: `Successfully connected to JobAdder (Account: ${tokenResponse.account})`,
+          description: `Successfully connected to JobAdder API`,
         });
 
         // Redirect to job board after successful authentication

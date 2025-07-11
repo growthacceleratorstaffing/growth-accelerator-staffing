@@ -1,12 +1,16 @@
 // JobAdder OAuth2 Authentication Manager
+// Implements OAuth 2.0 authorization code flow according to JobAdder API documentation
+
+import { supabase } from '@/integrations/supabase/client';
+
 interface TokenResponse {
   access_token: string;
   expires_in: number;
   token_type: string;
   refresh_token: string;
   api: string;
-  instance: string;
-  account: number;
+  instance?: string;
+  account?: number;
   id_token?: string;
 }
 
@@ -21,59 +25,71 @@ interface StoredTokens {
 }
 
 class JobAdderOAuth2Manager {
-  private readonly CLIENT_ID: string;
-  private readonly CLIENT_SECRET: string;
-  private readonly REDIRECT_URI: string;
+  private readonly CLIENT_ID = 'ldyp7mapnxdevgowsnmr34o2j4'; // Provided by Mike from JobAdder
   private readonly AUTH_URL = 'https://id.jobadder.com/connect/authorize';
   private readonly TOKEN_URL = 'https://id.jobadder.com/connect/token';
-  private readonly STORAGE_KEY = 'jobadder_tokens';
+  private readonly REDIRECT_URI: string;
   
-  private refreshInterval: NodeJS.Timeout | null = null;
-  private tokens: StoredTokens | null = null;
-
-  constructor(clientId: string, clientSecret: string, redirectUri: string) {
-    this.CLIENT_ID = clientId;
-    this.CLIENT_SECRET = clientSecret;
-    this.REDIRECT_URI = redirectUri;
-    
-    // Note: Server-side token management - no local storage needed
-    console.log('JobAdder OAuth2Manager initialized with server-side token management');
+  constructor() {
+    // Use production redirect URI as configured with JobAdder
+    this.REDIRECT_URI = 'https://staffing.growthaccelerator.nl/auth/callback';
+    console.log('JobAdder OAuth2Manager initialized with client ID:', this.CLIENT_ID);
   }
 
   /**
-   * Generate OAuth2 authorization URL using JobAdder provided client ID
+   * Step 1: Generate OAuth2 authorization URL
+   * https://id.jobadder.com/connect/authorize
    */
   async getAuthorizationUrl(): Promise<string> {
     try {
-      // Use the client ID provided by Mike from JobAdder
-      const clientId = 'ldyp7mapnxdevgowsnmr34o2j4';
-      console.log('Using JobAdder provided client ID:', clientId);
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: this.CLIENT_ID,
+        scope: 'read write offline_access', // Required scopes for API access
+        redirect_uri: this.REDIRECT_URI,
+        state: this.generateState() // Optional security parameter
+      });
       
-      return this.generateOAuthUrl(clientId);
+      const authUrl = `${this.AUTH_URL}?${params.toString()}`;
+      console.log('Step 1: Generated JobAdder authorization URL:', authUrl);
       
+      // Store state for verification in step 2
+      localStorage.setItem('jobadder_oauth_state', params.get('state') || '');
+      
+      return authUrl;
     } catch (error) {
-      console.error('Error in getAuthorizationUrl:', error);
-      throw error;
+      console.error('Error generating authorization URL:', error);
+      throw new Error(`Failed to generate JobAdder authorization URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-
-  private generateOAuthUrl(clientId: string): string {
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: clientId,
-      scope: 'read write offline_access',
-      redirect_uri: this.REDIRECT_URI
-    });
-    
-    const authUrl = `${this.AUTH_URL}?${params.toString()}`;
-    console.log('Generated OAuth URL:', authUrl);
-    
-    return authUrl;
+  /**
+   * Step 2: Validate authorization code from callback
+   * Receives code and state parameters from JobAdder redirect
+   */
+  validateCallback(code: string, state?: string): boolean {
+    try {
+      // Verify state parameter to prevent CSRF attacks
+      const storedState = localStorage.getItem('jobadder_oauth_state');
+      if (state && storedState && state !== storedState) {
+        console.error('OAuth state mismatch - possible CSRF attack');
+        return false;
+      }
+      
+      // Clean up stored state
+      localStorage.removeItem('jobadder_oauth_state');
+      
+      console.log('Step 2: Authorization code validated successfully');
+      return !!code;
+    } catch (error) {
+      console.error('Error validating callback:', error);
+      return false;
+    }
   }
 
   /**
-   * Exchange authorization code for tokens using server-side endpoint
+   * Step 3: Exchange authorization code for access token
+   * POST to https://id.jobadder.com/connect/token
    */
   async exchangeCodeForTokens(code: string): Promise<TokenResponse> {
     try {
@@ -82,21 +98,16 @@ class JobAdderOAuth2Manager {
         throw new Error('Please sign in to the app first before connecting your JobAdder account');
       }
 
-      const { supabase } = await import('@/integrations/supabase/client');
+      console.log('Step 3: Exchanging authorization code for tokens...');
       
-      console.log('Exchanging OAuth code with:', {
-        userId,
-        redirectUri: this.REDIRECT_URI,
-        codeLength: code.length
-      });
-      
-      // Call server-side OAuth exchange endpoint with correct headers
+      // Call server-side function to handle token exchange securely
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
-          endpoint: 'oauth-exchange',
+          action: 'exchange-token',
           code: code,
-          userId: userId,
-          redirectUri: this.REDIRECT_URI
+          client_id: this.CLIENT_ID,
+          redirect_uri: this.REDIRECT_URI,
+          grant_type: 'authorization_code'
         },
         headers: {
           'x-user-id': userId
@@ -104,26 +115,26 @@ class JobAdderOAuth2Manager {
       });
 
       if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(error.message || 'Failed to exchange OAuth code');
+        console.error('Token exchange error:', error);
+        throw new Error(error.message || 'Failed to exchange authorization code');
       }
 
       if (!data || !data.success) {
-        console.error('OAuth exchange failed:', data);
-        throw new Error(data?.error || 'OAuth exchange failed');
+        console.error('Token exchange failed:', data);
+        throw new Error(data?.error || 'Token exchange failed');
       }
 
-      console.log('JobAdder OAuth exchange successful');
+      console.log('Step 3: Token exchange successful');
       
-      // Return a simplified response for compatibility
+      // Return standardized response
       return {
-        access_token: 'stored-server-side',
-        expires_in: 3600,
-        token_type: 'Bearer',
-        refresh_token: 'stored-server-side',
-        api: 'https://api.jobadder.com/v2',
-        instance: data.instance || 'startup-accelerator',
-        account: data.account || 4809
+        access_token: data.access_token,
+        expires_in: data.expires_in || 3600,
+        token_type: data.token_type || 'Bearer',
+        refresh_token: data.refresh_token,
+        api: data.api || 'https://api.jobadder.com/v2',
+        instance: data.instance,
+        account: data.account
       };
     } catch (error) {
       console.error('Error exchanging code for tokens:', error);
@@ -132,11 +143,115 @@ class JobAdderOAuth2Manager {
   }
 
   /**
+   * Step 4: Refresh access token using refresh token
+   * POST to https://id.jobadder.com/connect/token with refresh_token grant
+   */
+  async refreshAccessToken(): Promise<TokenResponse> {
+    try {
+      const userId = await this.getCurrentUserId();
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      console.log('Step 4: Refreshing access token...');
+      
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: {
+          action: 'refresh-token',
+          client_id: this.CLIENT_ID,
+          grant_type: 'refresh_token'
+        },
+        headers: {
+          'x-user-id': userId
+        }
+      });
+
+      if (error) {
+        console.error('Token refresh error:', error);
+        throw new Error(error.message || 'Failed to refresh access token');
+      }
+
+      if (!data || !data.success) {
+        console.error('Token refresh failed:', data);
+        throw new Error(data?.error || 'Token refresh failed');
+      }
+
+      console.log('Step 4: Token refresh successful');
+      
+      return {
+        access_token: data.access_token,
+        expires_in: data.expires_in || 3600,
+        token_type: data.token_type || 'Bearer',
+        refresh_token: data.refresh_token,
+        api: data.api || 'https://api.jobadder.com/v2'
+      };
+    } catch (error) {
+      console.error('Error refreshing access token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user has valid authentication tokens
+   */
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const userId = await this.getCurrentUserId();
+      if (!userId) return false;
+
+      const { data, error } = await supabase
+        .from('jobadder_tokens')
+        .select('id, expires_at')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking JobAdder authentication:', error);
+        return false;
+      }
+      
+      if (!data) return false;
+      
+      // Check if token is still valid (not expired)
+      const expiresAt = new Date(data.expires_at);
+      const now = new Date();
+      const isValid = expiresAt > now;
+      
+      console.log('JobAdder authentication status:', isValid ? 'Valid' : 'Expired');
+      return isValid;
+    } catch (error) {
+      console.error('Error checking authentication status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Clear all stored tokens and authentication data
+   */
+  async clearTokens(): Promise<void> {
+    try {
+      const userId = await this.getCurrentUserId();
+      if (userId) {
+        await supabase
+          .from('jobadder_tokens')
+          .delete()
+          .eq('user_id', userId);
+      }
+      
+      // Clear any local storage
+      localStorage.removeItem('jobadder_oauth_state');
+      
+      console.log('JobAdder tokens cleared');
+    } catch (error) {
+      console.error('Error clearing tokens:', error);
+    }
+  }
+
+  /**
    * Get current user ID from Supabase session
    */
   private async getCurrentUserId(): Promise<string | null> {
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
       const { data: { session } } = await supabase.auth.getSession();
       return session?.user?.id || null;
     } catch (error) {
@@ -146,38 +261,17 @@ class JobAdderOAuth2Manager {
   }
 
   /**
-   * Check if we have valid authentication (now checks server-side storage)
+   * Generate random state parameter for OAuth security
    */
-  async isAuthenticated(): Promise<boolean> {
-    try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) return false;
-
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { data, error } = await supabase
-        .from('jobadder_tokens')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      // If error is returned or no data found, user is not authenticated
-      if (error) {
-        console.error('Error checking JobAdder authentication:', error);
-        return false;
-      }
-      
-      return !!data;
-    } catch (error) {
-      console.error('Error checking authentication status:', error);
-      return false;
-    }
+  private generateState(): string {
+    return Math.random().toString(36).substring(2, 15) + 
+           Math.random().toString(36).substring(2, 15);
   }
 
   /**
-   * Get current account information (legacy compatibility)
+   * Get account information for backward compatibility
    */
   getAccountInfo(): { instance: string; account: number; apiUrl: string } | null {
-    // Return default values for backward compatibility
     return {
       instance: 'startup-accelerator',
       account: 4809,
@@ -186,76 +280,16 @@ class JobAdderOAuth2Manager {
   }
 
   /**
-   * Legacy compatibility method - always returns null since tokens are server-side
+   * Legacy compatibility method
    */
   async getValidAccessToken(): Promise<string | null> {
-    console.warn('getValidAccessToken is deprecated. Use server-side API calls instead.');
+    console.warn('getValidAccessToken is deprecated. Tokens are managed server-side.');
     return null;
-  }
-
-  /**
-   * Clear authentication (removes server-side tokens)
-   */
-  async clearTokens(): Promise<void> {
-    try {
-      const userId = await this.getCurrentUserId();
-      if (userId) {
-        const { supabase } = await import('@/integrations/supabase/client');
-        
-        // Delete tokens from server-side storage
-        await supabase
-          .from('jobadder_tokens')
-          .delete()
-          .eq('user_id', userId);
-      }
-      
-      // Clear any legacy local storage
-      localStorage.removeItem(this.STORAGE_KEY);
-      this.tokens = null;
-      
-      if (this.refreshInterval) {
-        clearInterval(this.refreshInterval);
-        this.refreshInterval = null;
-      }
-      
-      console.log('JobAdder tokens cleared');
-    } catch (error) {
-      console.error('Error clearing tokens:', error);
-    }
-  }
-
-  /**
-   * Legacy method - no longer needed with server-side token management
-   */
-  private startTokenRefreshScheduler(): void {
-    console.log('Token refresh scheduler disabled - using server-side token management');
-  }
-
-  /**
-   * Cleanup resources
-   */
-  destroy(): void {
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
-      this.refreshInterval = null;
-    }
   }
 }
 
-// Create singleton instance with JobAdder credentials from environment
-// IMPORTANT: According to JobAdder OAuth2 documentation, the redirect_uri must be EXACTLY 
-// the same in both Step 1 (authorization) and Step 3 (token exchange).
-// Since JobAdder app is configured with production redirect URI, we must use it consistently.
-const PRODUCTION_REDIRECT_URI = 'https://staffing.growthaccelerator.nl/auth/callback';
-
-let redirectUri: string = PRODUCTION_REDIRECT_URI;
-
-const oauth2Manager = new JobAdderOAuth2Manager(
-  // These will be passed from the backend during the OAuth flow
-  'CLIENT_ID_PLACEHOLDER',
-  'CLIENT_SECRET_PLACEHOLDER', 
-  redirectUri
-);
+// Create singleton instance
+const oauth2Manager = new JobAdderOAuth2Manager();
 
 export default oauth2Manager;
 export type { TokenResponse, StoredTokens };
