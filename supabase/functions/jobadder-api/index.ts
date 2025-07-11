@@ -61,10 +61,22 @@ serve(async (req) => {
         const { code, redirect_uri, grant_type } = params
         
         if (!code || !userId) {
+          console.error('Missing parameters:', { code: !!code, userId: !!userId })
           throw new Error('Missing required parameters for token exchange')
         }
 
+        if (!clientId || !clientSecret) {
+          console.error('Missing JobAdder credentials:', { clientId: !!clientId, clientSecret: !!clientSecret })
+          throw new Error('JobAdder credentials not properly configured')
+        }
+
         console.log('Step 3: Exchanging authorization code for tokens...')
+        console.log('Token exchange parameters:', {
+          client_id: clientId,
+          grant_type: 'authorization_code',
+          redirect_uri: redirect_uri,
+          code: code.substring(0, 10) + '...' // Log partial code for debugging
+        })
 
         // Call JobAdder token endpoint
         const tokenResponse = await fetch('https://id.jobadder.com/connect/token', {
@@ -81,9 +93,15 @@ serve(async (req) => {
           })
         })
 
+        console.log('JobAdder token response status:', tokenResponse.status)
+
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text()
-          console.error('JobAdder token exchange failed:', errorText)
+          console.error('JobAdder token exchange failed:', {
+            status: tokenResponse.status,
+            statusText: tokenResponse.statusText,
+            error: errorText
+          })
           throw new Error(`Token exchange failed: ${tokenResponse.status} ${errorText}`)
         }
 
