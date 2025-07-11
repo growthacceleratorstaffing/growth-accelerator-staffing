@@ -150,17 +150,18 @@ export const JobBoardManager = () => {
   const loadJobBoards = async () => {
     setLoading(true);
     try {
-      // Try to get token, but don't fail if not available
-      let userAccessToken;
-      try {
-        userAccessToken = await oauth2Manager.getValidAccessToken();
-      } catch (tokenError) {
-        console.log('No JobAdder token available, using edge function without token');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { 
-          endpoint: 'find-jobboards'
+          action: 'jobboards'
+        },
+        headers: {
+          'x-user-id': user.id
         }
       });
 
@@ -168,10 +169,14 @@ export const JobBoardManager = () => {
         throw new Error(error.message);
       }
 
-      setJobBoards(data.items || []);
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to load job boards');
+      }
+
+      setJobBoards(data.data.items || []);
       
       // Auto-select the default board (8734 - Startup Accelerator)
-      const defaultBoard = data.items?.find((board: JobBoard) => board.boardId === 8734);
+      const defaultBoard = data.data.items?.find((board: JobBoard) => board.boardId === 8734);
       if (defaultBoard) {
         setSelectedBoard(defaultBoard);
         loadJobAds(defaultBoard.boardId);
@@ -191,19 +196,17 @@ export const JobBoardManager = () => {
   const loadJobAds = async (boardId: number, searchTerm?: string) => {
     setLoading(true);
     try {
-      // Try to get token, but don't fail if not available
-      let userAccessToken;
-      try {
-        userAccessToken = await oauth2Manager.getValidAccessToken();
-      } catch (tokenError) {
-        console.log('No JobAdder token available, using edge function without token');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
       }
 
       const requestBody: any = { 
-        endpoint: 'jobboard-jobads',
-        boardId: boardId.toString(),
-        limit: '100',
-        offset: '0'
+        action: 'jobboard-jobads',
+        jobboardId: boardId.toString(),
+        limit: 100,
+        offset: 0
       };
 
       // Add search filters if provided
@@ -212,14 +215,21 @@ export const JobBoardManager = () => {
       }
 
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
-        body: requestBody
+        body: requestBody,
+        headers: {
+          'x-user-id': user.id
+        }
       });
 
       if (error) {
         throw new Error(error.message);
       }
 
-      let filteredJobs = data.items || [];
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to load job ads');
+      }
+
+      let filteredJobs = data.data.items || [];
       
       // Apply client-side filtering if search term provided
       if (searchTerm) {
