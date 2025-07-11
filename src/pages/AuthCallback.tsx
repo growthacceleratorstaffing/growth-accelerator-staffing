@@ -34,12 +34,20 @@ const AuthCallback = () => {
       }
 
       try {
+        // If we're on the production callback URL, redirect back to the preview environment with the code
+        if (window.location.hostname === 'staffing.growthaccelerator.nl') {
+          const previewUrl = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth?code=${code}`;
+          console.log('Redirecting from production callback to preview:', previewUrl);
+          window.location.href = previewUrl;
+          return;
+        }
+
         const tokenResponse = await oauth2Manager.exchangeCodeForTokens(code);
         
         setSuccess(true);
         toast({
           title: "Authentication Successful!",
-          description: `Connected to Startup Accelerator API (Portal: ${tokenResponse.account})`,
+          description: `Connected to JobAdder (Account: ${tokenResponse.account})`,
         });
 
         // Redirect to job board after successful authentication

@@ -142,7 +142,10 @@ const Auth = () => {
 
   // Redirect authenticated users if they're not on JobAdder OAuth flow
   useEffect(() => {
-    if (isAuthenticated && !isJobAdderRoute && !searchParams.get('code')) {
+    const hasOAuthCode = searchParams.get('code');
+    const hasOAuthError = searchParams.get('error');
+    
+    if (isAuthenticated && !isJobAdderRoute && !hasOAuthCode && !hasOAuthError) {
       navigate('/dashboard');
     }
   }, [isAuthenticated, isJobAdderRoute, searchParams, navigate]);
