@@ -32,9 +32,12 @@ class JobAdderOAuth2Manager {
   constructor() {
     // Use current domain for redirect URI - JobAdder requires consistency
     this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
-    console.log('JobAdder OAuth2Manager initialized');
-    console.log('Current domain:', window.location.origin);
-    console.log('Redirect URI:', this.REDIRECT_URI);
+    console.log('=== OAUTH MANAGER CONSTRUCTOR ===');
+    console.log('window.location.origin:', window.location.origin);
+    console.log('window.location.hostname:', window.location.hostname);
+    console.log('window.location.href:', window.location.href);
+    console.log('REDIRECT_URI set to:', this.REDIRECT_URI);
+    console.log('=== END CONSTRUCTOR DEBUG ===');
   }
 
   /**
