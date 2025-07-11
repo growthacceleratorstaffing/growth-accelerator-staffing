@@ -79,15 +79,17 @@ class JobAdderOAuth2Manager {
       const clientId = await this.getClientId();
       console.log('Client ID being used:', clientId);
       
-      const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: clientId,
-        scope: 'read write offline_access', // Required scopes for API access
-        redirect_uri: this.REDIRECT_URI,
-        state: this.generateState() // Optional security parameter
-      });
+      const state = this.generateState();
       
-      const authUrl = `${this.AUTH_URL}?${params.toString()}`;
+      // Manual URL construction to ensure proper encoding and avoid URLSearchParams issues
+      const authUrl = `${this.AUTH_URL}?response_type=code&client_id=${encodeURIComponent(clientId)}&scope=${encodeURIComponent('read write offline_access')}&redirect_uri=${encodeURIComponent(this.REDIRECT_URI)}&state=${encodeURIComponent(state)}`;
+      
+      console.log('=== MANUAL URL CONSTRUCTION ===');
+      console.log('Auth URL Base:', this.AUTH_URL);
+      console.log('Client ID (encoded):', encodeURIComponent(clientId));
+      console.log('Scope (encoded):', encodeURIComponent('read write offline_access'));
+      console.log('Redirect URI (encoded):', encodeURIComponent(this.REDIRECT_URI));
+      console.log('State (encoded):', encodeURIComponent(state));
       console.log('=== FINAL OAUTH URL ===');
       console.log('Generated URL:', authUrl);
       console.log('Redirect URI in URL:', this.REDIRECT_URI);
@@ -99,7 +101,7 @@ class JobAdderOAuth2Manager {
       console.log('=== END DEBUG INFO ===');
       
       // Store state for verification in step 2
-      localStorage.setItem('jobadder_oauth_state', params.get('state') || '');
+      localStorage.setItem('jobadder_oauth_state', state);
       
       return authUrl;
     } catch (error) {
