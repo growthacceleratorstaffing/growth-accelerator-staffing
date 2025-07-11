@@ -62,8 +62,12 @@ export function useJobSync() {
           throw new Error(`Failed to fetch jobs from JobAdder: ${jobsError.message}`);
         }
 
-        if (jobsData?.items) {
-          jobsSynced = jobsData.items.length;
+        if (!jobsData || !jobsData.success) {
+          throw new Error(`Failed to fetch jobs from JobAdder: ${jobsData?.error || 'Unknown error'}`);
+        }
+
+        if (jobsData.data?.items) {
+          jobsSynced = jobsData.data.items.length;
         }
 
         // Fetch latest candidates from JobAdder
@@ -83,8 +87,12 @@ export function useJobSync() {
           throw new Error(`Failed to fetch candidates from JobAdder: ${candidatesError.message}`);
         }
 
-        if (candidatesData?.items) {
-          candidatesSynced = candidatesData.items.length;
+        if (!candidatesData || !candidatesData.success) {
+          throw new Error(`Failed to fetch candidates from JobAdder: ${candidatesData?.error || 'Unknown error'}`);
+        }
+
+        if (candidatesData.data?.items) {
+          candidatesSynced = candidatesData.data.items.length;
         }
       }
 
@@ -156,17 +164,21 @@ export function useJobSync() {
         headers: {
           'x-user-id': userId
         }
-      });
+        });
 
-      if (error) {
-        throw new Error(`JobAdder API connectivity check failed: ${error.message}`);
-      }
+        if (error) {
+          throw new Error(`JobAdder API connectivity check failed: ${error.message}`);
+        }
 
-      return {
-        connected: true,
-        user: data,
-        apiHealth: 'healthy'
-      };
+        if (!data || !data.success) {
+          throw new Error(`JobAdder API connectivity check failed: ${data?.error || 'Unknown error'}`);
+        }
+
+        return {
+          connected: true,
+          user: data.data,
+          apiHealth: 'healthy'
+        };
     } catch (error) {
       return {
         connected: false,
