@@ -31,6 +31,11 @@ import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import AuthLogin from "./pages/AuthLogin";
 
+// JobAdder Auth component without AuthLoader to prevent redirect
+const JobAdderAuth = () => {
+  return <Auth />;
+};
+
 const queryClient = new QueryClient();
 
 const AppSidebar = () => {
@@ -281,8 +286,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/auth/login" element={<AuthLogin />} />
-          {/* Redirect old JobAdder auth route to main auth page */}
-          <Route path="/jobadder-auth" element={<Auth />} />
+          {/* Redirect old JobAdder auth route to main auth page without AuthLoader */}
+          <Route path="/jobadder-auth" element={<JobAdderAuth />} />
           
           {/* Routes with sidebar */}
           <Route path="/" element={

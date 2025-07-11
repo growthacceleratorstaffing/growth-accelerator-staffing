@@ -42,7 +42,7 @@ const AuthCallback = () => {
           description: `Connected to Startup Accelerator API (Portal: ${tokenResponse.account})`,
         });
 
-        // Redirect to dashboard after successful authentication
+        // Redirect to job board after successful authentication
         setTimeout(() => {
           navigate('/job-board');
         }, 2000);
@@ -94,7 +94,7 @@ const AuthCallback = () => {
             </Alert>
             
             <div className="flex gap-4">
-              <Button onClick={() => navigate('/jobadder-auth')}>
+              <Button onClick={() => navigate('/auth?tab=jobadder')}>
                 Try Again
               </Button>
               <Button variant="outline" onClick={() => navigate('/job-board')}>

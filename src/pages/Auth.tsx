@@ -11,9 +11,10 @@ import { LogIn, User, ExternalLink, CheckCircle, AlertCircle, RefreshCw } from "
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import oauth2Manager from "@/lib/oauth2-manager";
-import AuthLoader from "@/components/AuthLoader";
+import { useLocation } from "react-router-dom";
 
 const Auth = () => {
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -29,7 +30,10 @@ const Auth = () => {
   const [jobAdderAuthMessage, setJobAdderAuthMessage] = useState<string>('');
   const [isJobAdderConnected, setIsJobAdderConnected] = useState(false);
   
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, isAuthenticated } = useAuth();
+
+  // Check if this is a JobAdder OAuth callback or direct visit
+  const isJobAdderRoute = location.pathname === '/jobadder-auth';
 
   useEffect(() => {
     checkJobAdderAuth();
@@ -136,9 +140,15 @@ const Auth = () => {
     }
   };
 
+  // Redirect authenticated users if they're not on JobAdder OAuth flow
+  useEffect(() => {
+    if (isAuthenticated && !isJobAdderRoute && !searchParams.get('code')) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, isJobAdderRoute, searchParams, navigate]);
+
   return (
-    <AuthLoader>
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center">
         <div className="container mx-auto px-4 py-8 max-w-md">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -343,8 +353,7 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-    </AuthLoader>
+    </div>
   );
 };
 
