@@ -57,25 +57,43 @@ serve(async (req) => {
       }
 
       case 'exchange-token': {
-        // Step 3: Exchange authorization code for access token
+        // Step 3: Exchange authorization code for access tokens
         const { code, redirect_uri, grant_type } = params
         
-        if (!code || !userId) {
-          console.error('Missing parameters:', { code: !!code, userId: !!userId })
-          throw new Error('Missing required parameters for token exchange')
+        console.log('=== JobAdder OAuth Step 3: Token Exchange ===')
+        console.log('Grant type:', grant_type)
+        console.log('Redirect URI received:', redirect_uri)
+        console.log('Code received (first 10 chars):', code?.substring(0, 10))
+        console.log('User ID:', userId)
+        
+        if (!code || !userId || !redirect_uri) {
+          console.error('Missing required parameters:', { 
+            hasCode: !!code, 
+            hasUserId: !!userId, 
+            hasRedirectUri: !!redirect_uri 
+          })
+          throw new Error('Missing required parameters: code, userId, or redirect_uri')
         }
 
         if (!clientId || !clientSecret) {
-          console.error('Missing JobAdder credentials:', { clientId: !!clientId, clientSecret: !!clientSecret })
-          throw new Error('JobAdder credentials not properly configured')
+          console.error('Missing JobAdder credentials')
+          throw new Error('JobAdder client credentials not configured')
         }
 
-        console.log('Step 3: Exchanging authorization code for tokens...')
-        console.log('Token exchange parameters:', {
-          client_id: clientId,
+        // Prepare token exchange request exactly per JobAdder spec
+        const tokenRequestBody = {
           grant_type: 'authorization_code',
+          code: code,
           redirect_uri: redirect_uri,
-          code: code.substring(0, 10) + '...' // Log partial code for debugging
+          client_id: clientId,
+          client_secret: clientSecret
+        }
+
+        console.log('Token exchange request body:', {
+          grant_type: tokenRequestBody.grant_type,
+          client_id: tokenRequestBody.client_id,
+          redirect_uri: tokenRequestBody.redirect_uri,
+          code: tokenRequestBody.code.substring(0, 10) + '...'
         })
 
         // Call JobAdder token endpoint
@@ -83,30 +101,27 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
           },
-          body: new URLSearchParams({
-            client_id: clientId,
-            client_secret: clientSecret,
-            grant_type: 'authorization_code',
-            code: code,
-            redirect_uri: redirect_uri
-          })
+          body: new URLSearchParams(tokenRequestBody)
         })
 
         console.log('JobAdder token response status:', tokenResponse.status)
+        console.log('JobAdder token response headers:', Object.fromEntries(tokenResponse.headers.entries()))
 
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text()
           console.error('JobAdder token exchange failed:', {
             status: tokenResponse.status,
             statusText: tokenResponse.statusText,
-            error: errorText
+            headers: Object.fromEntries(tokenResponse.headers.entries()),
+            body: errorText
           })
-          throw new Error(`Token exchange failed: ${tokenResponse.status} ${errorText}`)
+          throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText}`)
         }
 
         const tokens: TokenResponse = await tokenResponse.json()
-        console.log('Token exchange successful')
+        console.log('Token exchange successful, received tokens')
 
         // Store tokens in database
         const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000)).toISOString()
@@ -124,9 +139,11 @@ serve(async (req) => {
           })
 
         if (dbError) {
-          console.error('Error storing tokens:', dbError)
+          console.error('Error storing tokens in database:', dbError)
           throw new Error('Failed to store authentication tokens')
         }
+
+        console.log('Step 3 completed successfully - tokens stored')
 
         return new Response(JSON.stringify({
           success: true,

@@ -68,43 +68,39 @@ class JobAdderOAuth2Manager {
 
   /**
    * Step 1: Generate OAuth2 authorization URL
-   * https://id.jobadder.com/connect/authorize
+   * GET https://id.jobadder.com/connect/authorize
    */
   async getAuthorizationUrl(): Promise<string> {
     try {
       console.log('=== JobAdder OAuth Step 1: Authorization URL ===');
       
-      // Get client ID from server
       const clientId = await this.getClientId();
       const state = this.generateState();
       
-      // Build authorization URL exactly as per JobAdder API docs
-      // https://id.jobadder.com/connect/authorize
-      const params = new URLSearchParams({
+      // Build URL according to JobAdder OAuth 2.0 spec
+      const params = {
         response_type: 'code',
         client_id: clientId,
         scope: 'read write offline_access',
         redirect_uri: this.REDIRECT_URI,
         state: state
-      });
+      };
       
-      // Manual construction to ensure proper encoding
-      const authUrl = `${this.AUTH_URL}?response_type=code&client_id=${clientId}&scope=${encodeURIComponent('read write offline_access')}&redirect_uri=${encodeURIComponent(this.REDIRECT_URI)}&state=${state}`;
-      
-      console.log('Authorization URL:', authUrl);
-      console.log('Client ID:', clientId);
-      console.log('Redirect URI:', this.REDIRECT_URI);
-      console.log('Scopes (original):', 'read write offline_access');
-      console.log('Scopes (encoded):', encodeURIComponent('read write offline_access'));
-      console.log('State:', state);
+      // Manual construction for precise control
+      const authUrl = `${this.AUTH_URL}?` + Object.entries(params)
+        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .join('&');
       
       // Store state for step 2 validation
       localStorage.setItem('jobadder_oauth_state', state);
       
+      console.log('Step 1 - Authorization URL generated:', authUrl);
+      console.log('Step 1 - Parameters:', params);
+      
       return authUrl;
     } catch (error) {
       console.error('Step 1 failed:', error);
-      throw new Error(`Failed to generate JobAdder authorization URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Step 1 failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
