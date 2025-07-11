@@ -90,6 +90,7 @@ export const JobBoardManager = () => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [isJobAdderConnected, setIsJobAdderConnected] = useState(false);
   const [applicationData, setApplicationData] = useState<JobApplicationFormData>({
     firstName: "",
     lastName: "",
@@ -119,7 +120,32 @@ export const JobBoardManager = () => {
 
   useEffect(() => {
     loadJobBoards();
+    checkJobAdderConnection();
   }, []);
+
+  const checkJobAdderConnection = async () => {
+    try {
+      const isAuthenticated = await oauth2Manager.isAuthenticated();
+      setIsJobAdderConnected(isAuthenticated);
+    } catch (error) {
+      console.error('Failed to check JobAdder connection:', error);
+      setIsJobAdderConnected(false);
+    }
+  };
+
+  const handleSetupOAuth = async () => {
+    try {
+      const authUrl = await oauth2Manager.getAuthorizationUrl();
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Failed to get OAuth URL:', error);
+      toast({
+        title: "Setup Failed",
+        description: "Failed to initiate JobAdder OAuth setup",
+        variant: "destructive"
+      });
+    }
+  };
 
   const loadJobBoards = async () => {
     setLoading(true);
@@ -382,6 +408,41 @@ export const JobBoardManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* JobAdder Connection Status */}
+      {!isJobAdderConnected && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              JobAdder Not Connected
+            </CardTitle>
+            <CardDescription>
+              Connect your JobAdder account to access job listings and applications
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Button onClick={handleSetupOAuth} disabled={loading}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Setup OAuth
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                You'll be redirected to JobAdder to authorize this application
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* JobAdder Connected Status */}
+      {isJobAdderConnected && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>JobAdder Connected:</strong> You can now access job boards and listings
+          </AlertDescription>
+        </Alert>
+      )}
       {/* Job Board Selection */}
       <Card>
         <CardHeader>

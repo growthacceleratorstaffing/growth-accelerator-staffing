@@ -4,7 +4,7 @@ import { CrawlJobsButton } from "@/components/job-search/CrawlJobsButton";
 import { JobAdderJobList } from "@/components/job-search/JobAdderJobList";
 import { JobAdderSearchBar } from "@/components/job-search/JobAdderSearchBar";
 import { JobAdderSearchStats } from "@/components/job-search/JobAdderSearchStats";
-import { JobSyncStatus } from "@/components/job-search/JobSyncStatus";
+
 import { JobBoardManager } from "@/components/job-search/JobBoardManager";
 import { useJobSearch } from "@/hooks/useJobSearch";
 import { useJobs } from "@/hooks/useJobs";
@@ -74,11 +74,6 @@ const JobBoard = () => {
               Discover your next career move with top companies - powered by JobAdder
             </p>
           </div>
-        </div>
-        
-        {/* Sync Status */}
-        <div className="mb-8">
-          <JobSyncStatus />
         </div>
         
         <Tabs defaultValue="jobadder-board" className="mt-8">
