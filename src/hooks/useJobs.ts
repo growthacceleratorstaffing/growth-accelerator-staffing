@@ -230,10 +230,10 @@ export function useJobs() {
         postAt: job.created_at,
         expireAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
         owner: {
-          userId: 1,
-          firstName: 'Local',
-          lastName: 'Admin',
-          email: 'admin@local.com'
+          userId: 0, // System generated job
+          firstName: 'System',
+          lastName: 'Generated',
+          email: 'system@platform.local'
         }
       }));
 
