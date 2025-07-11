@@ -72,9 +72,8 @@ const Index = () => {
         })));
       }
 
-      // Calculate total candidates count to match Applications page (105 total)
-      // This should match the logic from the Applications page that shows 105 applicants
-      const totalCandidatesCount = 105; // Fixed to match expected count from Applications page
+      // Calculate total candidates count from actual data
+      const totalCandidatesCount = allCandidates?.length || 0;
       
       // Calculate talent pool count (advanced candidates or fallback to 3)
       const talentPoolCount = allCandidates?.filter(candidate => 
