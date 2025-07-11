@@ -69,7 +69,7 @@ const AuthCallback = () => {
         });
 
         // Check for stored redirect URL and use it
-        const redirectUrl = sessionStorage.getItem('jobadder_redirect') || '/job-board';
+        const redirectUrl = sessionStorage.getItem('jobadder_redirect') || '/auth?tab=integrations';
         sessionStorage.removeItem('jobadder_redirect');
         
         setTimeout(() => {

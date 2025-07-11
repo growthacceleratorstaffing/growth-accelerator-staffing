@@ -98,7 +98,7 @@ export default function Auth() {
       console.log('Generated OAuth URL:', authUrl);
       
       // Store the current page to redirect back after OAuth
-      sessionStorage.setItem('jobadder_redirect', '/auth');
+      sessionStorage.setItem('jobadder_redirect', '/auth?tab=integrations');
       console.log('About to redirect to:', authUrl);
       window.location.href = authUrl;
     } catch (error) {
