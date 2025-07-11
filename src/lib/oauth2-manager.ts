@@ -88,12 +88,14 @@ class JobAdderOAuth2Manager {
         state: state
       });
       
-      const authUrl = `${this.AUTH_URL}?${params.toString()}`;
+      // Manual construction to ensure proper encoding
+      const authUrl = `${this.AUTH_URL}?response_type=code&client_id=${clientId}&scope=${encodeURIComponent('read write offline_access')}&redirect_uri=${encodeURIComponent(this.REDIRECT_URI)}&state=${state}`;
       
       console.log('Authorization URL:', authUrl);
       console.log('Client ID:', clientId);
       console.log('Redirect URI:', this.REDIRECT_URI);
-      console.log('Scopes:', 'read write offline_access');
+      console.log('Scopes (original):', 'read write offline_access');
+      console.log('Scopes (encoded):', encodeURIComponent('read write offline_access'));
       console.log('State:', state);
       
       // Store state for step 2 validation
