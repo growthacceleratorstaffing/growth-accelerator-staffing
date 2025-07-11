@@ -281,6 +281,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/auth/login" element={<AuthLogin />} />
+          {/* Redirect old JobAdder auth route to main auth page */}
+          <Route path="/jobadder-auth" element={<Auth />} />
           
           {/* Routes with sidebar */}
           <Route path="/" element={
