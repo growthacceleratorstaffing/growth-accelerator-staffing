@@ -25,7 +25,6 @@ interface StoredTokens {
 }
 
 class JobAdderOAuth2Manager {
-  private readonly CLIENT_ID = 'ldyp7mapnxdevgowsnmr34o2j4'; // Provided by Mike from JobAdder - this should match the JOBADDER_CLIENT_ID secret
   private readonly AUTH_URL = 'https://id.jobadder.com/connect/authorize';
   private readonly TOKEN_URL = 'https://id.jobadder.com/connect/token';
   private readonly REDIRECT_URI: string;
@@ -34,9 +33,34 @@ class JobAdderOAuth2Manager {
     // Use current domain for redirect URI to support both production and preview
     this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     console.log('JobAdder OAuth2Manager initialized');
-    console.log('Client ID:', this.CLIENT_ID);
     console.log('Using redirect URI:', this.REDIRECT_URI);
     console.log('Current environment:', window.location.origin);
+  }
+
+  /**
+   * Get Client ID from server-side secrets
+   */
+  private async getClientId(): Promise<string> {
+    try {
+      const userId = await this.getCurrentUserId();
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { action: 'get-client-id' },
+        headers: { 'x-user-id': userId }
+      });
+
+      if (error || !data?.success) {
+        throw new Error(data?.error || 'Failed to get client configuration');
+      }
+
+      return data.client_id;
+    } catch (error) {
+      console.error('Error getting client ID:', error);
+      throw error;
+    }
   }
 
   /**
@@ -50,11 +74,14 @@ class JobAdderOAuth2Manager {
       console.log('Current window.location.href:', window.location.href);
       console.log('Using redirect URI:', this.REDIRECT_URI);
       console.log('Expected dev redirect URI should be:', `${window.location.origin}/auth/callback`);
-      console.log('Client ID being used:', this.CLIENT_ID);
+      
+      // Get client ID from server
+      const clientId = await this.getClientId();
+      console.log('Client ID being used:', clientId);
       
       const params = new URLSearchParams({
         response_type: 'code',
-        client_id: this.CLIENT_ID,
+        client_id: clientId,
         scope: 'read write offline_access', // Required scopes for API access
         redirect_uri: this.REDIRECT_URI,
         state: this.generateState() // Optional security parameter
@@ -64,10 +91,10 @@ class JobAdderOAuth2Manager {
       console.log('=== FINAL OAUTH URL ===');
       console.log('Generated URL:', authUrl);
       console.log('Redirect URI in URL:', this.REDIRECT_URI);
-      console.log('Client ID in URL:', this.CLIENT_ID);
+      console.log('Client ID in URL:', clientId);
       console.log('=== Check: Do these values match JobAdder config? ===');
       console.log('Expected in JobAdder:');
-      console.log('- Client ID should be:', this.CLIENT_ID);  
+      console.log('- Client ID should be:', clientId);  
       console.log('- Redirect URI should be whitelisted:', this.REDIRECT_URI);
       console.log('=== END DEBUG INFO ===');
       
@@ -123,7 +150,6 @@ class JobAdderOAuth2Manager {
         body: {
           action: 'exchange-token',
           code: code,
-          client_id: this.CLIENT_ID,
           redirect_uri: this.REDIRECT_URI,
           grant_type: 'authorization_code'
         },
@@ -176,7 +202,6 @@ class JobAdderOAuth2Manager {
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           action: 'refresh-token',
-          client_id: this.CLIENT_ID,
           grant_type: 'refresh_token'
         },
         headers: {

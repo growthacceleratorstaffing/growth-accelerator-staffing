@@ -42,6 +42,20 @@ serve(async (req) => {
     }
 
     switch (action) {
+      case 'get-client-id': {
+        // Return the client ID for frontend OAuth URL generation
+        if (!clientId) {
+          throw new Error('JobAdder Client ID not configured')
+        }
+        
+        return new Response(JSON.stringify({
+          success: true,
+          client_id: clientId
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       case 'exchange-token': {
         // Step 3: Exchange authorization code for access token
         const { code, redirect_uri, grant_type } = params
