@@ -18,18 +18,26 @@ const AuthCallback = () => {
   useEffect(() => {
     console.log('AuthCallback component mounted, current URL:', window.location.href);
     const handleCallback = async () => {
-      const code = searchParams.get('code');
-      const state = searchParams.get('state');
-      const errorParam = searchParams.get('error');
-      const errorDescription = searchParams.get('error_description');
+      // Get all URL parameters including hash fragments
+      const url = new URL(window.location.href);
+      const params = new URLSearchParams(url.search);
+      const hashParams = url.hash ? new URLSearchParams(url.hash.substring(1)) : new URLSearchParams();
+      
+      // Check both search params and hash params for OAuth data
+      const code = params.get('code') || hashParams.get('code');
+      const state = params.get('state') || hashParams.get('state');
+      const errorParam = params.get('error') || hashParams.get('error');
+      const errorDescription = params.get('error_description') || hashParams.get('error_description');
 
       console.log('AuthCallback - Processing OAuth callback:', {
         hostname: window.location.hostname,
         fullUrl: window.location.href,
+        searchParams: Array.from(params.entries()),
+        hashParams: Array.from(hashParams.entries()),
         hasCode: !!code,
         hasState: !!state,
         hasError: !!errorParam,
-        searchParams: Array.from(searchParams.entries())
+        hasLovableToken: !!params.get('__lovable_token')
       });
 
       // Step 2: Handle authorization errors
@@ -40,7 +48,15 @@ const AuthCallback = () => {
         return;
       }
 
-      // If no OAuth parameters, redirect to auth page instead of initiating OAuth
+      // If no OAuth code but we have __lovable_token, this is a dev environment issue
+      if (!code && params.get('__lovable_token')) {
+        console.warn('Dev environment detected - no OAuth code received from JobAdder');
+        setError('Development environment issue: JobAdder OAuth callback was intercepted. This typically works in production but may have issues in Lovable dev mode.');
+        setLoading(false);
+        return;
+      }
+
+      // If no OAuth parameters at all, redirect to auth page
       if (!code && !errorParam) {
         console.log('No OAuth parameters found, redirecting to auth page...');
         navigate('/auth?tab=integrations');
