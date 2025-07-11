@@ -43,8 +43,11 @@ class JobAdderOAuth2Manager {
    */
   async getAuthorizationUrl(): Promise<string> {
     try {
+      console.log('=== JobAdder OAuth URL Generation ===');
       console.log('Current window.location.origin:', window.location.origin);
+      console.log('Current window.location.href:', window.location.href);
       console.log('Using redirect URI:', this.REDIRECT_URI);
+      console.log('Expected dev redirect URI should be:', `${window.location.origin}/auth/callback`);
       
       const params = new URLSearchParams({
         response_type: 'code',
@@ -55,13 +58,10 @@ class JobAdderOAuth2Manager {
       });
       
       const authUrl = `${this.AUTH_URL}?${params.toString()}`;
-      console.log('Step 1: Generated JobAdder authorization URL:', authUrl);
-      console.log('Authorization URL breakdown:', {
-        baseUrl: this.AUTH_URL,
-        clientId: this.CLIENT_ID,
-        redirectUri: this.REDIRECT_URI,
-        scope: 'read write offline_access'
-      });
+      console.log('=== FINAL OAUTH URL ===');
+      console.log('Generated URL:', authUrl);
+      console.log('Redirect URI in URL:', this.REDIRECT_URI);
+      console.log('=== Should match what JobAdder expects ===');
       
       // Store state for verification in step 2
       localStorage.setItem('jobadder_oauth_state', params.get('state') || '');
