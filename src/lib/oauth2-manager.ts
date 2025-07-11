@@ -30,15 +30,11 @@ class JobAdderOAuth2Manager {
   private readonly REDIRECT_URI: string;
   
   constructor() {
-    // Force the correct redirect URI format for Lovable apps
-    // Always use the lovable.app domain format for OAuth
-    const correctDomain = 'https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovable.app';
-    
-    this.REDIRECT_URI = `${correctDomain}/auth/callback`;
+    // Use current domain for redirect URI - JobAdder requires consistency
+    this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     console.log('JobAdder OAuth2Manager initialized');
-    console.log('Window origin:', window.location.origin);
-    console.log('FORCED redirect URI:', this.REDIRECT_URI);
-    console.log('This should match JobAdder config exactly');
+    console.log('Current domain:', window.location.origin);
+    console.log('Redirect URI:', this.REDIRECT_URI);
   }
 
   /**
