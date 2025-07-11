@@ -20,7 +20,9 @@ import {
   Building,
   MapPin,
   Clock,
-  DollarSign
+  DollarSign,
+  Download,
+  Upload
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -299,6 +301,85 @@ export const JobBoardManager = () => {
     }
   };
 
+  const importJobToDatabase = async (jobAd: JobAd) => {
+    if (!selectedBoard) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: {
+          endpoint: 'import-job',
+          job: jobAd
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      toast({
+        title: "Job Imported",
+        description: `Successfully imported "${jobAd.title}" to your job database`,
+      });
+
+      console.log('Job imported successfully:', data);
+    } catch (error) {
+      console.error('Failed to import job:', error);
+      toast({
+        title: "Import Failed", 
+        description: `Failed to import job: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const importAllJobs = async () => {
+    if (jobAds.length === 0) return;
+
+    setLoading(true);
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const jobAd of jobAds) {
+        try {
+          const { data, error } = await supabase.functions.invoke('jobadder-api', {
+            body: {
+              endpoint: 'import-job',
+              job: jobAd
+            }
+          });
+
+          if (error) {
+            throw new Error(error.message);
+          }
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to import job ${jobAd.title}:`, error);
+          errorCount++;
+        }
+      }
+
+      toast({
+        title: "Bulk Import Complete",
+        description: `Imported ${successCount} jobs successfully. ${errorCount} failed.`,
+        variant: errorCount > 0 ? "destructive" : "default"
+      });
+
+    } catch (error) {
+      console.error('Failed to import jobs:', error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to import jobs",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Job Board Selection */}
@@ -369,6 +450,12 @@ export const JobBoardManager = () => {
                 className="pl-10"
               />
             </div>
+            {jobAds.length > 0 && (
+              <Button onClick={importAllJobs} disabled={loading} variant="secondary">
+                <Upload className="h-4 w-4 mr-2" />
+                Import All Jobs ({jobAds.length})
+              </Button>
+            )}
           </div>
 
           {/* Job Ads List */}
@@ -451,6 +538,15 @@ export const JobBoardManager = () => {
                           )}
                         </div>
                         <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => importJobToDatabase(jobAd)}
+                            disabled={loading}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Import Job
+                          </Button>
                           <Button variant="outline" size="sm">
                             <ExternalLink className="h-4 w-4 mr-2" />
                             View Details
