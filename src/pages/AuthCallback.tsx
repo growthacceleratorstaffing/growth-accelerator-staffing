@@ -138,7 +138,11 @@ const AuthCallback = () => {
                   window.location.href = authUrl;
                 } catch (error) {
                   console.error('Failed to get OAuth URL:', error);
-                  navigate('/auth');
+                  toast({
+                    title: "Setup Failed", 
+                    description: "Failed to initiate JobAdder OAuth setup",
+                    variant: "destructive"
+                  });
                 }
               }}>
                 Try Again

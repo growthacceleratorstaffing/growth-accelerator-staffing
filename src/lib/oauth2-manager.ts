@@ -41,30 +41,15 @@ class JobAdderOAuth2Manager {
   }
 
   /**
-   * Generate OAuth2 authorization URL using server-side client ID
+   * Generate OAuth2 authorization URL using JobAdder provided client ID
    */
   async getAuthorizationUrl(): Promise<string> {
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
+      // Use the client ID provided by Mike from JobAdder
+      const clientId = 'ldyp7mapnxdevgowsnmr34o2j4';
+      console.log('Using JobAdder provided client ID:', clientId);
       
-      console.log('Getting JobAdder client ID from edge function...');
-      
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
-        body: { endpoint: 'get-client-id' }
-      });
-      
-      if (error) {
-        console.error('JobAdder API function error:', error);
-        throw new Error(`Failed to get JobAdder client ID: ${error.message}`);
-      }
-      
-      if (!data || !data.success || !data.clientId) {
-        console.error('Invalid client ID response:', data);
-        throw new Error('Failed to retrieve JobAdder client ID from server');
-      }
-      
-      console.log('Successfully retrieved client ID from server');
-      return this.generateOAuthUrl(data.clientId);
+      return this.generateOAuthUrl(clientId);
       
     } catch (error) {
       console.error('Error in getAuthorizationUrl:', error);
