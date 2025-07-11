@@ -94,9 +94,12 @@ const AuthCallback = () => {
           description: `Successfully connected to JobAdder API`,
         });
 
-        // Redirect to job board after successful authentication
+        // Check for stored redirect URL and use it
+        const redirectUrl = sessionStorage.getItem('jobadder_redirect') || '/job-board';
+        sessionStorage.removeItem('jobadder_redirect');
+        
         setTimeout(() => {
-          navigate('/job-board');
+          navigate(redirectUrl);
         }, 2000);
         
       } catch (error) {

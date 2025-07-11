@@ -420,9 +420,9 @@ export const JobBoardManager = () => {
     <div className="space-y-6">
       {/* JobAdder Connection Status */}
       {!isJobAdderConnected && (
-        <Card className="border-destructive/50 bg-destructive/5">
+        <Card className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
+            <CardTitle className="flex items-center gap-2 text-orange-600">
               <AlertCircle className="h-5 w-5" />
               JobAdder Not Connected
             </CardTitle>
@@ -431,27 +431,17 @@ export const JobBoardManager = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
-              <Button onClick={handleSetupOAuth} disabled={loading}>
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Setup OAuth
-              </Button>
+            <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                You'll be redirected to JobAdder to authorize this application
+                Set up your JobAdder integration to access job boards and submit applications.
               </p>
+              <Button onClick={() => window.location.href = '/jobadder-auth'} variant="default">
+                <Settings className="h-4 w-4 mr-2" />
+                Setup Integration
+              </Button>
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* JobAdder Connected Status */}
-      {isJobAdderConnected && (
-        <Alert>
-          <CheckCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>JobAdder Connected:</strong> You can now access job boards and listings
-          </AlertDescription>
-        </Alert>
       )}
       {/* Job Board Selection */}
       <Card>
