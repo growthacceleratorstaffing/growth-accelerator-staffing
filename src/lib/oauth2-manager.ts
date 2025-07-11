@@ -45,68 +45,33 @@ class JobAdderOAuth2Manager {
    */
   async getAuthorizationUrl(): Promise<string> {
     try {
-      // First test if edge functions are working at all
-      console.log('Testing edge function connectivity...');
-      
       const { supabase } = await import('@/integrations/supabase/client');
       
-      // Test with simple function first
-      try {
-        const { data: testData, error: testError } = await supabase.functions.invoke('test-simple', {
-          body: { test: true }
-        });
-        
-        if (testError) {
-          console.error('Test function failed:', testError);
-          throw new Error('Edge functions are not responding');
-        }
-        
-        console.log('Test function working:', testData);
-      } catch (testErr) {
-        console.error('Edge functions completely unavailable:', testErr);
-        // Fallback to direct JobAdder OAuth URL with hardcoded client ID
-        return this.generateDirectOAuthUrl();
-      }
-      
-      // If test function works, try the jobadder-api function
-      console.log('Testing JobAdder API function...');
+      console.log('Getting JobAdder client ID from edge function...');
       
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { endpoint: 'get-client-id' }
       });
       
-      console.log('JobAdder client ID response:', { data, error });
-      
       if (error) {
         console.error('JobAdder API function error:', error);
-        // Fallback to direct OAuth URL
-        return this.generateDirectOAuthUrl();
+        throw new Error(`Failed to get JobAdder client ID: ${error.message}`);
       }
       
-      if (!data || !data.clientId) {
+      if (!data || !data.success || !data.clientId) {
         console.error('Invalid client ID response:', data);
-        // Fallback to direct OAuth URL
-        return this.generateDirectOAuthUrl();
+        throw new Error('Failed to retrieve JobAdder client ID from server');
       }
       
-      // Success - generate OAuth URL with server-provided client ID
+      console.log('Successfully retrieved client ID from server');
       return this.generateOAuthUrl(data.clientId);
       
     } catch (error) {
       console.error('Error in getAuthorizationUrl:', error);
-      // Final fallback
-      return this.generateDirectOAuthUrl();
+      throw error;
     }
   }
 
-  private generateDirectOAuthUrl(): string {
-    // Use correct JobAdder client ID for fallback - from your screenshot
-    const fallbackClientId = 'ldyp7mapnxdevgowsnmr34o2j4';
-    console.warn('Using fallback OAuth URL generation with client ID:', fallbackClientId);
-    console.warn('Edge functions appear to be unavailable, using hardcoded client ID');
-    console.warn('Please ensure JOBADDER_CLIENT_ID is properly configured in Supabase secrets');
-    return this.generateOAuthUrl(fallbackClientId);
-  }
 
   private generateOAuthUrl(clientId: string): string {
     const params = new URLSearchParams({
