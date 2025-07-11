@@ -34,7 +34,11 @@ export default function Auth() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Only redirect to dashboard if user is authenticated AND not trying to access integrations
+    const searchParams = new URLSearchParams(window.location.search);
+    const tab = searchParams.get('tab');
+    
+    if (isAuthenticated && tab !== 'integrations') {
       navigate("/dashboard");
     }
     checkJobAdderConnection();
@@ -108,7 +112,7 @@ export default function Auth() {
             </p>
           </div>
 
-          <Tabs defaultValue="account" className="space-y-6">
+          <Tabs defaultValue={new URLSearchParams(window.location.search).get('tab') || 'account'} className="space-y-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="account">Account</TabsTrigger>
               <TabsTrigger value="integrations">Integrations</TabsTrigger>
