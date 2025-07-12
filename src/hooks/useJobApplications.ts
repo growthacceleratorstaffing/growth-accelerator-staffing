@@ -195,7 +195,7 @@ class JobApplicationsAPI {
     activeOnly?: boolean;
   }): Promise<JobApplicationCandidate[]> {
     try {
-      // Use Supabase edge function to get job applications
+      // First, get the user's jobs from JobAdder
       const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
       const userAccessToken = await oauth2Manager.getValidAccessToken();
       
@@ -203,23 +203,67 @@ class JobApplicationsAPI {
         throw new Error('No JobAdder access token available. Please authenticate first.');
       }
 
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+      // Get user's jobs first
+      const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jobadder-api', {
         body: { 
-          endpoint: 'applications',
-          limit: params?.limit?.toString() || '100',
-          offset: params?.offset?.toString() || '0',
-          activeOnly: params?.activeOnly,
+          endpoint: 'jobs',
+          limit: '100',
+          offset: '0',
           accessToken: userAccessToken
         }
       });
 
-      if (error) {
-        throw new Error(error.message);
+      if (jobsError) {
+        throw new Error(`Failed to fetch jobs: ${jobsError.message}`);
       }
 
-      return data?.items || [];
+      const userJobs = jobsData?.items || [];
+      console.log(`Found ${userJobs.length} user jobs in JobAdder`);
+
+      // Now fetch applications for each of the user's jobs
+      let allApplications: JobApplicationCandidate[] = [];
+      
+      for (const job of userJobs) {
+        try {
+          const { data: applicationsData, error: applicationsError } = await supabase.functions.invoke('jobadder-api', {
+            body: { 
+              endpoint: 'job-applications',
+              jobId: job.jobId.toString(),
+              limit: '50',
+              offset: '0',
+              accessToken: userAccessToken
+            }
+          });
+
+          if (applicationsError) {
+            console.warn(`Failed to fetch applications for job ${job.jobId}:`, applicationsError);
+            continue;
+          }
+
+          const jobApplications = applicationsData?.items || [];
+          console.log(`Found ${jobApplications.length} applications for job "${job.jobTitle}" (ID: ${job.jobId})`);
+          
+          // Add job context to each application
+          const applicationsWithJobContext = jobApplications.map((app: any) => ({
+            ...app,
+            job: {
+              ...app.job,
+              jobTitle: job.jobTitle,
+              jobId: job.jobId
+            }
+          }));
+          
+          allApplications = [...allApplications, ...applicationsWithJobContext];
+        } catch (error) {
+          console.warn(`Error fetching applications for job ${job.jobId}:`, error);
+        }
+      }
+
+      console.log(`Total applications from user's ${userJobs.length} jobs: ${allApplications.length}`);
+      return allApplications;
+
     } catch (error) {
-      console.error('Error fetching all job applications:', error);
+      console.error('Error fetching job applications from user jobs:', error);
       throw error;
     }
   }
