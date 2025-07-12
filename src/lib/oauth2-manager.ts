@@ -93,7 +93,7 @@ class JobAdderOAuth2Manager {
       const params = {
         response_type: 'code',
         client_id: clientId,
-        scope: 'read write offline_access',
+        scope: 'read write offline_access', // offline_access is required for refresh tokens
         redirect_uri: this.REDIRECT_URI,
         state: state
       };

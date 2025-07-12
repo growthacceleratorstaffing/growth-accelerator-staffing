@@ -90,6 +90,7 @@ serve(async (req) => {
           client_secret: clientSecret
         }
 
+        console.log('=== JOBADDER TOKEN EXCHANGE DEBUG ===')
         console.log('Token exchange request body:', {
           grant_type: tokenRequestBody.grant_type,
           client_id: tokenRequestBody.client_id,
@@ -97,6 +98,8 @@ serve(async (req) => {
           code: tokenRequestBody.code.substring(0, 10) + '...',
           full_redirect_uri: tokenRequestBody.redirect_uri // Log full URI for debugging
         })
+        console.log('Expected JobAdder app redirect URI:', redirect_uri)
+        console.log('=== END DEBUG ===')
 
         // Call JobAdder token endpoint
         const tokenResponse = await fetch('https://id.jobadder.com/connect/token', {
