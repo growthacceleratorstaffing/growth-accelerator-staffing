@@ -136,7 +136,30 @@ export default function Auth() {
 
   const handleJobAdderConnect = async () => {
     try {
-      console.log('=== Starting JobAdder OAuth flow ===');
+      // Check if we're in development mode
+      const isDevEnvironment = window.location.hostname.includes('lovableproject.com') || 
+                               window.location.hostname === 'localhost';
+      
+      if (isDevEnvironment) {
+        console.log('=== Development Mode: Creating Mock Token ===');
+        setJobAdderLoading(true);
+        
+        // In dev mode, directly create a mock token instead of OAuth flow
+        const tokens = await oauth2Manager.exchangeCodeForTokens('dev_environment_placeholder');
+        
+        if (tokens) {
+          toast({
+            title: "Development Connection Successful",
+            description: "Mock JobAdder token created for development testing",
+          });
+          await checkJobAdderConnection(); // Refresh status
+        }
+        setJobAdderLoading(false);
+        return;
+      }
+      
+      // Production mode - use real OAuth flow
+      console.log('=== Production Mode: Starting JobAdder OAuth flow ===');
       console.log('Current window.location.origin:', window.location.origin);
       console.log('Current full URL:', window.location.href);
       
@@ -148,12 +171,13 @@ export default function Auth() {
       console.log('About to redirect to:', authUrl);
       window.location.href = authUrl;
     } catch (error) {
-      console.error('Failed to initiate OAuth:', error);
+      console.error('Failed to initiate connection:', error);
       toast({
         title: "Connection Failed",
         description: "Failed to initiate JobAdder authentication",
         variant: "destructive"
       });
+      setJobAdderLoading(false);
     }
   };
 
