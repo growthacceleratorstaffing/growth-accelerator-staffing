@@ -78,8 +78,8 @@ const JobBoard = () => {
         
         <Tabs defaultValue="jobadder-board" className="mt-8">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="jobadder-board">JobAdder Board API</TabsTrigger>
-            <TabsTrigger value="jobadder-jobs">JobAdder Jobs</TabsTrigger>
+            <TabsTrigger value="jobadder-board">JobAdder Jobs</TabsTrigger>
+            <TabsTrigger value="jobadder-jobs">Job Postings</TabsTrigger>
             <TabsTrigger value="crawled">Career Page</TabsTrigger>
           </TabsList>
           
