@@ -108,9 +108,19 @@ export default function Auth() {
           await checkJobAdderConnection(); // Refresh status
         }
       } else {
-        // For production, attempt real API test
+        // For production, first check if we have a valid token
+        const accessToken = await oauth2Manager.getValidAccessToken();
+        
+        if (!accessToken) {
+          throw new Error('No valid access token available. Please re-authenticate with JobAdder.');
+        }
+        
+        // Test the API with the valid token
         const { data, error } = await supabase.functions.invoke('jobadder-api', {
-          body: { endpoint: 'current-user' }
+          body: { 
+            action: 'test-connection',
+            endpoint: 'current-user' 
+          }
         });
         
         if (data?.success) {

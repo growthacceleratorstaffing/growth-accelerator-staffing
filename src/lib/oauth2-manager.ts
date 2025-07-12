@@ -325,7 +325,7 @@ class JobAdderOAuth2Manager {
 
       const { data, error } = await supabase
         .from('jobadder_tokens')
-        .select('id, expires_at')
+        .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -342,10 +342,58 @@ class JobAdderOAuth2Manager {
       const isValid = expiresAt > now;
       
       console.log('JobAdder authentication status:', isValid ? 'Valid' : 'Expired');
+      console.log('Token details:', { 
+        hasToken: !!data.access_token, 
+        expiresAt: data.expires_at,
+        isExpired: expiresAt <= now 
+      });
+      
       return isValid;
     } catch (error) {
       console.error('Error checking authentication status:', error);
       return false;
+    }
+  }
+
+  /**
+   * Get a valid access token, refreshing if necessary
+   */
+  async getValidAccessToken(): Promise<string | null> {
+    try {
+      const userId = await this.getCurrentUserId();
+      if (!userId) return null;
+
+      const { data } = await supabase
+        .from('jobadder_tokens')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!data) return null;
+
+      // Check if token is still valid
+      const expiresAt = new Date(data.expires_at);
+      const now = new Date();
+      
+      if (expiresAt > now) {
+        // Token is still valid
+        return data.access_token;
+      }
+
+      // Token is expired, try to refresh
+      console.log('Token expired, attempting refresh...');
+      try {
+        const refreshedTokens = await this.refreshAccessToken();
+        return refreshedTokens.access_token;
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        // Clear expired tokens
+        await this.clearTokens();
+        return null;
+      }
+    } catch (error) {
+      console.error('Error getting valid access token:', error);
+      return null;
     }
   }
 
@@ -403,13 +451,6 @@ class JobAdderOAuth2Manager {
     };
   }
 
-  /**
-   * Legacy compatibility method
-   */
-  async getValidAccessToken(): Promise<string | null> {
-    console.warn('getValidAccessToken is deprecated. Tokens are managed server-side.');
-    return null;
-  }
 }
 
 // Create singleton instance
