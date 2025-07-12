@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import oauth2Manager from "@/lib/oauth2-manager";
+import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 
 const AuthCallback = () => {
@@ -69,6 +70,12 @@ const AuthCallback = () => {
       // Step 3: Exchange authorization code for tokens
       try {
         console.log('Step 3: Exchanging OAuth code for tokens...');
+        
+        // Get current user session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          throw new Error('User session not found - please sign in first');
+        }
         
         const tokenCode = code;
         const tokenResponse = await oauth2Manager.exchangeCodeForTokens(tokenCode);

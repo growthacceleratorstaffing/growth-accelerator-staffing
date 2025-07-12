@@ -944,6 +944,24 @@ serve(async (req) => {
           throw new Error('No authentication tokens found - please reconnect to JobAdder')
         }
 
+        console.log('Token data found:', { 
+          hasToken: !!tokenData.access_token, 
+          isDevToken: tokenData.access_token.startsWith('dev_token_'),
+          expiresAt: tokenData.expires_at 
+        });
+
+        // For dev tokens, skip API call and return success
+        if (tokenData.access_token.startsWith('dev_token_')) {
+          console.log('Dev token detected, returning mock success');
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Development token connection test successful',
+            user: { id: 'dev_user', name: 'Development User', email: 'dev@example.com' }
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
         if (new Date(tokenData.expires_at) <= new Date()) {
