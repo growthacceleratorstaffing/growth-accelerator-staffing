@@ -30,12 +30,22 @@ class JobAdderOAuth2Manager {
   private readonly REDIRECT_URI: string;
   
   constructor() {
-    // Use current domain for redirect URI - JobAdder requires consistency
-    this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
+    // Handle different environments properly
+    const isDevEnvironment = window.location.hostname.includes('lovableproject.com') || 
+                             window.location.hostname === 'localhost' ||
+                             window.location.hostname.includes('127.0.0.1');
+    
+    if (isDevEnvironment) {
+      // For development, use the current preview URL
+      this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
+    } else {
+      // For production, use the production URL
+      this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
+    }
+    
     console.log('=== OAUTH MANAGER CONSTRUCTOR ===');
+    console.log('Environment:', isDevEnvironment ? 'Development' : 'Production');
     console.log('window.location.origin:', window.location.origin);
-    console.log('window.location.hostname:', window.location.hostname);
-    console.log('window.location.href:', window.location.href);
     console.log('REDIRECT_URI set to:', this.REDIRECT_URI);
     console.log('=== END CONSTRUCTOR DEBUG ===');
   }
@@ -142,27 +152,16 @@ class JobAdderOAuth2Manager {
       console.log('Step 3: Exchanging authorization code for tokens...');
       console.log('Using redirect URI for token exchange:', this.REDIRECT_URI);
       
-      // Handle dev environment workaround - if no code provided, try to get from storage
-      let actualCode = code;
-      if (!code || code === 'dev_environment_placeholder') {
-        console.log('Dev environment detected - attempting workaround...');
-        const storedCode = sessionStorage.getItem('jobadder_oauth_code');
-        if (storedCode) {
-          actualCode = storedCode;
-          sessionStorage.removeItem('jobadder_oauth_code');
-          console.log('Using stored code from sessionStorage');
-        } else {
-          // For dev environment, create a test token response
-          console.warn('Creating dev environment test token...');
-          return this.createDevToken(userId);
-        }
+      // Validate we have a proper authorization code
+      if (!code || code.trim() === '') {
+        throw new Error('No authorization code provided. Please try the OAuth flow again.');
       }
       
       // Call server-side function to handle token exchange securely
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           action: 'exchange-token',
-          code: actualCode,
+          code: code,
           redirect_uri: this.REDIRECT_URI,
           grant_type: 'authorization_code'
         },
