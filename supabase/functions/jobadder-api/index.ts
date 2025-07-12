@@ -27,7 +27,14 @@ serve(async (req) => {
     const requestAction = endpoint || action
     const userId = req.headers.get('x-user-id')
 
-    console.log('JobAdder API request:', { action: requestAction, userId: userId ? 'present' : 'missing' })
+    console.log('JobAdder API request:', { 
+      action: requestAction, 
+      userId: userId ? 'present' : 'missing',
+      params,
+      headers: Object.fromEntries(req.headers.entries())
+    })
+
+    
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -632,19 +639,32 @@ serve(async (req) => {
           queryParams.append('search', search)
         }
 
-        // Make API call to get jobs
-        const apiUrl = `${tokenData.api_base_url}/jobs?${queryParams}`
-        
-        const response = await fetch(apiUrl, {
+        // Make API call to get jobs - try multiple possible endpoints
+        let apiUrl = `${tokenData.api_base_url}/jobs?${queryParams}`
+        let response = await fetch(apiUrl, {
           headers: {
             'Authorization': `Bearer ${currentToken}`,
             'Content-Type': 'application/json',
           }
         })
 
+        // If the first endpoint fails, try alternative endpoints
+        if (!response.ok) {
+          console.log(`Jobs endpoint failed: ${response.status}. Trying alternative endpoints...`)
+          
+          // Try /jobads
+          apiUrl = `${tokenData.api_base_url}/jobads?${queryParams}`
+          response = await fetch(apiUrl, {
+            headers: {
+              'Authorization': `Bearer ${currentToken}`,
+              'Content-Type': 'application/json',
+            }
+          })
+        }
+
         if (!response.ok) {
           const errorText = await response.text()
-          console.error(`Failed to fetch jobs: ${response.status} - ${errorText}`)
+          console.error(`Failed to fetch jobs from ${apiUrl}: ${response.status} - ${errorText}`)
           throw new Error(`Failed to fetch jobs: ${response.status} - ${errorText}`)
         }
 
@@ -722,12 +742,12 @@ serve(async (req) => {
           queryParams.append('search', search.trim())
         }
 
-        // Make API call to get job applications (applicants) - correct JobAdder endpoint
-        const apiUrl = `${tokenData.api_base_url}/jobapplications?${queryParams.toString()}`
+        // Make API call to get job applications (applicants) - try multiple possible endpoints
+        let apiUrl = `${tokenData.api_base_url}/jobapplications?${queryParams.toString()}`
         
         console.log('Job Applications (Candidates) API call:', apiUrl)
         
-        const response = await fetch(apiUrl, {
+        let response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${currentToken}`,
@@ -736,9 +756,25 @@ serve(async (req) => {
           }
         })
 
+        // If the first endpoint fails, try alternative endpoints
+        if (!response.ok) {
+          console.log(`JobApplications endpoint failed: ${response.status}. Trying alternative endpoints...`)
+          
+          // Try /candidates endpoint
+          apiUrl = `${tokenData.api_base_url}/candidates?${queryParams.toString()}`
+          response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${currentToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          })
+        }
+
         if (!response.ok) {
           const errorText = await response.text()
-          console.error(`Failed to fetch job applications: ${response.status} - ${errorText}`)
+          console.error(`Failed to fetch job applications from ${apiUrl}: ${response.status} - ${errorText}`)
           throw new Error(`Failed to fetch job applications: ${response.status} - ${errorText}`)
         }
 
@@ -982,19 +1018,44 @@ serve(async (req) => {
           }
         }
 
-        // Make API call to get current user
-        const apiUrl = `${tokenData.api_base_url}/users/current`
-        
-        const response = await fetch(apiUrl, {
+        // Make API call to get current user - try multiple possible endpoints
+        let apiUrl = `${tokenData.api_base_url}/users/current`
+        let response = await fetch(apiUrl, {
           headers: {
             'Authorization': `Bearer ${currentToken}`,
             'Content-Type': 'application/json',
           }
         })
 
+        // If the first endpoint fails, try alternative endpoints
+        if (!response.ok) {
+          console.log(`First attempt failed: ${response.status}. Trying alternative endpoints...`)
+          
+          // Try /user/current 
+          apiUrl = `${tokenData.api_base_url}/user/current`
+          response = await fetch(apiUrl, {
+            headers: {
+              'Authorization': `Bearer ${currentToken}`,
+              'Content-Type': 'application/json',
+            }
+          })
+          
+          // If still fails, try /user
+          if (!response.ok) {
+            console.log(`Second attempt failed: ${response.status}. Trying /user...`)
+            apiUrl = `${tokenData.api_base_url}/user`
+            response = await fetch(apiUrl, {
+              headers: {
+                'Authorization': `Bearer ${currentToken}`,
+                'Content-Type': 'application/json',
+              }
+            })
+          }
+        }
+
         if (!response.ok) {
           const errorText = await response.text()
-          console.error(`Failed to fetch current user: ${response.status} - ${errorText}`)
+          console.error(`Failed to fetch current user from ${apiUrl}: ${response.status} - ${errorText}`)
           throw new Error(`Failed to fetch current user: ${response.status} - ${errorText}`)
         }
 
