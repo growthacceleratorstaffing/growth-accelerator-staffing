@@ -30,22 +30,24 @@ class JobAdderOAuth2Manager {
   private readonly REDIRECT_URI: string;
   
   constructor() {
-    // Handle different environments properly
-    const isDevEnvironment = window.location.hostname.includes('lovableproject.com') || 
-                             window.location.hostname === 'localhost' ||
-                             window.location.hostname.includes('127.0.0.1');
+    // Set redirect URI based on environment - must match JobAdder app configuration exactly
+    const hostname = window.location.hostname;
+    const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLovableDev = hostname.includes('lovableproject.com');
     
-    if (isDevEnvironment) {
-      // For development, use the current preview URL
+    if (isLocalDev) {
+      // For local development
+      this.REDIRECT_URI = `http://localhost:5173/auth/callback`;
+    } else if (isLovableDev) {
+      // For Lovable preview environment
       this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     } else {
-      // For production, use the production URL
+      // For production
       this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     }
     
     console.log('=== OAUTH MANAGER CONSTRUCTOR ===');
-    console.log('Environment:', isDevEnvironment ? 'Development' : 'Production');
-    console.log('window.location.origin:', window.location.origin);
+    console.log('Environment detected:', { isLocalDev, isLovableDev, hostname });
     console.log('REDIRECT_URI set to:', this.REDIRECT_URI);
     console.log('=== END CONSTRUCTOR DEBUG ===');
   }
