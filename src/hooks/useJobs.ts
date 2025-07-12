@@ -1,6 +1,24 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 
+export interface JobAdderCandidate {
+  applicationId: number;
+  jobId: number;
+  candidate: {
+    candidateId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+  };
+  status: {
+    statusId: number;
+    name: string;
+  };
+  appliedAt: string;
+  stage: string;
+}
+
 export interface JobAdderJob {
   adId: number;
   title: string;
@@ -59,6 +77,8 @@ export interface JobAdderJob {
     lastName: string;
     email: string;
   };
+  // Add candidates array to jobs
+  candidates?: JobAdderCandidate[];
 }
 
 // Mock data as fallback - updated to match Job Board API structure
@@ -185,59 +205,7 @@ export function useJobs() {
     setError(null);
 
     try {
-      // First, fetch local jobs from database
-      let localJobsQuery = supabase
-        .from('jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (searchTerm) {
-        localJobsQuery = localJobsQuery.or(`title.ilike.%${searchTerm}%,job_description.ilike.%${searchTerm}%`);
-      }
-
-      const { data: localJobs, error: localError } = await localJobsQuery;
-      
-      if (localError) {
-        console.warn('Error fetching local jobs:', localError);
-      }
-
-      // Transform local jobs to match JobAdderJob interface
-      const transformedLocalJobs: JobAdderJob[] = (localJobs || []).map(job => ({
-        adId: parseInt(job.id.slice(-8), 16), // Convert UUID to number for compatibility
-        title: job.title,
-        reference: `LOCAL-${job.id.slice(0, 8)}`,
-        summary: job.job_description?.substring(0, 200) + '...' || '',
-        bulletPoints: [],
-        description: job.job_description || '',
-        company: {
-          companyId: parseInt(job.company_id || '0'),
-          name: job.company_name || `Company ${job.company_id || 'Unknown'}`
-        },
-        location: {
-          locationId: parseInt(job.location_id || '0'),
-          name: job.location_name || `Location ${job.location_id || 'Unknown'}`
-        },
-        workType: {
-          workTypeId: parseInt(job.work_type_id || '1'),
-          name: job.work_type_name || getWorkTypeName(job.work_type_id)
-        },
-        salary: job.salary_rate_low || job.salary_rate_high ? {
-          ratePer: job.salary_rate_per || 'Year',
-          rateLow: job.salary_rate_low || undefined,
-          rateHigh: job.salary_rate_high || undefined,
-          currency: job.salary_currency || 'USD'
-        } : undefined,
-        postAt: job.created_at,
-        expireAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-        owner: {
-          userId: 0, // System generated job
-          firstName: 'System',
-          lastName: 'Generated',
-          email: 'system@platform.local'
-        }
-      }));
-
-      // Try to fetch jobs from JobAdder API
+      // Fetch jobs from JobAdder JobBoard (primary source)
       let jobAdderJobs: JobAdderJob[] = [];
       try {
         // Get user access token from OAuth2 manager
@@ -245,22 +213,64 @@ export function useJobs() {
         const userAccessToken = await oauth2Manager.getValidAccessToken();
         
         if (userAccessToken) {
-          const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
-            body: { 
-              endpoint: 'jobboards',
-              boardId: boardId,
-              limit: 50,
-              offset: 0,
-              search: searchTerm,
-              accessToken: userAccessToken
-            }
-          });
+          // Get current user ID
+          const { data: { session } } = await supabase.auth.getSession();
+          const userId = session?.user?.id;
+          
+          if (userId) {
+            // Fetch jobs from JobBoard
+            const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jobadder-api', {
+              body: { 
+                endpoint: 'jobboard-jobads',
+                jobboardId: boardId,
+                limit: 50,
+                offset: 0,
+                search: searchTerm
+              },
+              headers: {
+                'x-user-id': userId
+              }
+            });
 
-          if (!supabaseError && data?.items) {
-            jobAdderJobs = data.items;
-            console.log('Fetched JobAdder jobs:', jobAdderJobs.length);
-          } else {
-            console.warn('JobAdder API call failed:', supabaseError);
+            if (!jobsError && jobsData?.data?.items) {
+              jobAdderJobs = jobsData.data.items;
+              console.log('Fetched JobAdder JobBoard jobs:', jobAdderJobs.length);
+
+              // For each job, fetch related candidates/applicants
+              const jobsWithCandidates = await Promise.all(
+                jobAdderJobs.map(async (job) => {
+                  try {
+                    const { data: candidatesData, error: candidatesError } = await supabase.functions.invoke('jobadder-api', {
+                      body: { 
+                        endpoint: 'job-applications',
+                        jobId: job.adId.toString(),
+                        limit: 100,
+                        offset: 0
+                      },
+                      headers: {
+                        'x-user-id': userId
+                      }
+                    });
+
+                    if (!candidatesError && candidatesData?.data?.items) {
+                      job.candidates = candidatesData.data.items;
+                      console.log(`Job ${job.title} has ${job.candidates.length} candidates`);
+                    } else {
+                      job.candidates = [];
+                      console.warn(`No candidates found for job ${job.title}:`, candidatesError);
+                    }
+                  } catch (candidateErr) {
+                    console.warn(`Error fetching candidates for job ${job.title}:`, candidateErr);
+                    job.candidates = [];
+                  }
+                  return job;
+                })
+              );
+
+              jobAdderJobs = jobsWithCandidates;
+            } else {
+              console.warn('JobAdder JobBoard API call failed:', jobsError);
+            }
           }
         } else {
           console.warn('No JobAdder access token available - user needs to authenticate');
@@ -269,12 +279,68 @@ export function useJobs() {
         console.warn('JobAdder API error:', err);
       }
 
-      // Combine local and JobAdder jobs
-      const allJobs = [...transformedLocalJobs, ...jobAdderJobs];
+      // Also fetch local jobs from database as backup
+      let localJobs: JobAdderJob[] = [];
+      try {
+        let localJobsQuery = supabase
+          .from('jobs')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (searchTerm) {
+          localJobsQuery = localJobsQuery.or(`title.ilike.%${searchTerm}%,job_description.ilike.%${searchTerm}%`);
+        }
+
+        const { data: localJobsData, error: localError } = await localJobsQuery;
+        
+        if (!localError && localJobsData) {
+          // Transform local jobs to match JobAdderJob interface
+          localJobs = localJobsData.map(job => ({
+            adId: parseInt(job.id.slice(-8), 16), // Convert UUID to number for compatibility
+            title: job.title,
+            reference: `LOCAL-${job.id.slice(0, 8)}`,
+            summary: job.job_description?.substring(0, 200) + '...' || '',
+            bulletPoints: [],
+            description: job.job_description || '',
+            company: {
+              companyId: parseInt(job.company_id || '0'),
+              name: job.company_name || `Company ${job.company_id || 'Unknown'}`
+            },
+            location: {
+              locationId: parseInt(job.location_id || '0'),
+              name: job.location_name || `Location ${job.location_id || 'Unknown'}`
+            },
+            workType: {
+              workTypeId: parseInt(job.work_type_id || '1'),
+              name: job.work_type_name || getWorkTypeName(job.work_type_id)
+            },
+            salary: job.salary_rate_low || job.salary_rate_high ? {
+              ratePer: job.salary_rate_per || 'Year',
+              rateLow: job.salary_rate_low || undefined,
+              rateHigh: job.salary_rate_high || undefined,
+              currency: job.salary_currency || 'USD'
+            } : undefined,
+            postAt: job.created_at,
+            expireAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+            owner: {
+              userId: 0, // System generated job
+              firstName: 'System',
+              lastName: 'Generated',
+              email: 'system@platform.local'
+            },
+            candidates: [] // No candidates for local jobs
+          }));
+        }
+      } catch (localErr) {
+        console.warn('Error fetching local jobs:', localErr);
+      }
+
+      // Use JobAdder jobs as primary, local jobs as secondary
+      const allJobs = [...jobAdderJobs, ...localJobs];
       setJobs(allJobs);
       setUseMockData(false);
       
-      if (jobAdderJobs.length === 0 && transformedLocalJobs.length === 0) {
+      if (allJobs.length === 0) {
         // Fallback to mock data only if no jobs found anywhere
         let filteredJobs = mockJobs;
         if (searchTerm) {
@@ -286,10 +352,12 @@ export function useJobs() {
         }
         setJobs(filteredJobs);
         setUseMockData(true);
-        setError('Using demo data - No jobs found');
+        setError('Using demo data - Connect to JobAdder to see real jobs');
       }
       
-      console.log('Total jobs loaded:', allJobs.length, '(', transformedLocalJobs.length, 'local,', jobAdderJobs.length, 'JobAdder)');
+      console.log('Total jobs loaded:', allJobs.length, '(', jobAdderJobs.length, 'JobBoard,', localJobs.length, 'local)');
+      const totalCandidates = allJobs.reduce((sum, job) => sum + (job.candidates?.length || 0), 0);
+      console.log('Total candidates across all jobs:', totalCandidates);
     } catch (err) {
       console.error('Error fetching jobs:', err);
       setError(err.message || 'Failed to fetch jobs');

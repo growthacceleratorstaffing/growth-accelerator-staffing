@@ -148,6 +148,13 @@ const Jobs = () => {
                               <MapPin className="h-4 w-4" />
                               {job.location.name}
                             </span>
+                            {job.candidates && job.candidates.length > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Badge variant="outline">
+                                  {job.candidates.length} Applicant{job.candidates.length !== 1 ? 's' : ''}
+                                </Badge>
+                              </span>
+                            )}
                           </CardDescription>
                         </div>
                         <div className="text-right">
@@ -161,6 +168,24 @@ const Jobs = () => {
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground mb-4">{job.summary}</p>
+                      {job.candidates && job.candidates.length > 0 && (
+                        <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                          <h4 className="text-sm font-medium mb-2">Recent Applicants:</h4>
+                          <div className="space-y-1">
+                            {job.candidates.slice(0, 3).map((candidate, idx) => (
+                              <div key={idx} className="text-xs text-muted-foreground flex justify-between">
+                                <span>{candidate.candidate.firstName} {candidate.candidate.lastName}</span>
+                                <span>{candidate.status.name}</span>
+                              </div>
+                            ))}
+                            {job.candidates.length > 3 && (
+                              <div className="text-xs text-muted-foreground">
+                                +{job.candidates.length - 3} more applicants
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div className="flex justify-between items-center">
                        <div className="flex items-center gap-4">
                           <span className="flex items-center gap-1 font-semibold">
@@ -176,7 +201,7 @@ const Jobs = () => {
                             </span>
                             <Badge variant="outline" className="flex items-center gap-1">
                               <ExternalLink className="h-3 w-3" />
-                              JobAdder
+                              JobBoard
                             </Badge>
                           </div>
                         </div>
