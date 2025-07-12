@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 
-export interface JobAdderCandidate {
+export interface JobAdderApplicant {
   applicationId: number;
   jobId: number;
   candidate: {
@@ -77,8 +77,8 @@ export interface JobAdderJob {
     lastName: string;
     email: string;
   };
-  // Add candidates array to jobs
-  candidates?: JobAdderCandidate[];
+  // Add applicants array to jobs (people who applied to this specific job)
+  applicants?: JobAdderApplicant[];
 }
 
 // Mock data as fallback - updated to match Job Board API structure
@@ -236,11 +236,11 @@ export function useJobs() {
               jobAdderJobs = jobsData.data.items;
               console.log('Fetched JobAdder JobBoard jobs:', jobAdderJobs.length);
 
-              // For each job, fetch related candidates/applicants
-              const jobsWithCandidates = await Promise.all(
+              // For each job, fetch related applicants (people who applied to this job)
+              const jobsWithApplicants = await Promise.all(
                 jobAdderJobs.map(async (job) => {
                   try {
-                    const { data: candidatesData, error: candidatesError } = await supabase.functions.invoke('jobadder-api', {
+                    const { data: applicantsData, error: applicantsError } = await supabase.functions.invoke('jobadder-api', {
                       body: { 
                         endpoint: 'job-applications',
                         jobId: job.adId.toString(),
@@ -252,22 +252,22 @@ export function useJobs() {
                       }
                     });
 
-                    if (!candidatesError && candidatesData?.data?.items) {
-                      job.candidates = candidatesData.data.items;
-                      console.log(`Job ${job.title} has ${job.candidates.length} candidates`);
+                    if (!applicantsError && applicantsData?.data?.items) {
+                      job.applicants = applicantsData.data.items;
+                      console.log(`Job ${job.title} has ${job.applicants.length} applicants`);
                     } else {
-                      job.candidates = [];
-                      console.warn(`No candidates found for job ${job.title}:`, candidatesError);
+                      job.applicants = [];
+                      console.warn(`No applicants found for job ${job.title}:`, applicantsError);
                     }
-                  } catch (candidateErr) {
-                    console.warn(`Error fetching candidates for job ${job.title}:`, candidateErr);
-                    job.candidates = [];
+                  } catch (applicantErr) {
+                    console.warn(`Error fetching applicants for job ${job.title}:`, applicantErr);
+                    job.applicants = [];
                   }
                   return job;
                 })
               );
 
-              jobAdderJobs = jobsWithCandidates;
+              jobAdderJobs = jobsWithApplicants;
             } else {
               console.warn('JobAdder JobBoard API call failed:', jobsError);
             }
@@ -328,7 +328,7 @@ export function useJobs() {
               lastName: 'Generated',
               email: 'system@platform.local'
             },
-            candidates: [] // No candidates for local jobs
+            applicants: [] // No applicants for local jobs
           }));
         }
       } catch (localErr) {
@@ -356,8 +356,8 @@ export function useJobs() {
       }
       
       console.log('Total jobs loaded:', allJobs.length, '(', jobAdderJobs.length, 'JobBoard,', localJobs.length, 'local)');
-      const totalCandidates = allJobs.reduce((sum, job) => sum + (job.candidates?.length || 0), 0);
-      console.log('Total candidates across all jobs:', totalCandidates);
+      const totalApplicants = allJobs.reduce((sum, job) => sum + (job.applicants?.length || 0), 0);
+      console.log('Total applicants across all jobs:', totalApplicants);
     } catch (err) {
       console.error('Error fetching jobs:', err);
       setError(err.message || 'Failed to fetch jobs');
