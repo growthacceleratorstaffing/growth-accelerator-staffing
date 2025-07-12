@@ -119,11 +119,14 @@ const AuthCallback = () => {
         <Card>
           <CardHeader>
             <CardTitle>Authenticating...</CardTitle>
-            <CardDescription>Processing your Startup Accelerator API authentication</CardDescription>
+            <CardDescription>Processing your JobAdder authentication</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+            <div className="text-center text-sm text-muted-foreground">
+              Current URL: {window.location.href}
             </div>
           </CardContent>
         </Card>
@@ -140,7 +143,7 @@ const AuthCallback = () => {
               <AlertCircle className="h-5 w-5 text-destructive" />
               Authentication Failed
             </CardTitle>
-            <CardDescription>There was an issue with your Startup Accelerator API authentication</CardDescription>
+            <CardDescription>There was an issue with your JobAdder authentication</CardDescription>
           </CardHeader>
           <CardContent>
             <Alert variant="destructive" className="mb-4">
@@ -195,13 +198,13 @@ const AuthCallback = () => {
               <CheckCircle className="h-5 w-5 text-green-600" />
               Authentication Successful!
             </CardTitle>
-            <CardDescription>You have successfully connected to the Startup Accelerator API</CardDescription>
+            <CardDescription>You have successfully connected to JobAdder</CardDescription>
           </CardHeader>
           <CardContent>
             <Alert className="mb-4">
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Your Startup Accelerator API connection is now active and tokens will be automatically refreshed.
+                Your JobAdder connection is now active and tokens will be automatically refreshed.
                 Redirecting to jobs page...
               </AlertDescription>
             </Alert>
