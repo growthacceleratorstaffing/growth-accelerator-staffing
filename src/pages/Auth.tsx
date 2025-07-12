@@ -115,11 +115,19 @@ export default function Auth() {
           throw new Error('No valid access token available. Please re-authenticate with JobAdder.');
         }
         
+        // Get current user session for API call
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          throw new Error('User session not found');
+        }
+        
         // Test the API with the valid token
         const { data, error } = await supabase.functions.invoke('jobadder-api', {
           body: { 
-            action: 'test-connection',
-            endpoint: 'current-user' 
+            action: 'test-connection'
+          },
+          headers: {
+            'x-user-id': session.user.id
           }
         });
         

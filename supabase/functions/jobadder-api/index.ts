@@ -928,6 +928,92 @@ serve(async (req) => {
         })
       }
 
+      case 'test-connection': {
+        // Test JobAdder API connection with current token
+        if (!userId) {
+          throw new Error('User ID required for connection test')
+        }
+
+        const { data: tokenData, error: fetchError } = await supabase
+          .from('jobadder_tokens')
+          .select('access_token, expires_at, api_base_url, refresh_token')
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (fetchError || !tokenData) {
+          throw new Error('No authentication tokens found - please reconnect to JobAdder')
+        }
+
+        // Check if token is expired and refresh if needed
+        let currentToken = tokenData.access_token
+        if (new Date(tokenData.expires_at) <= new Date()) {
+          console.log('Token expired during test, attempting refresh...')
+          
+          if (!tokenData.refresh_token) {
+            throw new Error('Token expired and no refresh token available - please reconnect to JobAdder')
+          }
+
+          try {
+            const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                grant_type: 'refresh_token',
+                refresh_token: tokenData.refresh_token,
+                client_id: clientId,
+                client_secret: clientSecret
+              })
+            })
+
+            if (!refreshResponse.ok) {
+              throw new Error('Token refresh failed - please reconnect to JobAdder')
+            }
+
+            const refreshData = await refreshResponse.json()
+            await supabase
+              .from('jobadder_tokens')
+              .update({
+                access_token: refreshData.access_token,
+                expires_at: new Date(Date.now() + (refreshData.expires_in * 1000)).toISOString(),
+                refresh_token: refreshData.refresh_token || tokenData.refresh_token
+              })
+              .eq('user_id', userId)
+            currentToken = refreshData.access_token
+            console.log('Token refreshed successfully during test')
+          } catch (refreshError) {
+            console.error('Token refresh failed during test:', refreshError)
+            throw new Error('Token expired and refresh failed - please reconnect to JobAdder')
+          }
+        }
+
+        // Test the connection by calling the current user endpoint
+        const apiUrl = `${tokenData.api_base_url}/users/current`
+        console.log(`Testing connection to: ${apiUrl}`)
+        
+        const response = await fetch(apiUrl, {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`,
+            'Content-Type': 'application/json',
+          }
+        })
+
+        if (!response.ok) {
+          console.error(`Connection test failed: ${response.status} ${response.statusText}`)
+          throw new Error(`Connection test failed: ${response.status} - ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        console.log('Connection test successful')
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'JobAdder API connection test successful',
+          user: data
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       default:
         throw new Error(`Unknown action: ${requestAction}`)
     }
