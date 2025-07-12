@@ -659,8 +659,8 @@ serve(async (req) => {
       }
 
       case 'candidates': {
-        // Get candidates
-        const { limit = 20, offset = 0, search } = params
+        // Get candidates according to JobAdder API documentation
+        const { limit = 50, offset = 0, search } = params
         
         if (!userId) {
           throw new Error('User ID required for candidate access')
@@ -678,11 +678,9 @@ serve(async (req) => {
           throw new Error('No authentication tokens found - please reconnect to JobAdder')
         }
 
-
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
         if (new Date(tokenData.expires_at) <= new Date()) {
-          // Token refresh logic (same as above)
           if (!tokenData.refresh_token) {
             throw new Error('Token expired and no refresh token available')
           }
@@ -712,23 +710,29 @@ serve(async (req) => {
           }
         }
 
-        // Build query parameters
-        const queryParams = new URLSearchParams({
-          limit: limit.toString(),
-          offset: offset.toString()
-        })
+        // Build query parameters according to JobAdder API spec
+        const queryParams = new URLSearchParams()
         
-        if (search) {
-          queryParams.append('search', search)
+        // Core pagination parameters
+        queryParams.append('limit', Math.min(limit, 100).toString()) // JobAdder max is 100
+        queryParams.append('offset', offset.toString())
+        
+        // Search parameter
+        if (search && search.trim()) {
+          queryParams.append('search', search.trim())
         }
 
-        // Make API call to get candidates
-        const apiUrl = `${tokenData.api_base_url}/candidates?${queryParams}`
+        // Make API call to get candidates - using JobAdder /candidates endpoint
+        const apiUrl = `${tokenData.api_base_url}/candidates?${queryParams.toString()}`
+        
+        console.log('Candidates API call:', apiUrl)
         
         const response = await fetch(apiUrl, {
+          method: 'GET',
           headers: {
             'Authorization': `Bearer ${currentToken}`,
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
           }
         })
 
@@ -739,10 +743,16 @@ serve(async (req) => {
         }
 
         const data = await response.json()
+        console.log('Candidates response:', JSON.stringify(data, null, 2))
 
         return new Response(JSON.stringify({
           success: true,
-          data
+          data: {
+            items: data.items || [],
+            totalCount: data.totalCount || 0,
+            limit: data.limit || limit,
+            offset: data.offset || offset
+          }
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
