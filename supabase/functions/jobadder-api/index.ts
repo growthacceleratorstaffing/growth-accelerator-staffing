@@ -386,24 +386,6 @@ serve(async (req) => {
           throw new Error('No authentication tokens found - please reconnect to JobAdder')
         }
 
-        // Handle dev environment - return mock job boards for dev tokens
-        if (tokenData.access_token.startsWith('dev_token_')) {
-          console.log('Dev environment detected - returning mock job boards')
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              items: [
-                {
-                  jobBoardId: 8734,
-                  name: "Demo Job Board",
-                  description: "Development test job board"
-                }
-              ]
-            }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
 
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
@@ -503,46 +485,6 @@ serve(async (req) => {
           throw new Error('No authentication tokens found - please reconnect to JobAdder')
         }
 
-        // Handle dev environment - return mock job ads for dev tokens
-        if (tokenData.access_token.startsWith('dev_token_')) {
-          console.log('Dev environment detected - returning mock job ads')
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              items: [
-                {
-                  jobAdId: 12345,
-                  reference: "DEV-001",
-                  title: "Frontend Developer",
-                  summary: "Exciting opportunity for a Frontend Developer",
-                  location: { name: "Amsterdam, Netherlands" },
-                  workType: { name: "Full-time" },
-                  category: { name: "Information Technology" },
-                  advertiser: { name: "Demo Company" },
-                  status: { name: "Published" },
-                  dateCreated: new Date().toISOString(),
-                  dateUpdated: new Date().toISOString()
-                },
-                {
-                  jobAdId: 12346,
-                  reference: "DEV-002", 
-                  title: "Backend Developer",
-                  summary: "Great opportunity for a Backend Developer",
-                  location: { name: "Rotterdam, Netherlands" },
-                  workType: { name: "Full-time" },
-                  category: { name: "Information Technology" },
-                  advertiser: { name: "Demo Company" },
-                  status: { name: "Published" },
-                  dateCreated: new Date().toISOString(),
-                  dateUpdated: new Date().toISOString()
-                }
-              ],
-              count: 2
-            }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
 
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
@@ -646,46 +588,6 @@ serve(async (req) => {
           throw new Error('No authentication tokens found - please reconnect to JobAdder')
         }
 
-        // Handle dev environment - return mock jobs for dev tokens
-        if (tokenData.access_token.startsWith('dev_token_')) {
-          console.log('Dev environment detected - returning mock jobs')
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              items: [
-                {
-                  jobId: 54321,
-                  reference: "DEV-JOB-001",
-                  title: "Senior React Developer",
-                  summary: "Looking for an experienced React developer",
-                  status: { name: "Open" },
-                  location: { name: "Amsterdam, Netherlands" },
-                  workType: { name: "Full-time" },
-                  category: { name: "Information Technology" },
-                  advertiser: { name: "Tech Company" },
-                  dateCreated: new Date().toISOString(),
-                  dateUpdated: new Date().toISOString()
-                },
-                {
-                  jobId: 54322,
-                  reference: "DEV-JOB-002", 
-                  title: "Python Backend Developer",
-                  summary: "Backend developer for our Python stack",
-                  status: { name: "Open" },
-                  location: { name: "Rotterdam, Netherlands" },
-                  workType: { name: "Full-time" },
-                  category: { name: "Information Technology" },
-                  advertiser: { name: "Startup Company" },
-                  dateCreated: new Date().toISOString(),
-                  dateUpdated: new Date().toISOString()
-                }
-              ],
-              count: 2
-            }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
 
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
@@ -774,46 +676,6 @@ serve(async (req) => {
           throw new Error('No authentication tokens found - please reconnect to JobAdder')
         }
 
-        // Handle dev environment - return mock candidates for dev tokens
-        if (tokenData.access_token.startsWith('dev_token_')) {
-          console.log('Dev environment detected - returning mock candidates')
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              items: [
-                {
-                  candidateId: 67890,
-                  firstName: "John",
-                  lastName: "Doe", 
-                  email: "john.doe@example.com",
-                  phone: "+31 6 12345678",
-                  location: { name: "Amsterdam, Netherlands" },
-                  workRights: [{ name: "European Union" }],
-                  skills: ["React", "TypeScript", "Node.js"],
-                  status: { name: "Available" },
-                  dateCreated: new Date().toISOString(),
-                  dateUpdated: new Date().toISOString()
-                },
-                {
-                  candidateId: 67891,
-                  firstName: "Jane",
-                  lastName: "Smith",
-                  email: "jane.smith@example.com", 
-                  phone: "+31 6 87654321",
-                  location: { name: "Utrecht, Netherlands" },
-                  workRights: [{ name: "European Union" }],
-                  skills: ["Python", "Django", "PostgreSQL"],
-                  status: { name: "Available" },
-                  dateCreated: new Date().toISOString(),
-                  dateUpdated: new Date().toISOString()
-                }
-              ],
-              count: 2
-            }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
 
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
@@ -986,54 +848,6 @@ serve(async (req) => {
           throw new Error('No authentication tokens found - please reconnect to JobAdder')
         }
 
-        // Handle dev environment - return mock applications for dev tokens
-        if (tokenData.access_token.startsWith('dev_token_')) {
-          console.log('Dev environment detected - returning mock applications')
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              items: [
-                {
-                  applicationId: 98765,
-                  candidate: {
-                    candidateId: 67890,
-                    firstName: "John",
-                    lastName: "Doe",
-                    email: "john.doe@example.com"
-                  },
-                  job: {
-                    jobId: 54321,
-                    title: "Senior React Developer",
-                    reference: "DEV-JOB-001"
-                  },
-                  status: { name: "Applied" },
-                  appliedDate: new Date().toISOString(),
-                  source: "Direct Application"
-                },
-                {
-                  applicationId: 98766,
-                  candidate: {
-                    candidateId: 67891,
-                    firstName: "Jane",
-                    lastName: "Smith",
-                    email: "jane.smith@example.com"
-                  },
-                  job: {
-                    jobId: 54322,
-                    title: "Python Backend Developer",
-                    reference: "DEV-JOB-002"
-                  },
-                  status: { name: "In Review" },
-                  appliedDate: new Date().toISOString(),
-                  source: "LinkedIn"
-                }
-              ],
-              count: 2
-            }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
 
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
@@ -1119,24 +933,6 @@ serve(async (req) => {
           throw new Error('No authentication tokens found - please reconnect to JobAdder')
         }
 
-        // Handle dev environment - return mock user for dev tokens
-        if (tokenData.access_token.startsWith('dev_token_')) {
-          console.log('Dev environment detected - returning mock current user')
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              userId: 'dev_user_123',
-              firstName: 'Dev',
-              lastName: 'User',
-              email: 'dev@example.com',
-              companyName: 'Development Company',
-              permissions: ['read', 'write'],
-              role: 'Administrator'
-            }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
 
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
@@ -1218,17 +1014,6 @@ serve(async (req) => {
           expiresAt: tokenData.expires_at 
         });
 
-        // For dev tokens, skip API call and return success
-        if (tokenData.access_token.startsWith('dev_token_')) {
-          console.log('Dev token detected, returning mock success');
-          return new Response(JSON.stringify({
-            success: true,
-            message: 'Development token connection test successful',
-            user: { id: 'dev_user', name: 'Development User', email: 'dev@example.com' }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
 
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
