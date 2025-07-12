@@ -1,0 +1,1 @@
+DELETE FROM jobadder_tokens WHERE access_token LIKE 'dev_token_%';
