@@ -336,7 +336,14 @@ class JobAdderOAuth2Manager {
       
       if (!data) return false;
       
-      // Check if token is still valid (not expired)
+      // For dev tokens, always consider them valid (they don't expire in the same way)
+      const isDevToken = data.access_token.startsWith('dev_token_');
+      if (isDevToken) {
+        console.log('JobAdder authentication status: Valid (dev token)');
+        return true;
+      }
+      
+      // For real tokens, check if they're still valid (not expired)
       const expiresAt = new Date(data.expires_at);
       const now = new Date();
       const isValid = expiresAt > now;
@@ -371,7 +378,13 @@ class JobAdderOAuth2Manager {
 
       if (!data) return null;
 
-      // Check if token is still valid
+      // For dev tokens, they're always valid
+      const isDevToken = data.access_token.startsWith('dev_token_');
+      if (isDevToken) {
+        return data.access_token;
+      }
+
+      // For real tokens, check if they're still valid
       const expiresAt = new Date(data.expires_at);
       const now = new Date();
       
