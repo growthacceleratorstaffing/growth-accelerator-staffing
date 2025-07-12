@@ -34,21 +34,18 @@ class JobAdderOAuth2Manager {
     console.log('Current window.location.origin:', window.location.origin);
     console.log('Current full URL:', window.location.href);
     
-    // Use the exact hardcoded URLs that were working before
+    // Determine redirect URI based on environment - must be consistent throughout OAuth flow
     const hostname = window.location.hostname;
     
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      // Local development - hardcoded URL that worked
+      // Local development
       this.REDIRECT_URI = 'http://localhost:5173/auth/callback';
-    } else if (hostname.includes('lovableproject.com')) {
-      // Lovable preview - hardcoded URL that worked  
-      this.REDIRECT_URI = 'https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback';
     } else {
-      // Production deployment
+      // Production and preview - use current origin
       this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     }
     
-    console.log('REDIRECT_URI set to:', this.REDIRECT_URI);
+    console.log('Final REDIRECT_URI set to:', this.REDIRECT_URI);
   }
 
   /**
@@ -102,11 +99,13 @@ class JobAdderOAuth2Manager {
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
         .join('&');
       
-      // Store state for step 2 validation
+      // Store state AND redirect_uri for consistency in step 3
       localStorage.setItem('jobadder_oauth_state', state);
+      localStorage.setItem('jobadder_oauth_redirect_uri', this.REDIRECT_URI);
       
       console.log('Step 1 - Authorization URL generated:', authUrl);
       console.log('Step 1 - Parameters:', params);
+      console.log('Step 1 - Stored redirect_uri for step 3:', this.REDIRECT_URI);
       
       return authUrl;
     } catch (error) {
@@ -128,7 +127,7 @@ class JobAdderOAuth2Manager {
         return false;
       }
       
-      // Clean up stored state
+      // Clean up stored state but keep redirect_uri for step 3
       localStorage.removeItem('jobadder_oauth_state');
       
       console.log('Step 2: Authorization code validated successfully');
@@ -154,15 +153,20 @@ class JobAdderOAuth2Manager {
         throw new Error('No authorization code provided. Please complete the OAuth flow.');
       }
 
+      // Use the EXACT same redirect_uri that was used in step 1
+      const storedRedirectUri = localStorage.getItem('jobadder_oauth_redirect_uri') || this.REDIRECT_URI;
+      
       console.log('Step 3: Exchanging authorization code for tokens...');
-      console.log('Using redirect URI for token exchange:', this.REDIRECT_URI);
+      console.log('Using redirect URI for token exchange:', storedRedirectUri);
+      console.log('Current REDIRECT_URI:', this.REDIRECT_URI);
+      console.log('Stored REDIRECT_URI from step 1:', localStorage.getItem('jobadder_oauth_redirect_uri'));
       
       // Call server-side function to handle token exchange securely
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           action: 'exchange-token',
           code: code,
-          redirect_uri: this.REDIRECT_URI,
+          redirect_uri: storedRedirectUri,
           grant_type: 'authorization_code'
         },
         headers: {
@@ -181,6 +185,9 @@ class JobAdderOAuth2Manager {
       }
 
       console.log('Step 3: Token exchange successful');
+      
+      // Clean up stored redirect_uri after successful exchange
+      localStorage.removeItem('jobadder_oauth_redirect_uri');
       
       // Return standardized response
       return {
