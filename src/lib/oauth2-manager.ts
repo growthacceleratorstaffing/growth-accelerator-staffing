@@ -41,11 +41,12 @@ class JobAdderOAuth2Manager {
       // Local development
       this.REDIRECT_URI = 'http://localhost:5173/auth/callback';
     } else {
-      // Production and preview - use current origin
+      // Production and preview - use current origin (this should match JobAdder config exactly)
       this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     }
     
     console.log('Final REDIRECT_URI set to:', this.REDIRECT_URI);
+    console.log('Please ensure this exact URL is configured in JobAdder application settings');
   }
 
   /**
