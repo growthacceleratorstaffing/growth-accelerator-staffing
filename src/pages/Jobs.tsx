@@ -16,6 +16,7 @@ import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import oauth2Manager from "@/lib/oauth2-manager";
+import { JobAdderTest } from "@/components/test/JobAdderTest";
 
 interface JobAdderJob {
   adId: number;
@@ -370,7 +371,7 @@ const Jobs = () => {
       )}
 
       <Tabs defaultValue="vacancies" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="vacancies" className="flex items-center gap-2">
             <Briefcase className="h-4 w-4" />
             Vacancies ({jobs.length})
@@ -378,6 +379,10 @@ const Jobs = () => {
           <TabsTrigger value="import" className="flex items-center gap-2" onClick={checkAuthentication}>
             <Download className="h-4 w-4" />
             Import from JobAdder
+          </TabsTrigger>
+          <TabsTrigger value="debug" className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            API Test
           </TabsTrigger>
         </TabsList>
 
@@ -744,6 +749,10 @@ const Jobs = () => {
               </Tabs>
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="debug" className="space-y-6">
+          <JobAdderTest />
         </TabsContent>
       </Tabs>
 

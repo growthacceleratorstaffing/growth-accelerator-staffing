@@ -935,11 +935,16 @@ serve(async (req) => {
   } catch (error) {
     console.error('JobAdder API error:', error)
     
+    // For authentication/token issues, return 401
+    const isAuthError = error.message.includes('authentication') || 
+                       error.message.includes('token') || 
+                       error.message.includes('reconnect to JobAdder')
+    
     return new Response(JSON.stringify({
       success: false,
       error: error.message
     }), {
-      status: 400,
+      status: isAuthError ? 401 : 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
