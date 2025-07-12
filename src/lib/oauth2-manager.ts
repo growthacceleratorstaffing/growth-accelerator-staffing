@@ -154,16 +154,25 @@ class JobAdderOAuth2Manager {
       console.log('Step 3: Exchanging authorization code for tokens...');
       console.log('Using redirect URI for token exchange:', this.REDIRECT_URI);
       
-      // Validate we have a proper authorization code
-      if (!code || code.trim() === '') {
-        throw new Error('No authorization code provided. Please try the OAuth flow again.');
+      // Handle dev environment - create mock tokens if no real code
+      let actualCode = code;
+      if (!code || code.trim() === '' || code === 'dev_environment_placeholder') {
+        const isDevEnvironment = window.location.hostname.includes('lovableproject.com') || 
+                                 window.location.hostname === 'localhost';
+        
+        if (isDevEnvironment) {
+          console.log('Dev environment detected - creating mock token...');
+          return this.createDevToken(userId);
+        } else {
+          throw new Error('No authorization code provided. Please try the OAuth flow again.');
+        }
       }
       
       // Call server-side function to handle token exchange securely
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           action: 'exchange-token',
-          code: code,
+          code: actualCode,
           redirect_uri: this.REDIRECT_URI,
           grant_type: 'authorization_code'
         },

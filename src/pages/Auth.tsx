@@ -16,7 +16,7 @@ import {
   User,
   LogIn
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import oauth2Manager from "@/lib/oauth2-manager";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,6 +83,52 @@ export default function Auth() {
       console.error('Failed to check JobAdder connection:', error);
       setIsJobAdderConnected(false);
       setJobAdderUser(null);
+    } finally {
+      setJobAdderLoading(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    try {
+      setJobAdderLoading(true);
+      
+      // For development mode, create a test token
+      const isDevEnvironment = window.location.hostname.includes('lovableproject.com') || 
+                               window.location.hostname === 'localhost';
+      
+      if (isDevEnvironment) {
+        // Simulate dev token creation
+        const tokens = await oauth2Manager.exchangeCodeForTokens('dev_environment_placeholder');
+        
+        if (tokens) {
+          toast({
+            title: "Test Connection Successful",
+            description: "Development token created successfully",
+          });
+          await checkJobAdderConnection(); // Refresh status
+        }
+      } else {
+        // For production, attempt real API test
+        const { data, error } = await supabase.functions.invoke('jobadder-api', {
+          body: { endpoint: 'current-user' }
+        });
+        
+        if (data?.success) {
+          toast({
+            title: "Connection Test Successful", 
+            description: "JobAdder API is accessible",
+          });
+        } else {
+          throw new Error(data?.error || 'API test failed');
+        }
+      }
+    } catch (error) {
+      console.error('Test connection failed:', error);
+      toast({
+        title: "Test Connection Failed",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive"
+      });
     } finally {
       setJobAdderLoading(false);
     }
@@ -392,14 +438,39 @@ export default function Auth() {
                       <RefreshCw className={`h-4 w-4 mr-2 ${jobAdderLoading ? 'animate-spin' : ''}`} />
                       Refresh Status
                     </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={handleTestConnection}
+                      disabled={jobAdderLoading}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Test Connection
+                    </Button>
                     {isJobAdderConnected && (
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate('/job-board')}
-                      >
-                        Go to Job Board
-                      </Button>
+                      <>
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate('/job-board')}
+                        >
+                          Go to Job Board
+                        </Button>
+                        <Button 
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            await oauth2Manager.clearTokens();
+                            await checkJobAdderConnection();
+                            toast({
+                              title: "Disconnected",
+                              description: "JobAdder connection has been removed",
+                            });
+                          }}
+                        >
+                          Disconnect
+                        </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
