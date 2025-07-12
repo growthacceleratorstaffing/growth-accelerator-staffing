@@ -938,6 +938,8 @@ serve(async (req) => {
           .from('jobadder_tokens')
           .select('access_token, expires_at, api_base_url, refresh_token')
           .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle()
 
         if (fetchError || !tokenData) {

@@ -92,53 +92,36 @@ export default function Auth() {
     try {
       setJobAdderLoading(true);
       
-      // For development mode, create a test token
-      const isDevEnvironment = window.location.hostname.includes('lovableproject.com') || 
-                               window.location.hostname === 'localhost';
+      // First check if we have a valid token
+      const accessToken = await oauth2Manager.getValidAccessToken();
       
-      if (isDevEnvironment) {
-        // Simulate dev token creation
-        const tokens = await oauth2Manager.exchangeCodeForTokens('dev_environment_placeholder');
-        
-        if (tokens) {
-          toast({
-            title: "Test Connection Successful",
-            description: "Development token created successfully",
-          });
-          await checkJobAdderConnection(); // Refresh status
+      if (!accessToken) {
+        throw new Error('No valid access token available. Please re-authenticate with JobAdder.');
+      }
+      
+      // Get current user session for API call
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        throw new Error('User session not found');
+      }
+      
+      // Test the API with the valid token
+      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+        body: { 
+          action: 'test-connection'
+        },
+        headers: {
+          'x-user-id': session.user.id
         }
-      } else {
-        // For production, first check if we have a valid token
-        const accessToken = await oauth2Manager.getValidAccessToken();
-        
-        if (!accessToken) {
-          throw new Error('No valid access token available. Please re-authenticate with JobAdder.');
-        }
-        
-        // Get current user session for API call
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
-          throw new Error('User session not found');
-        }
-        
-        // Test the API with the valid token
-        const { data, error } = await supabase.functions.invoke('jobadder-api', {
-          body: { 
-            action: 'test-connection'
-          },
-          headers: {
-            'x-user-id': session.user.id
-          }
+      });
+      
+      if (data?.success) {
+        toast({
+          title: "Connection Test Successful", 
+          description: "JobAdder API is accessible",
         });
-        
-        if (data?.success) {
-          toast({
-            title: "Connection Test Successful", 
-            description: "JobAdder API is accessible",
-          });
-        } else {
-          throw new Error(data?.error || 'API test failed');
-        }
+      } else {
+        throw new Error(data?.error || 'API test failed');
       }
     } catch (error) {
       console.error('Test connection failed:', error);
@@ -154,38 +137,16 @@ export default function Auth() {
 
   const handleJobAdderConnect = async () => {
     try {
-      // Check if we're in development mode
-      const isDevEnvironment = window.location.hostname.includes('lovableproject.com') || 
-                               window.location.hostname === 'localhost';
-      
-      if (isDevEnvironment) {
-        console.log('=== Development Mode: Creating Mock Token ===');
-        setJobAdderLoading(true);
-        
-        // In dev mode, directly create a mock token instead of OAuth flow
-        const tokens = await oauth2Manager.exchangeCodeForTokens('dev_environment_placeholder');
-        
-        if (tokens) {
-          toast({
-            title: "Development Connection Successful",
-            description: "Mock JobAdder token created for development testing",
-          });
-          await checkJobAdderConnection(); // Refresh status
-        }
-        setJobAdderLoading(false);
-        return;
-      }
-      
-      // Production mode - use real OAuth flow
-      console.log('=== Production Mode: Starting JobAdder OAuth flow ===');
+      // Always use real OAuth flow (both dev and production)
+      console.log('=== Starting JobAdder OAuth flow ===');
       console.log('Current window.location.origin:', window.location.origin);
       console.log('Current full URL:', window.location.href);
       
-      const authUrl = await oauth2Manager.getAuthorizationUrl();
-      console.log('Generated OAuth URL:', authUrl);
-      
-      // Store the current page to redirect back after OAuth
+      // Store current page URL for redirect after OAuth
       sessionStorage.setItem('jobadder_redirect', '/auth?tab=integrations');
+      
+      const authUrl = await oauth2Manager.getAuthorizationUrl();
+      
       console.log('About to redirect to:', authUrl);
       window.location.href = authUrl;
     } catch (error) {
