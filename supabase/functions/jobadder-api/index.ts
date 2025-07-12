@@ -659,11 +659,11 @@ serve(async (req) => {
       }
 
       case 'candidates': {
-        // Get candidates according to JobAdder API documentation
+        // Get job applicants (candidates who have applied) - JobAdder /jobapplications endpoint
         const { limit = 50, offset = 0, search } = params
         
         if (!userId) {
-          throw new Error('User ID required for candidate access')
+          throw new Error('User ID required for job applications access')
         }
 
         const { data: tokenData, error: fetchError } = await supabase
@@ -710,22 +710,22 @@ serve(async (req) => {
           }
         }
 
-        // Build query parameters according to JobAdder API spec
+        // Build query parameters for job applications endpoint
         const queryParams = new URLSearchParams()
         
         // Core pagination parameters
         queryParams.append('limit', Math.min(limit, 100).toString()) // JobAdder max is 100
         queryParams.append('offset', offset.toString())
         
-        // Search parameter
+        // Search parameter for applicant names/emails
         if (search && search.trim()) {
           queryParams.append('search', search.trim())
         }
 
-        // Make API call to get candidates - using JobAdder /candidates endpoint
-        const apiUrl = `${tokenData.api_base_url}/candidates?${queryParams.toString()}`
+        // Make API call to get job applications (applicants) - correct JobAdder endpoint
+        const apiUrl = `${tokenData.api_base_url}/jobapplications?${queryParams.toString()}`
         
-        console.log('Candidates API call:', apiUrl)
+        console.log('Job Applications (Candidates) API call:', apiUrl)
         
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -738,12 +738,12 @@ serve(async (req) => {
 
         if (!response.ok) {
           const errorText = await response.text()
-          console.error(`Failed to fetch candidates: ${response.status} - ${errorText}`)
-          throw new Error(`Failed to fetch candidates: ${response.status} - ${errorText}`)
+          console.error(`Failed to fetch job applications: ${response.status} - ${errorText}`)
+          throw new Error(`Failed to fetch job applications: ${response.status} - ${errorText}`)
         }
 
         const data = await response.json()
-        console.log('Candidates response:', JSON.stringify(data, null, 2))
+        console.log('Job Applications response:', JSON.stringify(data, null, 2))
 
         return new Response(JSON.stringify({
           success: true,
