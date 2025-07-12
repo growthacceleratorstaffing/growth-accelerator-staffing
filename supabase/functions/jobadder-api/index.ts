@@ -1029,8 +1029,28 @@ serve(async (req) => {
         console.log('Token data found:', { 
           hasToken: !!tokenData.access_token, 
           expiresAt: tokenData.expires_at,
-          apiBaseUrl: tokenData.api_base_url
+          apiBaseUrl: tokenData.api_base_url,
+          isDevToken: tokenData.access_token.startsWith('dev_token_')
         });
+
+        // Handle development environment tokens
+        if (tokenData.access_token.startsWith('dev_token_')) {
+          console.log('Development environment detected - mocking successful connection test')
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'JobAdder API connection test successful (development mode)',
+            user: {
+              id: 'dev-user-123',
+              name: 'Development User',
+              email: 'dev@example.com',
+              account: 'Development Account',
+              instance: 'dev-instance'
+            },
+            isDevelopment: true
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
 
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
