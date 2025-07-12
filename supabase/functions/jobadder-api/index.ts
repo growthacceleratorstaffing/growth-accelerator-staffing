@@ -116,9 +116,28 @@ serve(async (req) => {
             status: tokenResponse.status,
             statusText: tokenResponse.statusText,
             headers: Object.fromEntries(tokenResponse.headers.entries()),
-            body: errorText
+            body: errorText,
+            requestBody: {
+              grant_type: tokenRequestBody.grant_type,
+              client_id: tokenRequestBody.client_id,
+              redirect_uri: tokenRequestBody.redirect_uri,
+              code: tokenRequestBody.code.substring(0, 10) + '...'
+            }
           })
-          throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText}`)
+          
+          // Return detailed error response
+          return new Response(JSON.stringify({
+            success: false,
+            error: `JobAdder token exchange failed: ${tokenResponse.status} - ${errorText}`,
+            details: {
+              status: tokenResponse.status,
+              statusText: tokenResponse.statusText,
+              body: errorText
+            }
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
         }
 
         const tokens: TokenResponse = await tokenResponse.json()

@@ -49,11 +49,24 @@ const AuthCallback = () => {
         return;
       }
 
-
-      // If no OAuth parameters at all, redirect to auth page
+      // If no OAuth parameters at all, show detailed error for debugging
       if (!code && !errorParam) {
-        console.log('No OAuth parameters found, redirecting to auth page...');
-        navigate('/auth?tab=integrations');
+        console.log('No OAuth parameters found');
+        const currentUrl = window.location.href;
+        const expectedRedirectUri = `${window.location.origin}/auth/callback`;
+        
+        setError(`No authorization code received. 
+        
+Current URL: ${currentUrl}
+Expected redirect URI: ${expectedRedirectUri}
+
+This usually means:
+1. JobAdder redirect URI is not configured correctly
+2. The OAuth flow was not completed properly
+3. Parameters were lost during redirect
+
+Please check JobAdder app configuration.`);
+        setLoading(false);
         return;
       }
 
