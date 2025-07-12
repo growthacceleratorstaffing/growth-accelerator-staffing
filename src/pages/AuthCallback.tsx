@@ -19,62 +19,63 @@ const AuthCallback = () => {
   useEffect(() => {
     console.log('AuthCallback component mounted, current URL:', window.location.href);
     const handleCallback = async () => {
-      // Get all URL parameters including hash fragments
-      const url = new URL(window.location.href);
-      const params = new URLSearchParams(url.search);
-      const hashParams = url.hash ? new URLSearchParams(url.hash.substring(1)) : new URLSearchParams();
-      
-      // In Lovable dev environment, remove the __lovable_token parameter that interferes with OAuth
-      const lovableToken = params.get('__lovable_token');
-      if (lovableToken) {
-        console.log('Lovable dev environment detected - cleaning URL for OAuth processing');
-        params.delete('__lovable_token');
-        // Update the URL without the Lovable token for cleaner processing
-        const cleanUrl = `${url.origin}${url.pathname}?${params.toString()}${url.hash}`;
-        console.log('Cleaned URL:', cleanUrl);
-        window.history.replaceState({}, '', cleanUrl);
-      }
-      
-      // Check both search params and hash params for OAuth data
-      const code = params.get('code') || hashParams.get('code');
-      const state = params.get('state') || hashParams.get('state');
-      const errorParam = params.get('error') || hashParams.get('error');
-      const errorDescription = params.get('error_description') || hashParams.get('error_description');
-
-      console.log('AuthCallback - Processing OAuth callback:', {
-        hostname: window.location.hostname,
-        fullUrl: window.location.href,
-        searchParams: Array.from(params.entries()),
-        hashParams: Array.from(hashParams.entries()),
-        hasCode: !!code,
-        hasState: !!state,
-        hasError: !!errorParam,
-        hadLovableToken: !!lovableToken
-      });
-
-      // Step 2: Handle authorization errors
-      if (errorParam) {
-        console.error('OAuth authorization error:', errorParam, errorDescription);
-        setError(`JobAdder authorization failed: ${errorDescription || errorParam}`);
-        setLoading(false);
-        return;
-      }
-
-      // If no OAuth parameters at all, check if this is a direct access
-      if (!code && !errorParam) {
-        console.log('No OAuth parameters found - this appears to be direct access to callback URL');
-        const currentUrl = window.location.href;
-        const expectedRedirectUri = `${window.location.origin}/auth/callback`;
+      try {
+        // Get all URL parameters including hash fragments
+        const url = new URL(window.location.href);
+        const params = new URLSearchParams(url.search);
+        const hashParams = url.hash ? new URLSearchParams(url.hash.substring(1)) : new URLSearchParams();
         
-        // If someone accessed /auth/callback directly, redirect them to start OAuth flow
-        if (!lovableToken && !url.search.includes('code=') && !url.search.includes('error=')) {
-          console.log('Direct access detected - redirecting to start OAuth flow');
-          navigate('/auth?tab=integrations');
-          return;
+        // In Lovable dev environment, remove the __lovable_token parameter that interferes with OAuth
+        const lovableToken = params.get('__lovable_token');
+        if (lovableToken) {
+          console.log('Lovable dev environment detected - cleaning URL for OAuth processing');
+          params.delete('__lovable_token');
+          // Update the URL without the Lovable token for cleaner processing
+          const cleanUrl = `${url.origin}${url.pathname}?${params.toString()}${url.hash}`;
+          console.log('Cleaned URL:', cleanUrl);
+          window.history.replaceState({}, '', cleanUrl);
         }
         
-        setError(`No authorization code received. 
-        
+        // Check both search params and hash params for OAuth data
+        const code = params.get('code') || hashParams.get('code');
+        const state = params.get('state') || hashParams.get('state');
+        const errorParam = params.get('error') || hashParams.get('error');
+        const errorDescription = params.get('error_description') || hashParams.get('error_description');
+
+        console.log('AuthCallback - Processing OAuth callback:', {
+          hostname: window.location.hostname,
+          fullUrl: window.location.href,
+          searchParams: Array.from(params.entries()),
+          hashParams: Array.from(hashParams.entries()),
+          hasCode: !!code,
+          hasState: !!state,
+          hasError: !!errorParam,
+          hadLovableToken: !!lovableToken
+        });
+
+        // Step 2: Handle authorization errors
+        if (errorParam) {
+          console.error('OAuth authorization error:', errorParam, errorDescription);
+          setError(`JobAdder authorization failed: ${errorDescription || errorParam}`);
+          setLoading(false);
+          return;
+        }
+
+        // If no OAuth parameters at all, check if this is a direct access
+        if (!code && !errorParam) {
+          console.log('No OAuth parameters found - this appears to be direct access to callback URL');
+          const currentUrl = window.location.href;
+          const expectedRedirectUri = `${window.location.origin}/auth/callback`;
+          
+          // If someone accessed /auth/callback directly, redirect them to start OAuth flow
+          if (!lovableToken && !url.search.includes('code=') && !url.search.includes('error=')) {
+            console.log('Direct access detected - redirecting to start OAuth flow');
+            navigate('/auth?tab=integrations');
+            return;
+          }
+          
+          setError(`No authorization code received. 
+          
 Current URL: ${currentUrl}
 Expected redirect URI: ${expectedRedirectUri}
 
@@ -84,49 +85,46 @@ This usually means:
 3. Parameters were lost during redirect
 
 Please start the OAuth flow by clicking "Connect to JobAdder" in the integrations tab.`);
-        setLoading(false);
-        return;
-      }
+          setLoading(false);
+          return;
+        }
 
-      // REMOVED: Production callback forwarding - this breaks OAuth consistency
-      // All steps must use the same redirect URI that JobAdder received in Step 1
+        // Validate the authorization code if present
+        if (code && !oauth2Manager.validateCallback(code, state || undefined)) {
+          setError('Invalid authorization callback - security validation failed');
+          setLoading(false);
+          return;
+        }
 
-      // Step 2: Validate the authorization code and state
-      if (!oauth2Manager.validateCallback(code!, state || undefined)) {
-        setError('Invalid authorization callback - security validation failed');
-        setLoading(false);
-        return;
-      }
+        // Step 3: Exchange authorization code for tokens
+        if (code) {
+          console.log('Step 3: Exchanging OAuth code for tokens...');
+          
+          // Get current user session
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user?.id) {
+            throw new Error('User session not found - please sign in first');
+          }
+          
+          const tokenResponse = await oauth2Manager.exchangeCodeForTokens(code);
+          
+          setSuccess(true);
+          toast({
+            title: "JobAdder Connected!",
+            description: `Successfully connected to JobAdder API`,
+          });
 
-      // Step 3: Exchange authorization code for tokens
-      try {
-        console.log('Step 3: Exchanging OAuth code for tokens...');
-        
-        // Get current user session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
-          throw new Error('User session not found - please sign in first');
+          // Check for stored redirect URL and use it
+          const redirectUrl = sessionStorage.getItem('jobadder_redirect') || '/auth?tab=integrations';
+          sessionStorage.removeItem('jobadder_redirect');
+          
+          setTimeout(() => {
+            navigate(redirectUrl);
+          }, 2000);
         }
         
-        const tokenCode = code;
-        const tokenResponse = await oauth2Manager.exchangeCodeForTokens(tokenCode);
-        
-        setSuccess(true);
-        toast({
-          title: "JobAdder Connected!",
-          description: `Successfully connected to JobAdder API`,
-        });
-
-        // Check for stored redirect URL and use it
-        const redirectUrl = sessionStorage.getItem('jobadder_redirect') || '/auth?tab=integrations';
-        sessionStorage.removeItem('jobadder_redirect');
-        
-        setTimeout(() => {
-          navigate(redirectUrl);
-        }, 2000);
-        
       } catch (error) {
-        console.error('Token exchange failed:', error);
+        console.error('OAuth callback processing failed:', error);
         
         let errorMessage = 'JobAdder authentication failed';
         if (error instanceof Error) {
@@ -135,6 +133,8 @@ Please start the OAuth flow by clicking "Connect to JobAdder" in the integration
             errorMessage = `Redirect URI mismatch: ${error.message}\n\nThe JobAdder application redirect URI must be set to: ${window.location.origin}/auth/callback`;
           } else if (error.message.includes('invalid_code') || error.message.includes('code')) {
             errorMessage = `Authorization code issue: ${error.message}\n\nThe authorization code may have expired or been used already.`;
+          } else if (error.message.includes('User session not found')) {
+            errorMessage = `${error.message}\n\nPlease sign in to your account first, then try connecting to JobAdder again.`;
           } else {
             errorMessage = error.message;
           }
@@ -187,6 +187,18 @@ Please start the OAuth flow by clicking "Connect to JobAdder" in the integration
             <div className="flex gap-4">
               <Button onClick={async () => {
                 try {
+                  // Check if user is signed in first
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (!session?.user?.id) {
+                    toast({
+                      title: "Sign In Required", 
+                      description: "Please sign in to your account first",
+                      variant: "destructive"
+                    });
+                    navigate('/auth');
+                    return;
+                  }
+                  
                   const authUrl = await oauth2Manager.getAuthorizationUrl();
                   window.location.href = authUrl;
                 } catch (error) {
