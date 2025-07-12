@@ -30,23 +30,32 @@ class JobAdderOAuth2Manager {
   private readonly REDIRECT_URI: string;
   
   constructor() {
-    console.log('=== Starting JobAdder OAuth flow ===');
-    console.log('Current window.location.origin:', window.location.origin);
-    console.log('Current full URL:', window.location.href);
+    console.log('=== OAUTH MANAGER CONSTRUCTOR ===');
     
-    // Determine redirect URI based on environment - must be consistent throughout OAuth flow
+    // Environment detection for proper token handling
     const hostname = window.location.hostname;
+    const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLovableDev = hostname.includes('lovableproject.com');
     
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      // Local development
+    console.log('Environment detected:', {
+      isLocalDev,
+      isLovableDev, 
+      hostname
+    });
+    
+    // Use the working redirect URIs from when it was functional
+    if (isLocalDev) {
       this.REDIRECT_URI = 'http://localhost:5173/auth/callback';
+    } else if (isLovableDev) {
+      // Use the hardcoded Lovable project URL that was working
+      this.REDIRECT_URI = 'https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback';
     } else {
-      // Production and preview - use current origin (this should match JobAdder config exactly)
+      // Production deployment
       this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     }
     
-    console.log('Final REDIRECT_URI set to:', this.REDIRECT_URI);
-    console.log('Please ensure this exact URL is configured in JobAdder application settings');
+    console.log('REDIRECT_URI set to:', this.REDIRECT_URI);
+    console.log('=== END CONSTRUCTOR DEBUG ===');
   }
 
   /**
