@@ -94,7 +94,8 @@ serve(async (req) => {
           grant_type: tokenRequestBody.grant_type,
           client_id: tokenRequestBody.client_id,
           redirect_uri: tokenRequestBody.redirect_uri,
-          code: tokenRequestBody.code.substring(0, 10) + '...'
+          code: tokenRequestBody.code.substring(0, 10) + '...',
+          full_redirect_uri: tokenRequestBody.redirect_uri // Log full URI for debugging
         })
 
         // Call JobAdder token endpoint

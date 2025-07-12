@@ -109,7 +109,20 @@ Please check JobAdder app configuration.`);
         
       } catch (error) {
         console.error('Token exchange failed:', error);
-        setError(error instanceof Error ? error.message : 'JobAdder authentication failed');
+        
+        let errorMessage = 'JobAdder authentication failed';
+        if (error instanceof Error) {
+          // Check if it's a specific error we can help with
+          if (error.message.includes('redirect_uri')) {
+            errorMessage = `Redirect URI mismatch: ${error.message}\n\nThe JobAdder application redirect URI must be set to: ${window.location.origin}/auth/callback`;
+          } else if (error.message.includes('invalid_code') || error.message.includes('code')) {
+            errorMessage = `Authorization code issue: ${error.message}\n\nThe authorization code may have expired or been used already.`;
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
