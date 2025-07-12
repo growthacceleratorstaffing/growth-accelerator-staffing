@@ -81,62 +81,6 @@ serve(async (req) => {
           throw new Error('JobAdder client credentials not configured')
         }
 
-        // Detect development environment - check if it's a Lovable preview URL
-        const isDevEnvironment = redirect_uri.includes('lovableproject.com') || redirect_uri.includes('localhost')
-        
-        if (isDevEnvironment) {
-          console.log('Development environment detected - returning mock tokens')
-          
-          // For development, return mock successful response
-          const mockTokens = {
-            access_token: 'dev_token_' + Date.now(),
-            expires_in: 3600,
-            token_type: 'Bearer',
-            refresh_token: 'dev_refresh_' + Date.now(),
-            api: 'https://api.jobadder.com/v2',
-            instance: 'dev_instance',
-            account: 8734
-          }
-
-          // Store mock tokens in database for consistency
-          const expiresAt = new Date(Date.now() + (mockTokens.expires_in * 1000)).toISOString()
-          
-          const { error: dbError } = await supabase
-            .from('jobadder_tokens')
-            .upsert({
-              user_id: userId,
-              access_token: mockTokens.access_token,
-              refresh_token: mockTokens.refresh_token,
-              token_type: mockTokens.token_type,
-              expires_at: expiresAt,
-              api_base_url: mockTokens.api,
-              scopes: ['read', 'write', 'offline_access']
-            })
-
-          if (dbError) {
-            console.error('Error storing mock tokens:', dbError)
-            throw new Error('Failed to store mock authentication tokens')
-          }
-
-          console.log('Development mode token exchange completed successfully')
-
-          return new Response(JSON.stringify({
-            success: true,
-            access_token: mockTokens.access_token,
-            expires_in: mockTokens.expires_in,
-            token_type: mockTokens.token_type,
-            refresh_token: mockTokens.refresh_token,
-            api: mockTokens.api,
-            instance: mockTokens.instance,
-            account: mockTokens.account
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
-
-        // Production mode - real JobAdder API calls
-        console.log('Production environment detected - using real JobAdder API')
-
         // Prepare token exchange request exactly per JobAdder spec
         const tokenRequestBody = {
           grant_type: 'authorization_code',
@@ -440,28 +384,6 @@ serve(async (req) => {
 
         if (!tokenData) {
           throw new Error('No authentication tokens found - please reconnect to JobAdder')
-        }
-
-        // Detect development environment
-        const isDevEnvironment = tokenData.access_token.startsWith('dev_token_')
-        
-        if (isDevEnvironment) {
-          console.log('Development environment detected - returning mock job boards')
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              items: [
-                {
-                  boardId: 8734,
-                  name: "Demo Job Board",
-                  description: "Development test job board",
-                  status: "Active"
-                }
-              ]
-            }
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
         }
 
 
@@ -1088,10 +1010,9 @@ serve(async (req) => {
 
         console.log('Token data found:', { 
           hasToken: !!tokenData.access_token, 
-          isDevToken: tokenData.access_token.startsWith('dev_token_'),
-          expiresAt: tokenData.expires_at 
+          expiresAt: tokenData.expires_at,
+          apiBaseUrl: tokenData.api_base_url
         });
-
 
         // Check if token is expired and refresh if needed
         let currentToken = tokenData.access_token
