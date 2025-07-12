@@ -24,6 +24,17 @@ const AuthCallback = () => {
       const params = new URLSearchParams(url.search);
       const hashParams = url.hash ? new URLSearchParams(url.hash.substring(1)) : new URLSearchParams();
       
+      // In Lovable dev environment, remove the __lovable_token parameter that interferes with OAuth
+      const lovableToken = params.get('__lovable_token');
+      if (lovableToken) {
+        console.log('Lovable dev environment detected - cleaning URL for OAuth processing');
+        params.delete('__lovable_token');
+        // Update the URL without the Lovable token for cleaner processing
+        const cleanUrl = `${url.origin}${url.pathname}?${params.toString()}${url.hash}`;
+        console.log('Cleaned URL:', cleanUrl);
+        window.history.replaceState({}, '', cleanUrl);
+      }
+      
       // Check both search params and hash params for OAuth data
       const code = params.get('code') || hashParams.get('code');
       const state = params.get('state') || hashParams.get('state');
@@ -38,7 +49,7 @@ const AuthCallback = () => {
         hasCode: !!code,
         hasState: !!state,
         hasError: !!errorParam,
-        hasLovableToken: !!params.get('__lovable_token')
+        hadLovableToken: !!lovableToken
       });
 
       // Step 2: Handle authorization errors
