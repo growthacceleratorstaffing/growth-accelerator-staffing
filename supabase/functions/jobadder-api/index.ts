@@ -643,7 +643,9 @@ serve(async (req) => {
         })
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch jobs: ${response.status}`)
+          const errorText = await response.text()
+          console.error(`Failed to fetch jobs: ${response.status} - ${errorText}`)
+          throw new Error(`Failed to fetch jobs: ${response.status} - ${errorText}`)
         }
 
         const data = await response.json()
@@ -731,7 +733,9 @@ serve(async (req) => {
         })
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch candidates: ${response.status}`)
+          const errorText = await response.text()
+          console.error(`Failed to fetch candidates: ${response.status} - ${errorText}`)
+          throw new Error(`Failed to fetch candidates: ${response.status} - ${errorText}`)
         }
 
         const data = await response.json()
@@ -891,8 +895,8 @@ serve(async (req) => {
           queryParams.append('active', 'true')
         }
 
-        // Make API call to get all applications
-        const apiUrl = `${tokenData.api_base_url}/applications?${queryParams}`
+        // Make API call to get all applications - correct JobAdder endpoint
+        const apiUrl = `${tokenData.api_base_url}/jobapplications?${queryParams}`
         
         const response = await fetch(apiUrl, {
           headers: {
@@ -902,7 +906,9 @@ serve(async (req) => {
         })
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch applications: ${response.status}`)
+          const errorText = await response.text()
+          console.error(`Failed to fetch applications: ${response.status} - ${errorText}`)
+          throw new Error(`Failed to fetch applications: ${response.status} - ${errorText}`)
         }
 
         const data = await response.json()
@@ -977,7 +983,9 @@ serve(async (req) => {
         })
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch current user: ${response.status}`)
+          const errorText = await response.text()
+          console.error(`Failed to fetch current user: ${response.status} - ${errorText}`)
+          throw new Error(`Failed to fetch current user: ${response.status} - ${errorText}`)
         }
 
         const data = await response.json()
