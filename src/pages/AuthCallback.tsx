@@ -17,24 +17,16 @@ const AuthCallback = () => {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    console.log('AuthCallback component mounted, current URL:', window.location.href);
+    let mounted = true;
+    
     const handleCallback = async () => {
+      if (!mounted) return;
+      
       try {
         // Get all URL parameters including hash fragments
         const url = new URL(window.location.href);
         const params = new URLSearchParams(url.search);
         const hashParams = url.hash ? new URLSearchParams(url.hash.substring(1)) : new URLSearchParams();
-        
-        // In Lovable dev environment, remove the __lovable_token parameter that interferes with OAuth
-        const lovableToken = params.get('__lovable_token');
-        if (lovableToken) {
-          console.log('Lovable dev environment detected - cleaning URL for OAuth processing');
-          params.delete('__lovable_token');
-          // Update the URL without the Lovable token for cleaner processing
-          const cleanUrl = `${url.origin}${url.pathname}?${params.toString()}${url.hash}`;
-          console.log('Cleaned URL:', cleanUrl);
-          window.history.replaceState({}, '', cleanUrl);
-        }
         
         // Check both search params and hash params for OAuth data
         const code = params.get('code') || hashParams.get('code');
@@ -42,50 +34,18 @@ const AuthCallback = () => {
         const errorParam = params.get('error') || hashParams.get('error');
         const errorDescription = params.get('error_description') || hashParams.get('error_description');
 
-        console.log('AuthCallback - Processing OAuth callback:', {
-          hostname: window.location.hostname,
-          fullUrl: window.location.href,
-          searchParams: Array.from(params.entries()),
-          hashParams: Array.from(hashParams.entries()),
-          hasCode: !!code,
-          hasState: !!state,
-          hasError: !!errorParam,
-          hadLovableToken: !!lovableToken
-        });
-
-        // Step 2: Handle authorization errors
+        // Handle authorization errors
         if (errorParam) {
-          console.error('OAuth authorization error:', errorParam, errorDescription);
+          if (!mounted) return;
           setError(`JobAdder authorization failed: ${errorDescription || errorParam}`);
           setLoading(false);
           return;
         }
 
-        // If no OAuth parameters at all, check if this is a direct access
+        // If no OAuth parameters at all, this is direct access - redirect immediately
         if (!code && !errorParam) {
-          console.log('No OAuth parameters found - this appears to be direct access to callback URL');
-          const currentUrl = window.location.href;
-          const expectedRedirectUri = `${window.location.origin}/auth/callback`;
-          
-          // If someone accessed /auth/callback directly, redirect them to start OAuth flow
-          if (!lovableToken && !url.search.includes('code=') && !url.search.includes('error=')) {
-            console.log('Direct access detected - redirecting to start OAuth flow');
-            navigate('/auth?tab=integrations');
-            return;
-          }
-          
-          setError(`No authorization code received. 
-          
-Current URL: ${currentUrl}
-Expected redirect URI: ${expectedRedirectUri}
-
-This usually means:
-1. JobAdder redirect URI is not configured correctly
-2. The OAuth flow was not completed properly
-3. Parameters were lost during redirect
-
-Please start the OAuth flow by clicking "Connect to JobAdder" in the integrations tab.`);
-          setLoading(false);
+          if (!mounted) return;
+          navigate('/auth?tab=integrations', { replace: true });
           return;
         }
 
@@ -147,7 +107,11 @@ Please start the OAuth flow by clicking "Connect to JobAdder" in the integration
     };
 
     handleCallback();
-  }, [searchParams, navigate, toast]);
+    
+    return () => {
+      mounted = false;
+    };
+  }, [navigate, toast]);
 
   if (loading) {
     return (
