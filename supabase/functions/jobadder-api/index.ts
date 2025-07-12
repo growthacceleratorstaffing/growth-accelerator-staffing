@@ -113,11 +113,18 @@ serve(async (req) => {
 
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text()
+          let errorDetails;
+          try {
+            errorDetails = JSON.parse(errorText);
+          } catch {
+            errorDetails = { raw_error: errorText };
+          }
+          
           console.error('JobAdder token exchange failed:', {
             status: tokenResponse.status,
             statusText: tokenResponse.statusText,
             headers: Object.fromEntries(tokenResponse.headers.entries()),
-            body: errorText,
+            errorDetails,
             requestBody: {
               grant_type: tokenRequestBody.grant_type,
               client_id: tokenRequestBody.client_id,
@@ -126,14 +133,28 @@ serve(async (req) => {
             }
           })
           
-          // Return detailed error response
+          // Return detailed error response with specific JobAdder error
+          let userFriendlyError = `JobAdder token exchange failed: ${tokenResponse.status}`;
+          if (errorDetails.error) {
+            userFriendlyError += ` - ${errorDetails.error}`;
+            if (errorDetails.error_description) {
+              userFriendlyError += `: ${errorDetails.error_description}`;
+            }
+          }
+          
+          // Add specific guidance for common errors
+          if (errorDetails.error === 'invalid_grant' || tokenResponse.status === 400) {
+            userFriendlyError += '\n\nThis usually means:\n1. The redirect URI in JobAdder app config doesn\'t match: ' + tokenRequestBody.redirect_uri + '\n2. The authorization code has expired or been used already\n3. Client ID/Secret mismatch';
+          }
+          
           return new Response(JSON.stringify({
             success: false,
-            error: `JobAdder token exchange failed: ${tokenResponse.status} - ${errorText}`,
+            error: userFriendlyError,
             details: {
               status: tokenResponse.status,
               statusText: tokenResponse.statusText,
-              body: errorText
+              jobadder_error: errorDetails,
+              expected_redirect_uri: tokenRequestBody.redirect_uri
             }
           }), {
             status: 400,
