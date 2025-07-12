@@ -283,7 +283,7 @@ export const JobBoardManager = () => {
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           endpoint: 'submit-job-application',
-          boardId: selectedBoard.boardId.toString(),
+          boardId: selectedBoard.boardId?.toString(),
           adId: selectedJobAd.adId.toString(),
           application: applicationData
         }
@@ -449,14 +449,14 @@ export const JobBoardManager = () => {
             <div className="flex-1">
               <Label htmlFor="jobboard-select">Job Board</Label>
               <Select
-                value={selectedBoard?.boardId.toString() || ""}
+                value={selectedBoard?.boardId?.toString() || ""}
                 onValueChange={handleBoardChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a job board" />
                 </SelectTrigger>
                 <SelectContent>
-                  {jobBoards.map((board) => (
+                  {jobBoards.filter(board => board?.boardId).map((board) => (
                     <SelectItem key={board.boardId} value={board.boardId.toString()}>
                       {board.name} ({board.reference})
                     </SelectItem>
