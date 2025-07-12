@@ -164,7 +164,7 @@ const AppSidebar = () => {
                 <SidebarMenuButton asChild isActive={isActive("/applications")}>
                   <Link to="/applications">
                     <User className="h-4 w-4" />
-                    <span className="text-base">Candidates</span>
+                    <span className="text-base">Applicants</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
