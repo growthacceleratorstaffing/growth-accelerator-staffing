@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { MapPin, Building, Clock, DollarSign, Search, AlertCircle, ExternalLink, Download, RefreshCw, Users, Briefcase, CheckCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useJobs } from "@/hooks/useJobs";
-import { JobSyncStatus } from "@/components/job-search/JobSyncStatus";
+
 import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -359,21 +359,6 @@ const Jobs = () => {
         </div>
       </div>
 
-      {/* Sync Status */}
-      <div className="mb-8">
-        <JobSyncStatus />
-        <div className="mt-4 flex gap-2">
-          <Button 
-            onClick={testJobAdderAPI} 
-            disabled={isTestingAPI}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <AlertCircle className="h-4 w-4" />
-            {isTestingAPI ? "Testing API..." : "Test JobAdder API"}
-          </Button>
-        </div>
-      </div>
 
       {error && useMockData && (
         <Alert className="mb-6">
