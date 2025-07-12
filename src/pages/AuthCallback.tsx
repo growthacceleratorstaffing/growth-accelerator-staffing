@@ -60,11 +60,18 @@ const AuthCallback = () => {
         return;
       }
 
-      // If no OAuth parameters at all, show detailed error for debugging
+      // If no OAuth parameters at all, check if this is a direct access
       if (!code && !errorParam) {
-        console.log('No OAuth parameters found');
+        console.log('No OAuth parameters found - this appears to be direct access to callback URL');
         const currentUrl = window.location.href;
         const expectedRedirectUri = `${window.location.origin}/auth/callback`;
+        
+        // If someone accessed /auth/callback directly, redirect them to start OAuth flow
+        if (!lovableToken && !url.search.includes('code=') && !url.search.includes('error=')) {
+          console.log('Direct access detected - redirecting to start OAuth flow');
+          navigate('/auth?tab=integrations');
+          return;
+        }
         
         setError(`No authorization code received. 
         
@@ -76,7 +83,7 @@ This usually means:
 2. The OAuth flow was not completed properly
 3. Parameters were lost during redirect
 
-Please check JobAdder app configuration.`);
+Please start the OAuth flow by clicking "Connect to JobAdder" in the integrations tab.`);
         setLoading(false);
         return;
       }
