@@ -171,10 +171,10 @@ serve(async (req) => {
             headers: Object.fromEntries(tokenResponse.headers.entries()),
             errorDetails,
             requestBody: {
-              grant_type: 'authorization_code',
-              client_id: clientId.substring(0, 10) + '...',
-              redirect_uri: redirect_uri,
-              code: code.substring(0, 10) + '...'
+              grant_type: tokenRequestBody.grant_type,
+              client_id: tokenRequestBody.client_id,
+              redirect_uri: tokenRequestBody.redirect_uri,
+              code: tokenRequestBody.code.substring(0, 10) + '...'
             }
           })
           
