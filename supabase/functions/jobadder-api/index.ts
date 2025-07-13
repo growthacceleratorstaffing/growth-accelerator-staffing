@@ -123,35 +123,34 @@ serve(async (req) => {
           throw new Error('JobAdder client credentials not configured')
         }
 
-        // Prepare token exchange request in EXACT order per JobAdder spec
-        // JobAdder requires: grant_type=authorization_code&code={CODE}&redirect_uri={REDIRECT_URI}&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}
-        const tokenRequestParams = new URLSearchParams()
-        tokenRequestParams.append('grant_type', 'authorization_code')
-        tokenRequestParams.append('code', code)
-        tokenRequestParams.append('redirect_uri', redirect_uri)
-        tokenRequestParams.append('client_id', clientId)
-        tokenRequestParams.append('client_secret', clientSecret)
+        // Prepare token exchange request exactly per JobAdder spec
+        const tokenRequestBody = {
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: redirect_uri,
+          client_id: clientId,
+          client_secret: clientSecret
+        }
 
         console.log('=== JOBADDER TOKEN EXCHANGE DEBUG ===')
-        console.log('Token exchange request parameters (in exact order):', {
-          grant_type: 'authorization_code',
-          code: code.substring(0, 10) + '...',
-          redirect_uri: redirect_uri,
-          client_id: clientId.substring(0, 10) + '...',
-          client_secret: '[HIDDEN]'
+        console.log('Token exchange request body:', {
+          grant_type: tokenRequestBody.grant_type,
+          client_id: tokenRequestBody.client_id,
+          redirect_uri: tokenRequestBody.redirect_uri,
+          code: tokenRequestBody.code.substring(0, 10) + '...',
+          full_redirect_uri: tokenRequestBody.redirect_uri
         })
-        console.log('Full parameter string:', tokenRequestParams.toString())
         console.log('Expected JobAdder app redirect URI:', redirect_uri)
         console.log('=== END DEBUG ===')
 
-        // Call JobAdder token endpoint with exact parameter order
+        // Call JobAdder token endpoint
         const tokenResponse = await fetch('https://id.jobadder.com/connect/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Accept': 'application/json'
           },
-          body: tokenRequestParams
+          body: new URLSearchParams(tokenRequestBody)
         })
 
         console.log('JobAdder token response status:', tokenResponse.status)
