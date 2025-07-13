@@ -79,6 +79,8 @@ serve(async (req) => {
         console.log('Redirect URI received:', redirect_uri)
         console.log('Code received (first 10 chars):', code?.substring(0, 10))
         console.log('User ID:', userId)
+        console.log('Client ID available:', !!clientId)
+        console.log('Client Secret available:', !!clientSecret)
         
         if (!code || !userId || !redirect_uri) {
           console.error('Missing required parameters:', { 
