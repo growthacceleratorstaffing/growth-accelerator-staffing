@@ -101,6 +101,14 @@ class JobAdderOAuth2Manager {
       console.log('Current hostname:', window.location.hostname);
       console.log('=== END DEBUG ===');
       
+      // Validate client ID matches expected format
+      if (clientId !== 'ldyp7mapnxdevgowsnmr34o2j4') {
+        console.warn('⚠️  Client ID mismatch detected!');
+        console.warn('Expected: ldyp7mapnxdevgowsnmr34o2j4');
+        console.warn('Received:', clientId);
+        console.warn('Please update JOBADDER_CLIENT_ID in Supabase secrets');
+      }
+      
       // Build URL according to JobAdder OAuth 2.0 spec
       // Official JobAdder format: https://id.jobadder.com/connect/authorize?response_type=code&client_id={CLIENT_ID}&scope=read%20write%20offline_access&redirect_uri={REDIRECT_URI}
       const params = {
