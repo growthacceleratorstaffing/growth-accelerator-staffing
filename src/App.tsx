@@ -32,6 +32,7 @@ import { useState } from "react";
 
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
+import JobAdderAuth from "./pages/JobAdderAuth";
 
 const AppSidebar = () => {
   const location = useLocation();
@@ -292,7 +293,7 @@ const App = () => {
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           {/* Redirect old routes to main auth page */}
-          <Route path="/jobadder-auth" element={<AuthCallback />} />
+          <Route path="/jobadder-auth" element={<JobAdderAuth />} />
           <Route path="/auth/login" element={<Navigate to="/auth" replace />} />
           
           {/* Routes with sidebar */}
