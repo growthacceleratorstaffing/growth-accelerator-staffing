@@ -40,15 +40,52 @@ export default function Integrations() {
 
   const handleJobAdderConnect = async () => {
     try {
+      console.log('🚀 STARTING JOBADDER CONNECTION PROCESS');
+      console.log('Current URL:', window.location.href);
+      console.log('Current hostname:', window.location.hostname);
+      console.log('Current origin:', window.location.origin);
+      
+      console.log('Getting authorization URL...');
       const authUrl = await oauth2Manager.getAuthorizationUrl();
+      console.log('✅ Authorization URL received:', authUrl);
+      
       // Store the current page to redirect back after OAuth
       sessionStorage.setItem('jobadder_redirect', '/integrations');
+      console.log('Stored redirect path:', sessionStorage.getItem('jobadder_redirect'));
+      
+      console.log('🔄 Redirecting to JobAdder...');
       window.location.href = authUrl;
     } catch (error) {
-      console.error('Failed to initiate OAuth:', error);
+      console.error('❌ JOBADDER CONNECTION FAILED:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       toast({
         title: "Connection Failed",
         description: "Failed to initiate JobAdder authentication",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const testConnection = async () => {
+    try {
+      console.log('🧪 TESTING JOBADDER CONNECTION...');
+      console.log('Testing client ID retrieval...');
+      const authUrl = await oauth2Manager.getAuthorizationUrl();
+      console.log('✅ Test successful! Auth URL would be:', authUrl);
+      toast({
+        title: "Test Successful",
+        description: "JobAdder connection test passed",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('❌ CONNECTION TEST FAILED:', error);
+      toast({
+        title: "Test Failed", 
+        description: error.message,
         variant: "destructive"
       });
     }
@@ -142,7 +179,7 @@ export default function Integrations() {
                 </div>
               )}
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -152,6 +189,18 @@ export default function Integrations() {
                   <RefreshCw className={`h-4 w-4 mr-2 ${jobAdderLoading ? 'animate-spin' : ''}`} />
                   Refresh Status
                 </Button>
+                
+                {!isJobAdderConnected && (
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={testConnection}
+                    className="bg-red-50 border-red-200 text-red-800 hover:bg-red-100"
+                  >
+                    Test Connection
+                  </Button>
+                )}
+                
                 {isJobAdderConnected && (
                   <Button 
                     variant="outline"
