@@ -70,23 +70,43 @@ class JobAdderOAuth2Manager {
    */
   private async getClientId(): Promise<string> {
     try {
+      console.log('🔑 Step: Getting Client ID from edge function...');
+      
+      console.log('🔐 Step: Getting current user ID...');
       const userId = await this.getCurrentUserId();
+      console.log('User ID result:', { userId, hasUserId: !!userId });
+      
       if (!userId) {
-        throw new Error('User not authenticated');
+        throw new Error('User not authenticated - please sign in first');
       }
 
+      console.log('📡 Step: Calling edge function with userId:', userId);
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { action: 'get-client-id' },
         headers: { 'x-user-id': userId }
       });
 
-      if (error || !data?.success) {
+      console.log('📡 Edge function response:', { 
+        hasData: !!data, 
+        hasError: !!error,
+        data: data,
+        error: error 
+      });
+
+      if (error) {
+        console.error('❌ Edge function error:', error);
+        throw new Error(`Edge function error: ${error.message || JSON.stringify(error)}`);
+      }
+
+      if (!data?.success) {
+        console.error('❌ Edge function returned failure:', data);
         throw new Error(data?.error || 'Failed to get client configuration');
       }
 
+      console.log('✅ Client ID successfully received:', data.client_id);
       return data.client_id;
     } catch (error) {
-      console.error('Error getting client ID:', error);
+      console.error('❌ Error getting client ID:', error);
       throw error;
     }
   }
