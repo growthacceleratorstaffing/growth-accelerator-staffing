@@ -90,6 +90,13 @@ class JobAdderOAuth2Manager {
       const clientId = await this.getClientId();
       const state = this.generateState();
       
+      console.log('=== AUTHORIZATION URL DEBUG ===');
+      console.log('Client ID:', clientId);
+      console.log('Redirect URI:', this.REDIRECT_URI);
+      console.log('Current origin:', window.location.origin);
+      console.log('Current hostname:', window.location.hostname);
+      console.log('=== END DEBUG ===');
+      
       // Build URL according to JobAdder OAuth 2.0 spec
       const params = {
         response_type: 'code',
@@ -113,7 +120,7 @@ class JobAdderOAuth2Manager {
       return authUrl;
     } catch (error) {
       console.error('Step 1 failed:', error);
-      throw new Error(`Step 1 failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Authorization URL generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
