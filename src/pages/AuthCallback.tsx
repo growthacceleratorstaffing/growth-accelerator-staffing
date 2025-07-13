@@ -42,9 +42,10 @@ const AuthCallback = () => {
           return;
         }
 
-        // If no OAuth parameters at all, this is direct access - redirect immediately
+        // If no OAuth parameters at all, this is direct access - redirect to auth page
         if (!code && !errorParam) {
           if (!mounted) return;
+          console.log('No OAuth parameters found, redirecting to auth page');
           navigate('/auth?tab=integrations', { replace: true });
           return;
         }
@@ -87,17 +88,28 @@ const AuthCallback = () => {
         console.error('OAuth callback processing failed:', error);
         
         let errorMessage = 'JobAdder authentication failed';
+        let shouldRedirectToAuth = false;
+        
         if (error instanceof Error) {
-          // Check if it's a specific error we can help with
-          if (error.message.includes('redirect_uri')) {
+          // Check if it's a user authentication issue
+          if (error.message.includes('User session not found') || 
+              error.message.includes('User not authenticated') ||
+              error.message.includes('Please sign in')) {
+            errorMessage = `${error.message}\n\nPlease sign in to your account first.`;
+            shouldRedirectToAuth = true;
+          } else if (error.message.includes('redirect_uri')) {
             errorMessage = `Redirect URI mismatch: ${error.message}\n\nThe JobAdder application redirect URI must be set to: ${window.location.origin}/auth/callback`;
           } else if (error.message.includes('invalid_code') || error.message.includes('code')) {
             errorMessage = `Authorization code issue: ${error.message}\n\nThe authorization code may have expired or been used already.`;
-          } else if (error.message.includes('User session not found')) {
-            errorMessage = `${error.message}\n\nPlease sign in to your account first, then try connecting to JobAdder again.`;
           } else {
             errorMessage = error.message;
           }
+        }
+        
+        if (shouldRedirectToAuth) {
+          // Redirect to auth page for sign-in
+          navigate('/auth');
+          return;
         }
         
         setError(errorMessage);
