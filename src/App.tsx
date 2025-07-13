@@ -28,11 +28,10 @@ import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
 import Integrations from "./pages/Integrations";
+import { useState } from "react";
 
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
-
-const queryClient = new QueryClient();
 
 const AppSidebar = () => {
   const location = useLocation();
@@ -271,13 +270,23 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+const App = () => {
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 1,
+        refetchOnWindowFocus: false,
+      },
+    },
+  }));
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
         <Routes>
           {/* Authentication routes */}
           <Route path="/auth" element={<Auth />} />
@@ -396,11 +405,12 @@ const App = () => (
             </AppLayout>
           } />
         </Routes>
-        <PlatformChatbot />
-      </BrowserRouter>
-    </TooltipProvider>
-  </AuthProvider>
-</QueryClientProvider>
-);
+            <PlatformChatbot />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

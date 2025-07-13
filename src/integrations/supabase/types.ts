@@ -142,6 +142,7 @@ export type Database = {
           skills: Json | null
           source_platform: string | null
           updated_at: string
+          user_id: string | null
           workable_candidate_id: string | null
         }
         Insert: {
@@ -166,6 +167,7 @@ export type Database = {
           skills?: Json | null
           source_platform?: string | null
           updated_at?: string
+          user_id?: string | null
           workable_candidate_id?: string | null
         }
         Update: {
@@ -190,6 +192,7 @@ export type Database = {
           skills?: Json | null
           source_platform?: string | null
           updated_at?: string
+          user_id?: string | null
           workable_candidate_id?: string | null
         }
         Relationships: []
@@ -290,6 +293,7 @@ export type Database = {
           settings: Json | null
           sync_frequency_hours: number | null
           updated_at: string
+          user_id: string
         }
         Insert: {
           api_rate_limit_remaining?: number | null
@@ -302,6 +306,7 @@ export type Database = {
           settings?: Json | null
           sync_frequency_hours?: number | null
           updated_at?: string
+          user_id: string
         }
         Update: {
           api_rate_limit_remaining?: number | null
@@ -314,6 +319,7 @@ export type Database = {
           settings?: Json | null
           sync_frequency_hours?: number | null
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -989,6 +995,14 @@ export type Database = {
         | "completed"
         | "passed"
         | "failed"
+        | "sourced"
+        | "applied"
+        | "phone_screen"
+        | "interview"
+        | "offer"
+        | "hired"
+        | "rejected"
+        | "withdrawn"
       jobadder_scope:
         | "read"
         | "write"
@@ -1155,6 +1169,14 @@ export const Constants = {
         "completed",
         "passed",
         "failed",
+        "sourced",
+        "applied",
+        "phone_screen",
+        "interview",
+        "offer",
+        "hired",
+        "rejected",
+        "withdrawn",
       ],
       jobadder_scope: [
         "read",
