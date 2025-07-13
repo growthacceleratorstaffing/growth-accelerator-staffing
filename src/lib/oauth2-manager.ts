@@ -43,16 +43,8 @@ class JobAdderOAuth2Manager {
       hostname
     });
     
-    // Use the working redirect URIs from when it was functional
-    if (isLocalDev) {
-      this.REDIRECT_URI = 'http://localhost:5173/auth/callback';
-    } else if (isLovableDev) {
-      // Use the hardcoded Lovable project URL that was working
-      this.REDIRECT_URI = 'https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback';
-    } else {
-      // Production deployment
-      this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
-    }
+    // Use current origin for all environments to ensure it matches
+    this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     
     console.log('REDIRECT_URI set to:', this.REDIRECT_URI);
     console.log('=== END CONSTRUCTOR DEBUG ===');
