@@ -92,7 +92,6 @@ class JobAdderOAuth2Manager {
       console.log('=== JobAdder OAuth Step 1: Authorization URL ===');
       
       const clientId = await this.getClientId();
-      const state = this.generateState();
       
       console.log('=== AUTHORIZATION URL DEBUG ===');
       console.log('Client ID:', clientId);
@@ -109,26 +108,26 @@ class JobAdderOAuth2Manager {
         console.warn('Please update JOBADDER_CLIENT_ID in Supabase secrets');
       }
       
-      // Build URL according to JobAdder OAuth 2.0 spec
+      // Build URL according to JobAdder OAuth 2.0 spec EXACTLY as documented
       // Official JobAdder format: https://id.jobadder.com/connect/authorize?response_type=code&client_id={CLIENT_ID}&scope=read%20write%20offline_access&redirect_uri={REDIRECT_URI}
       const params = {
         response_type: 'code',
         client_id: clientId,
         scope: 'read write offline_access', // Must include offline_access for refresh tokens
-        redirect_uri: this.REDIRECT_URI,
-        state: state  // Optional but recommended for security
+        redirect_uri: this.REDIRECT_URI
+        // Removing state parameter to match JobAdder docs exactly
       };
       
-      // Use URLSearchParams to ensure proper encoding
+      // Use URLSearchParams to ensure proper encoding exactly as JobAdder expects
       const urlParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        urlParams.append(key, value);
-      });
+      urlParams.append('response_type', params.response_type);
+      urlParams.append('client_id', params.client_id);
+      urlParams.append('scope', params.scope);
+      urlParams.append('redirect_uri', params.redirect_uri);
       
       const authUrl = `${this.AUTH_URL}?${urlParams.toString()}`;
       
-      // Store state AND redirect URI for step 3 validation
-      localStorage.setItem('jobadder_oauth_state', state);
+      // Store redirect URI for step 3 validation (no state since we removed it)
       localStorage.setItem('jobadder_oauth_redirect_uri', this.REDIRECT_URI);
       
       console.log('Step 1 - Authorization URL generated:', authUrl);
@@ -148,18 +147,18 @@ class JobAdderOAuth2Manager {
    */
   validateCallback(code: string, state?: string): boolean {
     try {
-      // Verify state parameter to prevent CSRF attacks
-      const storedState = localStorage.getItem('jobadder_oauth_state');
-      if (state && storedState && state !== storedState) {
-        console.error('OAuth state mismatch - possible CSRF attack');
+      // Since we removed state parameter to match JobAdder docs exactly,
+      // we only need to validate that we have a code
+      console.log('Step 2: Authorization code received, validating...');
+      console.log('Code present:', !!code);
+      
+      if (!code || code.trim() === '') {
+        console.error('No authorization code received');
         return false;
       }
       
-      // Clean up stored state but keep redirect URI for step 3
-      localStorage.removeItem('jobadder_oauth_state');
-      
       console.log('Step 2: Authorization code validated successfully');
-      return !!code;
+      return true;
     } catch (error) {
       console.error('Error validating callback:', error);
       return false;
