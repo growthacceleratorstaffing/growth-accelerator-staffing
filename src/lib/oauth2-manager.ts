@@ -30,33 +30,24 @@ class JobAdderOAuth2Manager {
   private readonly REDIRECT_URI: string;
   
   constructor() {
-    console.log('=== OAUTH MANAGER CONSTRUCTOR ===');
-    
-    // Environment detection for proper redirect URI handling
+    // Set redirect URI based on environment - must match JobAdder app configuration exactly
     const hostname = window.location.hostname;
-    const origin = window.location.origin;
+    const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLovableDev = hostname.includes('lovableproject.com');
     
-    console.log('Environment detected:', {
-      hostname,
-      origin,
-      protocol: window.location.protocol
-    });
-    
-    // CRITICAL: Use consistent redirect URI that matches JobAdder app configuration
-    // The redirect URI must be EXACTLY what's configured in your JobAdder API application
-    // and must be consistent across all OAuth steps (1, 2, 3, 4)
-    
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      // Local development - must match JobAdder app settings
-      this.REDIRECT_URI = 'http://localhost:5173/auth/callback';
-    } else if (hostname.includes('lovable.app')) {
-      // Production Lovable deployment - must match JobAdder app settings  
-      this.REDIRECT_URI = `${origin}/auth/callback`;
+    if (isLocalDev) {
+      // For local development
+      this.REDIRECT_URI = `http://localhost:5173/auth/callback`;
+    } else if (isLovableDev) {
+      // For Lovable preview environment
+      this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     } else {
-      // Custom domain or other deployment
-      this.REDIRECT_URI = `${origin}/auth/callback`;
+      // For production
+      this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
     }
     
+    console.log('=== OAUTH MANAGER CONSTRUCTOR ===');
+    console.log('Environment detected:', { isLocalDev, isLovableDev, hostname });
     console.log('REDIRECT_URI set to:', this.REDIRECT_URI);
     console.log('=== END CONSTRUCTOR DEBUG ===');
   }
@@ -112,13 +103,11 @@ class JobAdderOAuth2Manager {
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
         .join('&');
       
-      // Store state AND redirect_uri for consistency in step 3
+      // Store state for step 2 validation
       localStorage.setItem('jobadder_oauth_state', state);
-      localStorage.setItem('jobadder_oauth_redirect_uri', this.REDIRECT_URI);
       
       console.log('Step 1 - Authorization URL generated:', authUrl);
       console.log('Step 1 - Parameters:', params);
-      console.log('Step 1 - Stored redirect_uri for step 3:', this.REDIRECT_URI);
       
       return authUrl;
     } catch (error) {
@@ -140,7 +129,7 @@ class JobAdderOAuth2Manager {
         return false;
       }
       
-      // Clean up stored state but keep redirect_uri for step 3
+      // Clean up stored state
       localStorage.removeItem('jobadder_oauth_state');
       
       console.log('Step 2: Authorization code validated successfully');
@@ -166,20 +155,15 @@ class JobAdderOAuth2Manager {
         throw new Error('No authorization code provided. Please complete the OAuth flow.');
       }
 
-      // Use the EXACT same redirect_uri that was used in step 1
-      const storedRedirectUri = localStorage.getItem('jobadder_oauth_redirect_uri') || this.REDIRECT_URI;
-      
       console.log('Step 3: Exchanging authorization code for tokens...');
-      console.log('Using redirect URI for token exchange:', storedRedirectUri);
-      console.log('Current REDIRECT_URI:', this.REDIRECT_URI);
-      console.log('Stored REDIRECT_URI from step 1:', localStorage.getItem('jobadder_oauth_redirect_uri'));
+      console.log('Using redirect URI for token exchange:', this.REDIRECT_URI);
       
       // Call server-side function to handle token exchange securely
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           action: 'exchange-token',
           code: code,
-          redirect_uri: storedRedirectUri,
+          redirect_uri: this.REDIRECT_URI,
           grant_type: 'authorization_code'
         },
         headers: {
@@ -198,9 +182,6 @@ class JobAdderOAuth2Manager {
       }
 
       console.log('Step 3: Token exchange successful');
-      
-      // Clean up stored redirect_uri after successful exchange
-      localStorage.removeItem('jobadder_oauth_redirect_uri');
       
       // Return standardized response
       return {
