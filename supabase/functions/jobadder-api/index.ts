@@ -41,38 +41,33 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Get JobAdder credentials from secrets based on environment
-    const environment = params.environment || 'production' // Default to production for safety
+    // Get JobAdder credentials from secrets 
+    // Since both dev and production need to work with the same JobAdder app,
+    // we'll use the same credentials but different redirect URIs
+    const environment = params.environment || 'production'
     console.log('=== ENVIRONMENT DETECTION ===')
     console.log('Requested environment:', environment)
     console.log('Origin header:', req.headers.get('origin'))
     
-    let clientId: string | undefined
-    let clientSecret: string | undefined
-    
-    if (environment === 'development') {
-      // Development environment (localhost, previews, etc.)
-      clientId = Deno.env.get('JOBADDER_DEV_CLIENT_ID') || Deno.env.get('JOBADDER_CLIENT_ID')
-      clientSecret = Deno.env.get('JOBADDER_DEV_CLIENT_SECRET') || Deno.env.get('JOBADDER_CLIENT_SECRET')
-      console.log('Using development credentials')
-    } else {
-      // Production environment
-      clientId = Deno.env.get('JOBADDER_CLIENT_ID')
-      clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET')
-      console.log('Using production credentials')
-    }
+    // Use the same JobAdder app credentials for both environments
+    // The redirect URI configuration in JobAdder app should include both:
+    // - https://staffing.growthaccelerator.nl/auth/callback (production)
+    // - https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback (preview)
+    // - http://localhost:5173/auth/callback (local dev)
+    const clientId = Deno.env.get('JOBADDER_CLIENT_ID')
+    const clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET')
 
     console.log('=== JOBADDER CREDENTIALS DEBUG ===')
     console.log('Environment:', environment)
     console.log('Client ID available:', !!clientId)
     console.log('Client Secret available:', !!clientSecret)
     console.log('Client ID (first 10 chars):', clientId ? clientId.substring(0, 10) + '...' : 'MISSING')
+    console.log('Using unified credentials for all environments')
+    console.log('IMPORTANT: JobAdder app must have ALL redirect URIs configured:')
+    console.log('  - https://staffing.growthaccelerator.nl/auth/callback')
+    console.log('  - https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback') 
+    console.log('  - http://localhost:5173/auth/callback')
     console.log('=== END CREDENTIALS DEBUG ===')
-
-    if (!clientId || !clientSecret) {
-      console.error(`JobAdder credentials not configured for ${environment} environment`)
-      throw new Error(`JobAdder credentials not configured for ${environment} environment`)
-    }
 
     switch (requestAction) {
       case 'get-client-id': {
