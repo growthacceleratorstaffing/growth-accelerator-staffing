@@ -16,7 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import oauth2Manager from "@/lib/oauth2-manager";
 
-export default function JobAdderAuth() {
+const JobAdderAuth = () => {
   const [isJobAdderConnected, setIsJobAdderConnected] = useState(false);
   const [jobAdderLoading, setJobAdderLoading] = useState(true);
   const navigate = useNavigate();
@@ -133,6 +133,21 @@ export default function JobAdderAuth() {
               <p className="text-sm mt-1">
                 This uses OAuth2 to securely connect to JobAdder without storing your password. 
                 You can revoke access at any time from your JobAdder settings.
+              </p>
+            </AlertDescription>
+          </Alert>
+
+          {/* OAuth Error Alert */}
+          <Alert className="border-red-500/50 bg-red-50 dark:bg-red-950/30">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800 dark:text-red-200">
+              <strong>Configuration Required</strong>
+              <p className="text-sm mt-1">
+                The redirect URI for this preview environment needs to be added to your JobAdder app configuration.
+              </p>
+              <p className="text-sm mt-2 font-mono bg-red-100 dark:bg-red-900/50 p-2 rounded">
+                Add this URL to your JobAdder app's redirect URIs:<br/>
+                <strong>https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback</strong>
               </p>
             </AlertDescription>
           </Alert>
@@ -277,4 +292,6 @@ export default function JobAdderAuth() {
       </div>
     </div>
   );
-}
+};
+
+export default JobAdderAuth;
