@@ -175,6 +175,12 @@ class JobAdderOAuth2Manager {
       
       console.log('Step 1 - Authorization URL generated:', authUrl);
       console.log('Step 1 - Parameters:', params);
+      console.log('Step 1 - URL breakdown:');
+      console.log('  - Base URL:', this.AUTH_URL);
+      console.log('  - Client ID:', clientId);
+      console.log('  - Redirect URI:', this.REDIRECT_URI);
+      console.log('  - Scope:', params.scope);
+      console.log('  - Full URL:', authUrl);
       console.log('Step 1 - Stored redirect URI for step 3:', this.REDIRECT_URI);
       
       return authUrl;
