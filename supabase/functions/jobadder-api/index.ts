@@ -52,7 +52,13 @@ serve(async (req) => {
     switch (requestAction) {
       case 'get-client-id': {
         // Return the client ID for frontend OAuth URL generation
+        console.log('=== GET CLIENT ID REQUEST ===')
+        console.log('User ID:', userId)
+        console.log('Client ID available:', !!clientId)
+        console.log('Client ID value:', clientId ? clientId.substring(0, 10) + '...' : 'MISSING')
+        
         if (!clientId) {
+          console.error('JobAdder Client ID not configured in secrets')
           throw new Error('JobAdder Client ID not configured')
         }
         
