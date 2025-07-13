@@ -41,12 +41,31 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Get JobAdder credentials from secrets
-    const clientId = Deno.env.get('JOBADDER_CLIENT_ID')
-    const clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET')
+    // Get environment-specific JobAdder credentials from secrets
+    // Each environment has its own OAuth application in JobAdder Developer Portal
+    const hostname = req.headers.get('origin')?.replace(/https?:\/\//, '') || 'unknown';
+    let clientId, clientSecret;
+    
+    if (hostname === 'localhost:5173' || hostname.includes('localhost')) {
+      // Local development environment
+      clientId = Deno.env.get('JOBADDER_CLIENT_ID_DEV');
+      clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET_DEV');
+      console.log('Using DEV environment credentials for:', hostname);
+    } else if (hostname === 'staffing.growthaccelerator.nl') {
+      // Production environment
+      clientId = Deno.env.get('JOBADDER_CLIENT_ID_PROD');
+      clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET_PROD');
+      console.log('Using PRODUCTION environment credentials for:', hostname);
+    } else {
+      // Preview environment (Lovable preview URLs)
+      clientId = Deno.env.get('JOBADDER_CLIENT_ID_PREVIEW');
+      clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET_PREVIEW');
+      console.log('Using PREVIEW environment credentials for:', hostname);
+    }
 
     if (!clientId || !clientSecret) {
-      throw new Error('JobAdder credentials not configured')
+      console.error('JobAdder credentials not configured for environment:', hostname);
+      throw new Error(`JobAdder credentials not configured for environment: ${hostname}`);
     }
 
     switch (requestAction) {
@@ -421,8 +440,8 @@ serve(async (req) => {
               body: new URLSearchParams({
                 grant_type: 'refresh_token',
                 refresh_token: tokenData.refresh_token,
-                client_id: Deno.env.get('JOBADDER_CLIENT_ID') || '',
-                client_secret: Deno.env.get('JOBADDER_CLIENT_SECRET') || ''
+                client_id: clientId,
+                client_secret: clientSecret
               })
             })
 
@@ -520,8 +539,8 @@ serve(async (req) => {
               body: new URLSearchParams({
                 grant_type: 'refresh_token',
                 refresh_token: tokenData.refresh_token,
-                client_id: Deno.env.get('JOBADDER_CLIENT_ID') || '',
-                client_secret: Deno.env.get('JOBADDER_CLIENT_SECRET') || ''
+                client_id: clientId,
+                client_secret: clientSecret
               })
             })
 
@@ -618,8 +637,8 @@ serve(async (req) => {
             body: new URLSearchParams({
               grant_type: 'refresh_token',
               refresh_token: tokenData.refresh_token,
-              client_id: Deno.env.get('JOBADDER_CLIENT_ID') || '',
-              client_secret: Deno.env.get('JOBADDER_CLIENT_SECRET') || ''
+              client_id: clientId,
+              client_secret: clientSecret
             })
           })
 
@@ -719,8 +738,8 @@ serve(async (req) => {
             body: new URLSearchParams({
               grant_type: 'refresh_token',
               refresh_token: tokenData.refresh_token,
-              client_id: Deno.env.get('JOBADDER_CLIENT_ID') || '',
-              client_secret: Deno.env.get('JOBADDER_CLIENT_SECRET') || ''
+              client_id: clientId,
+              client_secret: clientSecret
             })
           })
 
@@ -837,8 +856,8 @@ serve(async (req) => {
             body: new URLSearchParams({
               grant_type: 'refresh_token',
               refresh_token: tokenData.refresh_token,
-              client_id: Deno.env.get('JOBADDER_CLIENT_ID') || '',
-              client_secret: Deno.env.get('JOBADDER_CLIENT_SECRET') || ''
+              client_id: clientId,
+              client_secret: clientSecret
             })
           })
 
@@ -920,8 +939,8 @@ serve(async (req) => {
             body: new URLSearchParams({
               grant_type: 'refresh_token',
               refresh_token: tokenData.refresh_token,
-              client_id: Deno.env.get('JOBADDER_CLIENT_ID') || '',
-              client_secret: Deno.env.get('JOBADDER_CLIENT_SECRET') || ''
+              client_id: clientId,
+              client_secret: clientSecret
             })
           })
 
@@ -1007,8 +1026,8 @@ serve(async (req) => {
             body: new URLSearchParams({
               grant_type: 'refresh_token',
               refresh_token: tokenData.refresh_token,
-              client_id: Deno.env.get('JOBADDER_CLIENT_ID') || '',
-              client_secret: Deno.env.get('JOBADDER_CLIENT_SECRET') || ''
+              client_id: clientId,
+              client_secret: clientSecret
             })
           })
 
