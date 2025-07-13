@@ -38,32 +38,35 @@ class JobAdderOAuth2Manager {
     console.log('=== OAUTH MANAGER CONSTRUCTOR ===');
     console.log('Current location:', { hostname, protocol, port, origin: window.location.origin });
     
-    // Determine environment and set redirect URI
+    // Determine environment and set redirect URI - MUST be exactly the same as configured in JobAdder app
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       // Local development
       this.REDIRECT_URI = `http://localhost:5173/auth/callback`;
       console.log('Environment: Local Development');
     } else if (hostname === 'staffing.growthaccelerator.nl') {
-      // Production domain  
+      // Production domain - EXACTLY as configured in JobAdder app
       this.REDIRECT_URI = `https://staffing.growthaccelerator.nl/auth/callback`;
       console.log('Environment: Production');
     } else {
-      // Lovable preview or other domains - use current origin
-      this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
-      console.log('Environment: Preview/Other');
+      // Lovable preview - EXACTLY as configured in JobAdder app
+      this.REDIRECT_URI = `https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback`;
+      console.log('Environment: Preview (Lovable)');
     }
     
+    console.log('=== CRITICAL: REDIRECT URI MUST MATCH JOBADDER APP CONFIG ===');
     console.log('REDIRECT_URI set to:', this.REDIRECT_URI);
+    console.log('This MUST exactly match what is configured in your JobAdder app');
     console.log('=== END CONSTRUCTOR DEBUG ===');
     
     // Add additional debugging for dev mode
-    console.log('🔧 DEV MODE DEBUG:');
+    console.log('🔧 DETAILED ENVIRONMENT DEBUG:');
     console.log('- Current hostname:', hostname);
     console.log('- Protocol:', protocol);
     console.log('- Port:', port);
     console.log('- Full origin:', window.location.origin);
     console.log('- Will redirect to:', this.REDIRECT_URI);
-    console.log('- Environment type:', this.getEnvironmentType());
+    console.log('- Environment type for credentials:', this.getEnvironmentType());
+    console.log('- IMPORTANT: Ensure JobAdder app redirect URIs include:', this.REDIRECT_URI);
   }
 
   /**

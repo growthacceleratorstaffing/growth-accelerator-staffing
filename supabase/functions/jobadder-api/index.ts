@@ -135,12 +135,14 @@ serve(async (req) => {
         console.log('=== JOBADDER TOKEN EXCHANGE DEBUG ===')
         console.log('Token exchange request body:', {
           grant_type: tokenRequestBody.grant_type,
-          client_id: tokenRequestBody.client_id,
+          client_id: tokenRequestBody.client_id.substring(0, 10) + '...',
           redirect_uri: tokenRequestBody.redirect_uri,
           code: tokenRequestBody.code.substring(0, 10) + '...',
           full_redirect_uri: tokenRequestBody.redirect_uri
         })
+        console.log('=== CRITICAL: REDIRECT URI VALIDATION ===')
         console.log('Expected JobAdder app redirect URI:', redirect_uri)
+        console.log('ENSURE THIS EXACT URL IS IN YOUR JOBADDER APP CONFIG')
         console.log('=== END DEBUG ===')
 
         // Call JobAdder token endpoint
