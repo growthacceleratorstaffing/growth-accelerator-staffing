@@ -63,6 +63,22 @@ class JobAdderOAuth2Manager {
     console.log('- Port:', port);
     console.log('- Full origin:', window.location.origin);
     console.log('- Will redirect to:', this.REDIRECT_URI);
+    console.log('- Environment type:', this.getEnvironmentType());
+  }
+
+  /**
+   * Detect current environment for proper OAuth app selection
+   */
+  private getEnvironmentType(): 'production' | 'development' {
+    const hostname = window.location.hostname;
+    
+    // Production environment
+    if (hostname === 'staffing.growthaccelerator.nl') {
+      return 'production';
+    }
+    
+    // Everything else is development (localhost, previews, etc.)
+    return 'development';
   }
 
   /**
@@ -80,9 +96,12 @@ class JobAdderOAuth2Manager {
         throw new Error('User not authenticated - please sign in first');
       }
 
-      console.log('📡 Step: Calling edge function with userId:', userId);
+      console.log('📡 Step: Calling edge function with environment:', this.getEnvironmentType());
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
-        body: { action: 'get-client-id' },
+        body: { 
+          action: 'get-client-id',
+          environment: this.getEnvironmentType()
+        },
         headers: { 'x-user-id': userId }
       });
 
@@ -128,13 +147,9 @@ class JobAdderOAuth2Manager {
       console.log('Current hostname:', window.location.hostname);
       console.log('=== END DEBUG ===');
       
-      // Validate client ID matches expected format
-      if (clientId !== 'ldyp7mapnxdevgowsnmr34o2j4') {
-        console.warn('⚠️  Client ID mismatch detected!');
-        console.warn('Expected: ldyp7mapnxdevgowsnmr34o2j4');
-        console.warn('Received:', clientId);
-        console.warn('Please update JOBADDER_CLIENT_ID in Supabase secrets');
-      }
+      // Log environment and client ID for debugging
+      console.log('Environment type:', this.getEnvironmentType());
+      console.log('Client ID received:', clientId);
       
       // Build URL according to JobAdder OAuth 2.0 spec EXACTLY as documented
       // Official JobAdder format: https://id.jobadder.com/connect/authorize?response_type=code&client_id={CLIENT_ID}&scope=read%20write%20offline_access&redirect_uri={REDIRECT_URI}

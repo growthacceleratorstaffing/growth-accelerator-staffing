@@ -41,21 +41,37 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Get JobAdder credentials from secrets - using the existing working credentials
-    // For now using the single set of credentials, can be expanded to environment-specific later
-    const clientId = Deno.env.get('JOBADDER_CLIENT_ID')
-    const clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET')
+    // Get JobAdder credentials from secrets based on environment
+    const environment = params.environment || 'production' // Default to production for safety
+    console.log('=== ENVIRONMENT DETECTION ===')
+    console.log('Requested environment:', environment)
+    console.log('Origin header:', req.headers.get('origin'))
+    
+    let clientId: string | undefined
+    let clientSecret: string | undefined
+    
+    if (environment === 'development') {
+      // Development environment (localhost, previews, etc.)
+      clientId = Deno.env.get('JOBADDER_DEV_CLIENT_ID') || Deno.env.get('JOBADDER_CLIENT_ID')
+      clientSecret = Deno.env.get('JOBADDER_DEV_CLIENT_SECRET') || Deno.env.get('JOBADDER_CLIENT_SECRET')
+      console.log('Using development credentials')
+    } else {
+      // Production environment
+      clientId = Deno.env.get('JOBADDER_CLIENT_ID')
+      clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET')
+      console.log('Using production credentials')
+    }
 
     console.log('=== JOBADDER CREDENTIALS DEBUG ===')
-    console.log('Environment hostname:', req.headers.get('origin')?.replace(/https?:\/\//, '') || 'unknown')
+    console.log('Environment:', environment)
     console.log('Client ID available:', !!clientId)
     console.log('Client Secret available:', !!clientSecret)
     console.log('Client ID (first 10 chars):', clientId ? clientId.substring(0, 10) + '...' : 'MISSING')
     console.log('=== END CREDENTIALS DEBUG ===')
 
     if (!clientId || !clientSecret) {
-      console.error('JobAdder credentials not configured')
-      throw new Error('JobAdder credentials not configured')
+      console.error(`JobAdder credentials not configured for ${environment} environment`)
+      throw new Error(`JobAdder credentials not configured for ${environment} environment`)
     }
 
     switch (requestAction) {
