@@ -82,17 +82,23 @@ const AuthCallback = () => {
             navigate(redirectUrl);
           }, 2000);
         }
-        
       } catch (error) {
         console.error('OAuth callback processing failed:', error);
         
         let errorMessage = 'JobAdder authentication failed';
         if (error instanceof Error) {
           // Check if it's a specific error we can help with
-          if (error.message.includes('redirect_uri')) {
-            errorMessage = `Redirect URI mismatch: ${error.message}\n\nThe JobAdder application redirect URI must be set to: ${window.location.origin}/auth/callback`;
+          if (error.message.includes('redirect_uri') || error.message.includes('invalid_grant')) {
+            const hostname = window.location.hostname;
+            const expectedUri = hostname === 'staffing.growthaccelerator.nl' 
+              ? 'https://staffing.growthaccelerator.nl/auth/callback'
+              : hostname === 'localhost' || hostname === '127.0.0.1'
+              ? 'http://localhost:5173/auth/callback'
+              : `${window.location.origin}/auth/callback`;
+              
+            errorMessage = `Redirect URI configuration issue.\n\nThe JobAdder application redirect URI must be set to: ${expectedUri}\n\nError details: ${error.message}`;
           } else if (error.message.includes('invalid_code') || error.message.includes('code')) {
-            errorMessage = `Authorization code issue: ${error.message}\n\nThe authorization code may have expired or been used already.`;
+            errorMessage = `Authorization code issue: ${error.message}\n\nThe authorization code may have expired or been used already. Please try connecting again.`;
           } else if (error.message.includes('User session not found')) {
             errorMessage = `${error.message}\n\nPlease sign in to your account first, then try connecting to JobAdder again.`;
           } else {

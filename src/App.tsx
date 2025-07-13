@@ -292,7 +292,7 @@ const App = () => {
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           {/* Redirect old routes to main auth page */}
-          <Route path="/jobadder-auth" element={<Navigate to="/auth?tab=integrations" replace />} />
+          <Route path="/jobadder-auth" element={<AuthCallback />} />
           <Route path="/auth/login" element={<Navigate to="/auth" replace />} />
           
           {/* Routes with sidebar */}
