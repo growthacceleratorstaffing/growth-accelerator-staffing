@@ -55,6 +55,14 @@ class JobAdderOAuth2Manager {
     
     console.log('REDIRECT_URI set to:', this.REDIRECT_URI);
     console.log('=== END CONSTRUCTOR DEBUG ===');
+    
+    // Add additional debugging for dev mode
+    console.log('🔧 DEV MODE DEBUG:');
+    console.log('- Current hostname:', hostname);
+    console.log('- Protocol:', protocol);
+    console.log('- Port:', port);
+    console.log('- Full origin:', window.location.origin);
+    console.log('- Will redirect to:', this.REDIRECT_URI);
   }
 
   /**

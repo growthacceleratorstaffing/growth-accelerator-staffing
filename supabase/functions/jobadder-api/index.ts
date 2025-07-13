@@ -90,9 +90,11 @@ serve(async (req) => {
         console.log('User ID:', userId)
         console.log('Client ID available:', !!clientId)
         console.log('Client Secret available:', !!clientSecret)
+        console.log('Request origin:', req.headers.get('origin'))
+        console.log('Request hostname from origin:', req.headers.get('origin')?.replace(/https?:\/\//, ''))
         
         if (!code || !userId || !redirect_uri) {
-          console.error('Missing required parameters:', { 
+          console.error('❌ Missing required parameters:', { 
             hasCode: !!code, 
             hasUserId: !!userId, 
             hasRedirectUri: !!redirect_uri 
@@ -101,7 +103,7 @@ serve(async (req) => {
         }
 
         if (!clientId || !clientSecret) {
-          console.error('Missing JobAdder credentials')
+          console.error('❌ Missing JobAdder credentials')
           throw new Error('JobAdder client credentials not configured')
         }
 
