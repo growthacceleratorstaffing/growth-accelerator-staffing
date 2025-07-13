@@ -18,9 +18,11 @@ const AuthCallback = () => {
 
   useEffect(() => {
     let mounted = true;
+    let processing = false; // Prevent double processing
     
     const handleCallback = async () => {
-      if (!mounted) return;
+      if (!mounted || processing) return;
+      processing = true;
       
       try {
         // Get all URL parameters including hash fragments
@@ -58,7 +60,19 @@ const AuthCallback = () => {
 
         // Step 3: Exchange authorization code for tokens
         if (code) {
+          // Check if this code has already been processed
+          const processedCode = sessionStorage.getItem('processed_oauth_code');
+          if (processedCode === code) {
+            console.log('Authorization code already processed, skipping...');
+            setError('Authorization code already used. Please start the connection process again.');
+            setLoading(false);
+            return;
+          }
+          
           console.log('Step 3: Exchanging OAuth code for tokens...');
+          
+          // Mark this code as being processed
+          sessionStorage.setItem('processed_oauth_code', code);
           
           // Get current user session
           const { data: { session } } = await supabase.auth.getSession();
@@ -67,6 +81,9 @@ const AuthCallback = () => {
           }
           
           const tokenResponse = await oauth2Manager.exchangeCodeForTokens(code);
+          
+          // Clear the processed code on success
+          sessionStorage.removeItem('processed_oauth_code');
           
           setSuccess(true);
           toast({
@@ -107,6 +124,8 @@ const AuthCallback = () => {
         }
         
         setError(errorMessage);
+        // Clear processed code on error so user can retry
+        sessionStorage.removeItem('processed_oauth_code');
       } finally {
         setLoading(false);
       }
