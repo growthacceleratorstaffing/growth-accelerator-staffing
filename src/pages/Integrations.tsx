@@ -45,6 +45,10 @@ export default function Integrations() {
       console.log('Current hostname:', window.location.hostname);
       console.log('Current origin:', window.location.origin);
       
+      // CRITICAL: Clear any existing tokens first to prevent conflicts
+      console.log('🧹 Clearing existing tokens to prevent conflicts...');
+      await oauth2Manager.clearTokensBeforeAuth();
+      
       console.log('Getting authorization URL...');
       const authUrl = await oauth2Manager.getAuthorizationUrl();
       console.log('✅ Authorization URL received:', authUrl);

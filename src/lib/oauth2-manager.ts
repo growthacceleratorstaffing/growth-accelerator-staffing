@@ -402,6 +402,7 @@ class JobAdderOAuth2Manager {
     try {
       const userId = await this.getCurrentUserId();
       if (userId) {
+        console.log('🧹 Clearing all JobAdder tokens for user:', userId);
         await supabase
           .from('jobadder_tokens')
           .delete()
@@ -412,9 +413,30 @@ class JobAdderOAuth2Manager {
       localStorage.removeItem('jobadder_oauth_state');
       localStorage.removeItem('jobadder_oauth_redirect_uri');
       
-      console.log('JobAdder tokens cleared');
+      console.log('✅ JobAdder tokens cleared - ready for fresh OAuth');
     } catch (error) {
       console.error('Error clearing tokens:', error);
+    }
+  }
+
+  /**
+   * Force clear tokens before starting new OAuth flow
+   */
+  async clearTokensBeforeAuth(): Promise<void> {
+    console.log('🧹 Force clearing tokens before new OAuth attempt...');
+    await this.clearTokens();
+    
+    // Also clear any existing tokens on server side
+    try {
+      const userId = await this.getCurrentUserId();
+      if (userId) {
+        await supabase.functions.invoke('jobadder-api', {
+          body: { action: 'clear-tokens' },
+          headers: { 'x-user-id': userId }
+        });
+      }
+    } catch (error) {
+      console.log('Server token clear failed (this is okay):', error);
     }
   }
 
