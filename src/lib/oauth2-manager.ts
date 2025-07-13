@@ -98,18 +98,22 @@ class JobAdderOAuth2Manager {
       console.log('=== END DEBUG ===');
       
       // Build URL according to JobAdder OAuth 2.0 spec
+      // Official JobAdder format: https://id.jobadder.com/connect/authorize?response_type=code&client_id={CLIENT_ID}&scope=read%20write%20offline_access&redirect_uri={REDIRECT_URI}
       const params = {
         response_type: 'code',
         client_id: clientId,
-        scope: 'read write offline_access', // offline_access is required for refresh tokens
+        scope: 'read write offline_access', // Must include offline_access for refresh tokens
         redirect_uri: this.REDIRECT_URI,
-        state: state
+        state: state  // Optional but recommended for security
       };
       
-      // Manual construction for precise control
-      const authUrl = `${this.AUTH_URL}?` + Object.entries(params)
-        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-        .join('&');
+      // Use URLSearchParams to ensure proper encoding
+      const urlParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        urlParams.append(key, value);
+      });
+      
+      const authUrl = `${this.AUTH_URL}?${urlParams.toString()}`;
       
       // Store state for step 2 validation
       localStorage.setItem('jobadder_oauth_state', state);
