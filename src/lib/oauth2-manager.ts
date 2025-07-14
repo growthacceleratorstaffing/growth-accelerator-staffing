@@ -192,9 +192,25 @@ class JobAdderOAuth2Manager {
    */
   async exchangeCodeForTokens(code: string): Promise<TokenResponse> {
     try {
+      console.log('=== JobAdder OAuth Step 3: Token Exchange ===');
+      console.log('Code received (first 10 chars):', code?.substring(0, 10));
+      console.log('Current environment:', this.getEnvironmentType());
+      console.log('Current origin:', window.location.origin);
+      
       const userId = await this.getCurrentUserId();
+      console.log('=== USER SESSION DEBUG ===');
+      console.log('User ID from session:', userId ? 'present' : 'MISSING');
+      console.log('Session check result:', userId ? `${userId.substring(0, 8)}...` : 'NO SESSION');
+
       if (!userId) {
-        throw new Error('Please sign in to the app first before connecting your JobAdder account');
+        // Get more details about the session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.error('=== SESSION FAILURE DEBUG ===');
+        console.error('Session error:', sessionError);
+        console.error('Session data:', session ? 'present but no user' : 'no session');
+        console.error('Auth state check at:', new Date().toISOString());
+        
+        throw new Error('Please sign in to the app first before connecting your JobAdder account. Current session is invalid.');
       }
 
       if (!code || code.trim() === '') {
@@ -205,15 +221,21 @@ class JobAdderOAuth2Manager {
       const storedRedirectUri = localStorage.getItem('jobadder_oauth_redirect_uri');
       const redirectUriToUse = storedRedirectUri || this.REDIRECT_URI;
       
-      console.log('Step 3: Exchanging authorization code for tokens...');
+      console.log('=== REDIRECT URI DEBUG ===');
       console.log('Using redirect URI for token exchange:', redirectUriToUse);
       console.log('Stored redirect URI from step 1:', storedRedirectUri);
       console.log('Current redirect URI:', this.REDIRECT_URI);
+      console.log('Environment type:', this.getEnvironmentType());
       
       // Clean up stored redirect URI
       localStorage.removeItem('jobadder_oauth_redirect_uri');
       
       // Call server-side function to handle token exchange securely
+      console.log('=== CALLING EDGE FUNCTION ===');
+      console.log('User ID being sent:', userId.substring(0, 8) + '...');
+      console.log('Code being sent (first 10):', code.substring(0, 10) + '...');
+      console.log('Redirect URI being sent:', redirectUriToUse);
+      
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: {
           action: 'exchange-token',
@@ -226,17 +248,22 @@ class JobAdderOAuth2Manager {
         }
       });
 
+      console.log('=== EDGE FUNCTION RESPONSE ===');
+      console.log('Has error:', !!error);
+      console.log('Has data:', !!data);
+      console.log('Data success:', data?.success);
+
       if (error) {
-        console.error('Token exchange error:', error);
+        console.error('❌ Token exchange error from edge function:', error);
         throw new Error(error.message || 'Failed to exchange authorization code');
       }
 
       if (!data || !data.success) {
-        console.error('Token exchange failed:', data);
+        console.error('❌ Token exchange failed - edge function returned failure:', data);
         throw new Error(data?.error || 'Token exchange failed');
       }
 
-      console.log('Step 3: Token exchange successful');
+      console.log('✅ Step 3: Token exchange successful');
       
       // Return standardized response
       return {
@@ -249,7 +276,7 @@ class JobAdderOAuth2Manager {
         account: data.account
       };
     } catch (error) {
-      console.error('Error exchanging code for tokens:', error);
+      console.error('❌ Error exchanging code for tokens:', error);
       throw error;
     }
   }
