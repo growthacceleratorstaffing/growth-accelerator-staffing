@@ -120,11 +120,8 @@ class JobAdderOAuth2Manager {
       console.log('Redirect URI:', this.REDIRECT_URI);
       console.log('Current origin:', window.location.origin);
       console.log('Current hostname:', window.location.hostname);
+      console.log('Environment:', this.getEnvironmentType());
       console.log('=== END DEBUG ===');
-      
-      // Log environment and client ID for debugging
-      console.log('Environment type:', this.getEnvironmentType());
-      console.log('Client ID received:', clientId);
       
       // Build URL according to JobAdder OAuth 2.0 spec EXACTLY as documented
       // STEP 1: Authorization Request
@@ -137,21 +134,26 @@ class JobAdderOAuth2Manager {
         redirect_uri: this.REDIRECT_URI
       });
       
-      // Use URLSearchParams to ensure proper encoding exactly as JobAdder expects
       const authUrl = `${this.AUTH_URL}?${params.toString()}`;
       
-      // Store redirect URI for step 3 validation
+      // Store redirect URI for step 3 validation and current origin for dev mode handling
       localStorage.setItem('jobadder_oauth_redirect_uri', this.REDIRECT_URI);
+      localStorage.setItem('jobadder_oauth_original_origin', window.location.origin);
+      
+      // For dev mode, redirect to production first, then to JobAdder
+      if (this.getEnvironmentType() === 'development') {
+        console.log('🔄 Dev mode detected - redirecting through production domain');
+        console.log('Original URL:', authUrl);
+        
+        // Create a URL that goes to production domain with the auth URL as a parameter
+        const productionAuthUrl = `https://staffing.growthaccelerator.nl/auth/jobadder-proxy?auth_url=${encodeURIComponent(authUrl)}&return_origin=${encodeURIComponent(window.location.origin)}`;
+        
+        console.log('Production proxy URL:', productionAuthUrl);
+        return productionAuthUrl;
+      }
       
       console.log('Step 1 - Authorization URL generated:', authUrl);
       console.log('Step 1 - Parameters:', Object.fromEntries(params));
-      console.log('Step 1 - URL breakdown:');
-      console.log('  - Base URL:', this.AUTH_URL);
-      console.log('  - Client ID:', clientId);
-      console.log('  - Redirect URI:', this.REDIRECT_URI);
-      console.log('  - Scope: read write offline_access');
-      console.log('  - Full URL:', authUrl);
-      console.log('Step 1 - Stored redirect URI for step 3:', this.REDIRECT_URI);
       
       return authUrl;
     } catch (error) {

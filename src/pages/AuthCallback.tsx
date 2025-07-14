@@ -25,6 +25,40 @@ const AuthCallback = () => {
       processing = true;
       
       try {
+        console.log('=== AuthCallback: Processing callback ===');
+        console.log('Current URL:', window.location.href);
+        console.log('Current origin:', window.location.origin);
+        
+        // Check if this is a dev mode redirect that came through production
+        const returnOrigin = searchParams.get('return_origin');
+        if (returnOrigin && returnOrigin !== window.location.origin) {
+          console.log('🔄 Dev mode redirect detected');
+          console.log('Return origin:', returnOrigin);
+          console.log('Current origin:', window.location.origin);
+          
+          // Get all params and redirect to the dev environment
+          const code = searchParams.get('code');
+          const state = searchParams.get('state');
+          const error = searchParams.get('error');
+          const errorDescription = searchParams.get('error_description');
+          
+          let redirectUrl = `${returnOrigin}/auth/callback`;
+          const redirectParams = new URLSearchParams();
+          
+          if (code) redirectParams.set('code', code);
+          if (state) redirectParams.set('state', state);
+          if (error) redirectParams.set('error', error);
+          if (errorDescription) redirectParams.set('error_description', errorDescription);
+          
+          if (redirectParams.toString()) {
+            redirectUrl += `?${redirectParams.toString()}`;
+          }
+          
+          console.log('🔄 Redirecting to dev environment:', redirectUrl);
+          window.location.href = redirectUrl;
+          return;
+        }
+        
         // Get all URL parameters including hash fragments
         const url = new URL(window.location.href);
         const params = new URLSearchParams(url.search);
@@ -35,6 +69,8 @@ const AuthCallback = () => {
         const state = params.get('state') || hashParams.get('state');
         const errorParam = params.get('error') || hashParams.get('error');
         const errorDescription = params.get('error_description') || hashParams.get('error_description');
+
+        console.log('OAuth parameters:', { code: !!code, state, errorParam, errorDescription });
 
         // Handle authorization errors
         if (errorParam) {
@@ -47,6 +83,7 @@ const AuthCallback = () => {
         // If no OAuth parameters at all, this is direct access - redirect immediately
         if (!code && !errorParam) {
           if (!mounted) return;
+          console.log('No OAuth parameters found, redirecting to integrations...');
           navigate('/auth?tab=integrations', { replace: true });
           return;
         }
