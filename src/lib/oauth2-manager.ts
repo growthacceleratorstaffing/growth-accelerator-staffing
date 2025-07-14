@@ -126,34 +126,29 @@ class JobAdderOAuth2Manager {
       console.log('Client ID received:', clientId);
       
       // Build URL according to JobAdder OAuth 2.0 spec EXACTLY as documented
-      // Official JobAdder format: https://id.jobadder.com/connect/authorize?response_type=code&client_id={CLIENT_ID}&scope=read%20write%20offline_access&redirect_uri={REDIRECT_URI}
-      const params = {
+      // STEP 1: Authorization Request
+      // GET https://id.jobadder.com/connect/authorize
+      // Required parameters: response_type=code, client_id, scope, redirect_uri
+      const params = new URLSearchParams({
         response_type: 'code',
         client_id: clientId,
         scope: 'read write offline_access', // Must include offline_access for refresh tokens
         redirect_uri: this.REDIRECT_URI
-        // Removing state parameter to match JobAdder docs exactly
-      };
+      });
       
       // Use URLSearchParams to ensure proper encoding exactly as JobAdder expects
-      const urlParams = new URLSearchParams();
-      urlParams.append('response_type', params.response_type);
-      urlParams.append('client_id', params.client_id);
-      urlParams.append('scope', params.scope);
-      urlParams.append('redirect_uri', params.redirect_uri);
+      const authUrl = `${this.AUTH_URL}?${params.toString()}`;
       
-      const authUrl = `${this.AUTH_URL}?${urlParams.toString()}`;
-      
-      // Store redirect URI for step 3 validation (no state since we removed it)
+      // Store redirect URI for step 3 validation
       localStorage.setItem('jobadder_oauth_redirect_uri', this.REDIRECT_URI);
       
       console.log('Step 1 - Authorization URL generated:', authUrl);
-      console.log('Step 1 - Parameters:', params);
+      console.log('Step 1 - Parameters:', Object.fromEntries(params));
       console.log('Step 1 - URL breakdown:');
       console.log('  - Base URL:', this.AUTH_URL);
       console.log('  - Client ID:', clientId);
       console.log('  - Redirect URI:', this.REDIRECT_URI);
-      console.log('  - Scope:', params.scope);
+      console.log('  - Scope: read write offline_access');
       console.log('  - Full URL:', authUrl);
       console.log('Step 1 - Stored redirect URI for step 3:', this.REDIRECT_URI);
       

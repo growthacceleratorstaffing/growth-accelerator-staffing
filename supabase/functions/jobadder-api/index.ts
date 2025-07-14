@@ -276,19 +276,34 @@ serve(async (req) => {
           throw new Error('No refresh token found')
         }
 
-        // Call JobAdder token endpoint with refresh token
+        // STEP 4: Refresh Token Request
+        // POST https://id.jobadder.com/connect/token
+        // Required parameters: grant_type=refresh_token, refresh_token, client_id, client_secret
+        console.log('=== JOBADDER STEP 4: REFRESH TOKEN ===')
+        console.log('JobAdder Refresh Token Endpoint: https://id.jobadder.com/connect/token')
+        console.log('Method: POST')
+        console.log('Content-Type: application/x-www-form-urlencoded')
+        console.log('Grant Type: refresh_token')
+
+        const refreshFormData = new URLSearchParams()
+        refreshFormData.append('grant_type', 'refresh_token')
+        refreshFormData.append('refresh_token', tokenData.refresh_token)
+        refreshFormData.append('client_id', clientId)
+        refreshFormData.append('client_secret', clientSecret)
+
+        // Call JobAdder refresh token endpoint with EXACT headers from documentation
         const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'User-Agent': 'JobAdder-OAuth-Client/1.0'
           },
-          body: new URLSearchParams({
-            client_id: clientId,
-            client_secret: clientSecret,
-            grant_type: 'refresh_token',
-            refresh_token: tokenData.refresh_token
-          })
+          body: refreshFormData
         })
+
+        console.log('JobAdder refresh response status:', refreshResponse.status)
+        console.log('JobAdder refresh response headers:', Object.fromEntries(refreshResponse.headers.entries()))
 
         if (!refreshResponse.ok) {
           const errorText = await refreshResponse.text()
@@ -357,18 +372,22 @@ serve(async (req) => {
         if (expiresAt <= now) {
           console.log('Access token expired, refreshing...')
           
-          // Refresh the token
+          // STEP 4: Refresh Token Request (same as above)
+          const refreshFormData = new URLSearchParams()
+          refreshFormData.append('grant_type', 'refresh_token')
+          refreshFormData.append('refresh_token', tokenData.refresh_token)
+          refreshFormData.append('client_id', clientId)
+          refreshFormData.append('client_secret', clientSecret)
+          
+          // Refresh the token using exact same format
           const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
+              'Accept': 'application/json',
+              'User-Agent': 'JobAdder-OAuth-Client/1.0'
             },
-            body: new URLSearchParams({
-              client_id: clientId,
-              client_secret: clientSecret,
-              grant_type: 'refresh_token',
-              refresh_token: tokenData.refresh_token
-            })
+            body: refreshFormData
           })
 
           if (!refreshResponse.ok) {
@@ -450,18 +469,22 @@ serve(async (req) => {
           }
 
           try {
+            // STEP 4: Refresh Token Request (same exact format as above)
+            const refreshFormData = new URLSearchParams()
+            refreshFormData.append('grant_type', 'refresh_token')
+            refreshFormData.append('refresh_token', tokenData.refresh_token)
+            refreshFormData.append('client_id', clientId)
+            refreshFormData.append('client_secret', clientSecret)
+            
             // Refresh the token
             const refreshResponse = await fetch('https://id.jobadder.com/connect/token', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json',
+                'User-Agent': 'JobAdder-OAuth-Client/1.0'
               },
-              body: new URLSearchParams({
-                grant_type: 'refresh_token',
-                refresh_token: tokenData.refresh_token,
-                client_id: clientId,
-                client_secret: clientSecret
-              })
+              body: refreshFormData
             })
 
             if (!refreshResponse.ok) {
