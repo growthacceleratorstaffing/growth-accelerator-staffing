@@ -28,7 +28,6 @@ import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
 import Integrations from "./pages/Integrations";
-import JobAdderProxy from "./pages/JobAdderProxy";
 
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
@@ -293,7 +292,6 @@ const App = () => {
           {/* Authentication routes */}
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/auth/jobadder-proxy" element={<JobAdderProxy />} />
           {/* Redirect old routes to main auth page */}
           <Route path="/jobadder-auth" element={<JobAdderAuth />} />
           <Route path="/auth/login" element={<Navigate to="/auth" replace />} />
