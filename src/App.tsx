@@ -28,7 +28,7 @@ import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
 import Integrations from "./pages/Integrations";
-import { useState } from "react";
+
 
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
@@ -271,16 +271,17 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const App = () => {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: 1,
-        refetchOnWindowFocus: false,
-      },
+// Create QueryClient outside component to prevent recreation
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
     },
-  }));
+  },
+});
 
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
