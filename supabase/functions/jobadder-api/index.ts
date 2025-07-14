@@ -41,33 +41,34 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Get JobAdder credentials from secrets 
-    // Since both dev and production need to work with the same JobAdder app,
-    // we'll use the same credentials but different redirect URIs
-    const environment = params.environment || 'production'
-    console.log('=== ENVIRONMENT DETECTION ===')
-    console.log('Requested environment:', environment)
-    console.log('Origin header:', req.headers.get('origin'))
+    // CRITICAL: Ensure CONSISTENT client credentials across ALL OAuth steps
+    // The SAME client ID MUST be used in all 4 steps according to JobAdder OAuth spec:
+    // Step 1: Authorization URL generation
+    // Step 2: Authorization code validation  
+    // Step 3: Token exchange
+    // Step 4: Token refresh
     
-    // Use the same JobAdder app credentials for both environments
-    // The redirect URI configuration in JobAdder app should include both:
-    // - https://staffing.growthaccelerator.nl/auth/callback (production)
-    // - https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback (preview)
-    // - http://localhost:5173/auth/callback (local dev)
+    // Get JobAdder credentials from Supabase secrets (same for all environments)
     const clientId = Deno.env.get('JOBADDER_CLIENT_ID')
     const clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET')
 
-    console.log('=== JOBADDER CREDENTIALS DEBUG ===')
-    console.log('Environment:', environment)
+    console.log('=== JOBADDER OAUTH CREDENTIALS VALIDATION ===')
+    console.log('User ID:', userId ? userId.substring(0, 8) + '...' : 'MISSING')
+    console.log('Action:', requestAction)
     console.log('Client ID available:', !!clientId)
     console.log('Client Secret available:', !!clientSecret)
-    console.log('Client ID (first 10 chars):', clientId ? clientId.substring(0, 10) + '...' : 'MISSING')
-    console.log('Using unified credentials for all environments')
-    console.log('IMPORTANT: JobAdder app must have ALL redirect URIs configured:')
-    console.log('  - https://staffing.growthaccelerator.nl/auth/callback')
-    console.log('  - https://4f7c8635-0e94-4f6c-aa92-8aa19bb9021a.lovableproject.com/auth/callback') 
-    console.log('  - http://localhost:5173/auth/callback')
-    console.log('=== END CREDENTIALS DEBUG ===')
+    console.log('Client ID value (for debugging):', clientId ? clientId : 'MISSING - CRITICAL ERROR')
+    console.log('Origin:', req.headers.get('origin'))
+    
+    if (!clientId || !clientSecret) {
+      console.error('❌ CRITICAL: JobAdder credentials missing from Supabase secrets')
+      console.error('❌ Required secrets: JOBADDER_CLIENT_ID, JOBADDER_CLIENT_SECRET')
+      throw new Error('JobAdder credentials not configured in Supabase secrets')
+    }
+    
+    console.log('✅ JobAdder credentials validated - same client ID will be used for all OAuth steps')
+    console.log('✅ Client ID being used consistently:', clientId)
+    console.log('=== END CREDENTIALS VALIDATION ===')
 
     switch (requestAction) {
       case 'get-client-id': {
