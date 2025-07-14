@@ -118,36 +118,50 @@ serve(async (req) => {
           throw new Error('JobAdder client credentials not configured')
         }
 
-        // Prepare token exchange request exactly per JobAdder spec
-        const tokenRequestBody = {
-          grant_type: 'authorization_code',
-          code: code,
-          redirect_uri: redirect_uri,
-          client_id: clientId,
-          client_secret: clientSecret
-        }
+        // CRITICAL: Must follow JobAdder API documentation EXACTLY
+        // Per JobAdder docs: https://id.jobadder.com/connect/token
+        // Content-Type: application/x-www-form-urlencoded
+        // Parameters: grant_type, code, redirect_uri, client_id, client_secret
+        
+        console.log('=== JOBADDER TOKEN EXCHANGE - FOLLOWING EXACT API SPEC ===')
+        console.log('JobAdder Token Endpoint: https://id.jobadder.com/connect/token')
+        console.log('Method: POST')
+        console.log('Content-Type: application/x-www-form-urlencoded')
+        console.log('Grant Type: authorization_code')
+        console.log('Client ID (first 10):', clientId.substring(0, 10) + '...')
+        console.log('Redirect URI:', redirect_uri)
+        console.log('Code (first 10):', code.substring(0, 10) + '...')
+        console.log('=== END PREPARATION ===')
 
-        console.log('=== JOBADDER TOKEN EXCHANGE DEBUG ===')
-        console.log('Token exchange request body:', {
-          grant_type: tokenRequestBody.grant_type,
-          client_id: tokenRequestBody.client_id.substring(0, 10) + '...',
-          redirect_uri: tokenRequestBody.redirect_uri,
-          code: tokenRequestBody.code.substring(0, 10) + '...',
-          full_redirect_uri: tokenRequestBody.redirect_uri
+        // CRITICAL: Build form data exactly as JobAdder expects
+        // Order matters - using exact parameter names from JobAdder docs
+        const formData = new URLSearchParams()
+        formData.append('grant_type', 'authorization_code')
+        formData.append('code', code)
+        formData.append('redirect_uri', redirect_uri)
+        formData.append('client_id', clientId)
+        formData.append('client_secret', clientSecret)
+
+        console.log('=== FORM DATA DEBUG ===')
+        console.log('Form data string:', formData.toString())
+        console.log('All parameters present:', {
+          grant_type: formData.has('grant_type'),
+          code: formData.has('code'),
+          redirect_uri: formData.has('redirect_uri'),
+          client_id: formData.has('client_id'),
+          client_secret: formData.has('client_secret')
         })
-        console.log('=== CRITICAL: REDIRECT URI VALIDATION ===')
-        console.log('Expected JobAdder app redirect URI:', redirect_uri)
-        console.log('ENSURE THIS EXACT URL IS IN YOUR JOBADDER APP CONFIG')
-        console.log('=== END DEBUG ===')
+        console.log('=== END FORM DATA DEBUG ===')
 
-        // Call JobAdder token endpoint
+        // Call JobAdder token endpoint with EXACT headers from documentation
         const tokenResponse = await fetch('https://id.jobadder.com/connect/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'User-Agent': 'JobAdder-OAuth-Client/1.0'
           },
-          body: new URLSearchParams(tokenRequestBody)
+          body: formData
         })
 
         console.log('JobAdder token response status:', tokenResponse.status)
@@ -168,10 +182,10 @@ serve(async (req) => {
             headers: Object.fromEntries(tokenResponse.headers.entries()),
             errorDetails,
             requestBody: {
-              grant_type: tokenRequestBody.grant_type,
-              client_id: tokenRequestBody.client_id,
-              redirect_uri: tokenRequestBody.redirect_uri,
-              code: tokenRequestBody.code.substring(0, 10) + '...'
+              grant_type: 'authorization_code',
+              client_id: clientId,
+              redirect_uri: redirect_uri,
+              code: code.substring(0, 10) + '...'
             }
           })
           
