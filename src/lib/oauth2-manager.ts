@@ -30,14 +30,14 @@ class JobAdderOAuth2Manager {
   private readonly REDIRECT_URI: string;
   
   constructor() {
-    // Use dynamic redirect URI based on current environment
-    // This must match EXACTLY between authorization and token exchange
-    this.REDIRECT_URI = `${window.location.origin}/auth/callback`;
+    // IMPORTANT: JobAdder OAuth app is configured with ONLY the production redirect URI
+    // Using the production redirect URI for all environments since it's the only one registered
+    this.REDIRECT_URI = `https://staffing.growthaccelerator.nl/auth/callback`;
     
     console.log('=== OAUTH MANAGER CONSTRUCTOR ===');
-    console.log('Using DYNAMIC redirect URI based on current origin:', this.REDIRECT_URI);
+    console.log('Using PRODUCTION redirect URI for all environments:', this.REDIRECT_URI);
     console.log('Current origin:', window.location.origin);
-    console.log('This ensures the redirect URI matches between steps 1 and 3');
+    console.log('JobAdder app is configured ONLY for production redirect URI');
     console.log('=== END CONSTRUCTOR DEBUG ===');
   }
 
