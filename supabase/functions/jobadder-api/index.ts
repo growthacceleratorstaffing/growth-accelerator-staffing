@@ -53,7 +53,7 @@ serve(async (req) => {
     const clientSecret = Deno.env.get('JOBADDER_CLIENT_SECRET')
 
     console.log('=== JOBADDER OAUTH CREDENTIALS VALIDATION ===')
-    console.log('User ID:', userId ? userId.substring(0, 8) + '...' : 'MISSING')
+    console.log('User ID:', userId ? userId.substring(0, 8) + '...' : 'MISSING (ok for get-client-id)')
     console.log('Action:', requestAction)
     console.log('Client ID available:', !!clientId)
     console.log('Client Secret available:', !!clientSecret)
@@ -73,8 +73,9 @@ serve(async (req) => {
     switch (requestAction) {
       case 'get-client-id': {
         // Return the client ID for frontend OAuth URL generation
-        console.log('=== GET CLIENT ID REQUEST ===')
-        console.log('User ID:', userId)
+        // Note: Client ID is public information and doesn't require user authentication
+        console.log('=== GET CLIENT ID REQUEST (NO AUTH REQUIRED) ===')
+        console.log('User ID:', userId || 'NOT PROVIDED (OK)')
         console.log('Client ID available:', !!clientId)
         console.log('Client ID value:', clientId ? clientId.substring(0, 10) + '...' : 'MISSING')
         

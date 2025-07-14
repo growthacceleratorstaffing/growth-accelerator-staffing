@@ -43,25 +43,18 @@ class JobAdderOAuth2Manager {
 
   /**
    * Get Client ID from server-side secrets
+   * Note: Client ID is public information and doesn't require user authentication
    */
   private async getClientId(): Promise<string> {
     try {
-      console.log('🔑 Step: Getting Client ID from edge function...');
-      
-      console.log('🔐 Step: Getting current user ID...');
-      const userId = await this.getCurrentUserId();
-      console.log('User ID result:', { userId, hasUserId: !!userId });
-      
-      if (!userId) {
-        throw new Error('User not authenticated - please sign in first');
-      }
+      console.log('🔑 Step: Getting Client ID from edge function (no auth required)...');
 
-      console.log('📡 Step: Calling edge function...');
+      console.log('📡 Step: Calling edge function for client ID...');
       const { data, error } = await supabase.functions.invoke('jobadder-api', {
         body: { 
           action: 'get-client-id'
-        },
-        headers: { 'x-user-id': userId }
+        }
+        // No user ID header needed for getting client ID
       });
 
       console.log('📡 Edge function response:', { 
