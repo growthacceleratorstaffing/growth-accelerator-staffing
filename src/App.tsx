@@ -132,14 +132,6 @@ const AppSidebar = () => {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/job-advertising")}>
-                  <Link to="/job-advertising">
-                    <Briefcase className="h-4 w-4" />
-                    <span className="text-base">Job Advertising</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
                <SidebarMenuItem>
                  <SidebarMenuButton asChild isActive={isActive("/job-board")}>
                    <Link to="/job-board">
@@ -327,13 +319,6 @@ const App = () => {
             <ProtectedRoute requiredScope="write_job">
               <AppLayout>
                 <JobPosting />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/job-advertising" element={
-            <ProtectedRoute requiredScope="write_job">
-              <AppLayout>
-                <JobAdvertising />
               </AppLayout>
             </ProtectedRoute>
           } />
