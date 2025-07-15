@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useJobApplication } from "@/hooks/useJobApplication";
-import { JobAdderJob } from "@/hooks/useJobs";
+import { JazzHRJob } from "@/lib/jazzhr-api";
 import { useToast } from "@/hooks/use-toast";
 
 interface JobApplicationFormProps {
-  job: JobAdderJob | null;
+  job: JazzHRJob | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -85,7 +85,7 @@ export const JobApplicationForm = ({ job, isOpen, onClose }: JobApplicationFormP
           applicantName: `${formData.firstName} ${formData.lastName}`,
           applicantEmail: formData.email,
           jobTitle: job.title,
-          companyName: job.company?.name || 'Unknown Company',
+          companyName: job.department || 'Unknown Company',
           applicationData: formData
         })
       });
@@ -96,8 +96,8 @@ export const JobApplicationForm = ({ job, isOpen, onClose }: JobApplicationFormP
         console.warn('Failed to send email notification');
       }
 
-      // Submit to JobAdder
-      const response = await submitApplication(job.adId, formData);
+      // Submit to JazzHR
+      const response = await submitApplication(job.id, formData);
       
       toast({
         title: "Application Submitted",
@@ -158,7 +158,7 @@ export const JobApplicationForm = ({ job, isOpen, onClose }: JobApplicationFormP
         <DialogHeader>
           <DialogTitle>Apply for {job.title}</DialogTitle>
           <DialogDescription>
-            {job.company?.name} • {job.location?.name}
+            {job.department} • {job.city && job.state ? `${job.city}, ${job.state}` : "Location TBD"}
           </DialogDescription>
         </DialogHeader>
 

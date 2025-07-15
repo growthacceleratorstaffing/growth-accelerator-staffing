@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, DollarSign, Clock, Building, AlertCircle, Search } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
-import JobApplicationForm from "@/components/job-search/JobApplicationForm";
+import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -110,18 +110,18 @@ const Jobs = () => {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {jobs.map((job) => (
-                <Card key={job.id || job.adId} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/job/${job.id || job.adId}`)}>
+                <Card key={job.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/job/${job.id}`)}>
                   <CardHeader>
                     <CardTitle className="text-lg">{job.title}</CardTitle>
                     <CardDescription className="flex items-center gap-2">
                       <Building className="h-4 w-4" />
-                      {job.department || job.company?.name || "Company"}
+                      {job.department || "Company"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-4 w-4" />
-                      {job.city && job.state ? `${job.city}, ${job.state}` : job.location?.name || "Remote"}
+                      {job.city && job.state ? `${job.city}, ${job.state}` : "Remote"}
                     </div>
                     
                     {job.employment_type && (

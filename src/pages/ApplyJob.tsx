@@ -40,7 +40,7 @@ const ApplyJob = () => {
   const { toast } = useToast();
   
   const { jobDetail, loading: jobLoading, error: jobError, useMockData } = useJobDetail(
-    jobId ? parseInt(jobId, 10) : 0
+    jobId || ""
   );
   
   const { submitApplication, loading: submitting, error: submitError } = useJobApplication();
@@ -103,7 +103,7 @@ const ApplyJob = () => {
     }
 
     try {
-      await submitApplication(jobDetail.adId, {
+      await submitApplication(jobDetail.id, {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -202,23 +202,21 @@ const ApplyJob = () => {
           <CardDescription className="flex items-center gap-4 text-base">
             <span className="flex items-center gap-1">
               <Building className="h-4 w-4" />
-              {jobDetail.company.name}
+              {jobDetail.department || "Company"}
             </span>
             <span className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
-              {jobDetail.location.name}
+              {jobDetail.city && jobDetail.state ? `${jobDetail.city}, ${jobDetail.state}` : "Location TBD"}
             </span>
-            <Badge variant="secondary">{jobDetail.workType?.name || 'Full-time'}</Badge>
+            <Badge variant="secondary">{jobDetail.employment_type || 'Full-time'}</Badge>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground mb-4">{jobDetail.summary}</p>
-          {jobDetail.salary && (
-            <div className="flex items-center gap-1 font-semibold">
-              <DollarSign className="h-4 w-4" />
-              ${jobDetail.salary.rateLow?.toLocaleString()} - ${jobDetail.salary.rateHigh?.toLocaleString()}
-            </div>
-          )}
+          <p className="text-muted-foreground mb-4">{jobDetail.description}</p>
+          <div className="flex items-center gap-1 font-semibold">
+            <DollarSign className="h-4 w-4" />
+            Competitive salary
+          </div>
         </CardContent>
       </Card>
 

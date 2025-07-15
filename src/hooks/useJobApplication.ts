@@ -57,7 +57,7 @@ export function useJobApplication() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submitApplication = async (jobId: number, applicationData: JobApplicationData): Promise<JobApplicationResponse> => {
+  const submitApplication = async (jobId: string, applicationData: JobApplicationData): Promise<JobApplicationResponse> => {
     setLoading(true);
     setError(null);
 

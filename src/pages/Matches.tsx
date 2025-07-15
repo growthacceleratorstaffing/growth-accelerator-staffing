@@ -143,7 +143,7 @@ const Matches = () => {
     
     // Find job from jobs list
     selectedJob = jobs.find(j => 
-      j.adId.toString() === placementData.jobId
+      j.id.toString() === placementData.jobId
     );
 
     console.log('Found candidate:', selectedCandidate);
@@ -604,11 +604,11 @@ const Matches = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {jobs.map((job) => (
-                          <SelectItem key={job.adId} value={job.adId.toString()}>
+                          <SelectItem key={job.id} value={job.id.toString()}>
                             <div className="flex flex-col">
                               <span>{job.title}</span>
                               <span className="text-xs text-muted-foreground">
-                                {job.company.name} - {job.location.name}
+                                {job.department} - {job.city && job.state ? `${job.city}, ${job.state}` : "Location TBD"}
                               </span>
                             </div>
                           </SelectItem>
@@ -796,11 +796,11 @@ const Matches = () => {
                         </SelectTrigger>
                         <SelectContent>
                           {jobs.map((job) => (
-                            <SelectItem key={job.adId} value={job.adId.toString()}>
+                            <SelectItem key={job.id} value={job.id.toString()}>
                               <div className="flex flex-col">
                                 <span>{job.title}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {job.company.name} - {job.location.name}
+                                  {job.department} - {job.city && job.state ? `${job.city}, ${job.state}` : "Location TBD"}
                                 </span>
                               </div>
                             </SelectItem>

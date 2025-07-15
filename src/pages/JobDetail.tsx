@@ -11,7 +11,7 @@ const JobDetail = () => {
   const navigate = useNavigate();
   
   const { jobDetail, loading, error, useMockData } = useJobDetail(
-    jobId ? parseInt(jobId, 10) : 0
+    jobId || ""
   );
 
   if (loading) {
@@ -69,21 +69,21 @@ const JobDetail = () => {
               <CardDescription className="flex items-center gap-4 text-lg">
                 <span className="flex items-center gap-2">
                   <Building className="h-5 w-5" />
-                  {jobDetail.company.name}
+                  {jobDetail.department || "Company"}
                 </span>
                 <span className="flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
-                  {jobDetail.location.name}
+                  {jobDetail.city && jobDetail.state ? `${jobDetail.city}, ${jobDetail.state}` : "Location TBD"}
                 </span>
               </CardDescription>
             </div>
             <div className="text-right">
               <Badge variant="secondary" className="text-sm mb-2">
-                {jobDetail.workType?.name || 'Full-time'}
+                {jobDetail.employment_type || 'Full-time'}
               </Badge>
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                Posted {new Date(jobDetail.postAt).toLocaleDateString()}
+                Posted {jobDetail.created_at ? new Date(jobDetail.created_at).toLocaleDateString() : "Recently"}
               </p>
             </div>
           </div>
@@ -91,38 +91,25 @@ const JobDetail = () => {
         <CardContent>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-6">
-              {jobDetail.salary && (
-                <div className="flex items-center gap-2 font-semibold text-lg">
-                  <DollarSign className="h-5 w-5" />
-                  ${jobDetail.salary.rateLow?.toLocaleString()} - ${jobDetail.salary.rateHigh?.toLocaleString()}
-                  <span className="text-sm font-normal text-muted-foreground">per {jobDetail.salary.ratePer}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 font-semibold text-lg">
+                <DollarSign className="h-5 w-5" />
+                Competitive salary
+              </div>
               <span className="text-sm text-muted-foreground">
-                Ref: {jobDetail.reference}
+                Ref: {jobDetail.id}
               </span>
             </div>
-            <Link to={`/jobs/${jobDetail.adId}/apply`}>
+            <Link to={`/jobs/${jobDetail.id}/apply`}>
               <Button size="lg">Apply Now</Button>
             </Link>
           </div>
         </CardContent>
       </Card>
 
-      {/* Job Summary */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Job Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-lg leading-relaxed">{jobDetail.summary}</p>
-        </CardContent>
-      </Card>
-
       {/* Job Description */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Description</CardTitle>
+          <CardTitle>Job Description</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="prose max-w-none">
@@ -131,104 +118,16 @@ const JobDetail = () => {
         </CardContent>
       </Card>
 
-      {/* Requirements */}
-      {jobDetail.requirements && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Requirements</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="leading-relaxed whitespace-pre-wrap">{jobDetail.requirements}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Benefits */}
-      {jobDetail.benefits && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Benefits</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="leading-relaxed whitespace-pre-wrap">{jobDetail.benefits}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Key Points */}
-      {jobDetail.bulletPoints && jobDetail.bulletPoints.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Key Points</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {jobDetail.bulletPoints.map((point, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Skills */}
-      {jobDetail.skillTags && jobDetail.skillTags.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Required Skills</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {jobDetail.skillTags.map((skill, index) => (
-                <Badge key={index} variant="outline">
-                  {skill}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Contact Information */}
-      {jobDetail.owner && (
+      {jobDetail.hiring_lead && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Contact</CardTitle>
+            <CardTitle>Hiring Manager</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <span>{jobDetail.owner.firstName} {jobDetail.owner.lastName}</span>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-muted-foreground">{jobDetail.owner.email}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Application Stats */}
-      {jobDetail.applications && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Application Statistics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold">{jobDetail.applications.total}</div>
-                <div className="text-sm text-muted-foreground">Total Applications</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{jobDetail.applications.new}</div>
-                <div className="text-sm text-muted-foreground">New Applications</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{jobDetail.applications.active}</div>
-                <div className="text-sm text-muted-foreground">Active Applications</div>
-              </div>
+              <span>{jobDetail.hiring_lead}</span>
             </div>
           </CardContent>
         </Card>
@@ -236,7 +135,7 @@ const JobDetail = () => {
 
       {/* Action Buttons */}
       <div className="flex gap-4 justify-center">
-        <Link to={`/jobs/${jobDetail.adId}/apply`}>
+        <Link to={`/jobs/${jobDetail.id}/apply`}>
           <Button size="lg" className="px-8">Apply Now</Button>
         </Link>
         <Button variant="outline" size="lg" onClick={() => navigate("/jobs")}>
