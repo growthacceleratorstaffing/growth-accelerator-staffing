@@ -13,7 +13,7 @@ const CandidatesHeader = ({ candidateCount, isLoading, onRefresh }: CandidatesHe
       <div>
         <h1 className="text-3xl font-bold">Candidates</h1>
         <p className="text-muted-foreground mt-2">
-          Manage candidates from your applications and JobAdder ({candidateCount} candidates)
+          Manage candidates from your applications and JazzHR ({candidateCount} candidates)
         </p>
       </div>
       <Button 
