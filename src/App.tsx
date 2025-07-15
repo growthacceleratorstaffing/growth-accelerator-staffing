@@ -140,14 +140,14 @@ const AppSidebar = () => {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/job-board")}>
-                  <Link to="/job-board">
-                    <User className="h-4 w-4" />
-                    <span className="text-base">Job Board</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+               <SidebarMenuItem>
+                 <SidebarMenuButton asChild isActive={isActive("/job-board")}>
+                   <Link to="/job-board">
+                     <User className="h-4 w-4" />
+                     <span className="text-base">Career Page</span>
+                   </Link>
+                 </SidebarMenuButton>
+               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
