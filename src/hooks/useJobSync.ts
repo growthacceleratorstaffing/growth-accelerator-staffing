@@ -21,22 +21,14 @@ export function useJobSync() {
   
   const { toast } = useToast();
 
-  const syncJobs = useCallback(async (direction: 'from-jobadder' | 'to-jobadder' | 'bidirectional' = 'bidirectional') => {
+  const syncJobs = useCallback(async (direction: 'from-jazzhr' | 'to-jazzhr' | 'bidirectional' = 'bidirectional') => {
     setSyncStatus(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
       let jobsSynced = 0;
       let candidatesSynced = 0;
 
-      if (direction === 'from-jobadder' || direction === 'bidirectional') {
-        // Check if user is authenticated with JobAdder
-        const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
-        const isAuth = await oauth2Manager.isAuthenticated();
-        
-        if (!isAuth) {
-          throw new Error('No JobAdder authentication. Please connect your JobAdder account first.');
-        }
-
+      if (direction === 'from-jazzhr' || direction === 'bidirectional') {
         // Get current user ID
         const { data: { session } } = await supabase.auth.getSession();
         const userId = session?.user?.id;
@@ -45,60 +37,52 @@ export function useJobSync() {
           throw new Error('Please sign in to the app first.');
         }
 
-        // Fetch latest jobs from JobAdder
-        const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jobadder-api', {
+        // Fetch latest jobs from JazzHR
+        const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jazzhr-api', {
           body: { 
             endpoint: 'jobs', 
             limit: 100, 
-            offset: 0,
-            userId: userId
-          },
-          headers: {
-            'x-user-id': userId
+            offset: 0
           }
         });
 
         if (jobsError) {
-          throw new Error(`Failed to fetch jobs from JobAdder: ${jobsError.message}`);
+          throw new Error(`Failed to fetch jobs from JazzHR: ${jobsError.message}`);
         }
 
         if (!jobsData || !jobsData.success) {
-          throw new Error(`Failed to fetch jobs from JobAdder: ${jobsData?.error || 'Unknown error'}`);
+          throw new Error(`Failed to fetch jobs from JazzHR: ${jobsData?.error || 'Unknown error'}`);
         }
 
-        if (jobsData.data?.items) {
-          jobsSynced = jobsData.data.items.length;
+        if (jobsData.data?.length) {
+          jobsSynced = jobsData.data.length;
         }
 
-        // Fetch latest candidates from JobAdder
-        const { data: candidatesData, error: candidatesError } = await supabase.functions.invoke('jobadder-api', {
+        // Fetch latest applicants from JazzHR
+        const { data: candidatesData, error: candidatesError } = await supabase.functions.invoke('jazzhr-api', {
           body: { 
-            endpoint: 'candidates', 
+            endpoint: 'applicants', 
             limit: 100, 
-            offset: 0,
-            userId: userId
-          },
-          headers: {
-            'x-user-id': userId
+            offset: 0
           }
         });
 
         if (candidatesError) {
-          throw new Error(`Failed to fetch candidates from JobAdder: ${candidatesError.message}`);
+          throw new Error(`Failed to fetch applicants from JazzHR: ${candidatesError.message}`);
         }
 
         if (!candidatesData || !candidatesData.success) {
-          throw new Error(`Failed to fetch candidates from JobAdder: ${candidatesData?.error || 'Unknown error'}`);
+          throw new Error(`Failed to fetch applicants from JazzHR: ${candidatesData?.error || 'Unknown error'}`);
         }
 
-        if (candidatesData.data?.items) {
-          candidatesSynced = candidatesData.data.items.length;
+        if (candidatesData.data?.length) {
+          candidatesSynced = candidatesData.data.length;
         }
       }
 
-      // TODO: Implement sync TO JobAdder for application-created jobs
+      // TODO: Implement sync TO JazzHR for application-created jobs
       // This would involve checking for jobs created in the application
-      // that don't exist in JobAdder and pushing them
+      // that don't exist in JazzHR and pushing them
 
       setSyncStatus({
         isLoading: false,
@@ -110,7 +94,7 @@ export function useJobSync() {
 
       toast({
         title: "Sync Completed",
-        description: `Successfully synced ${jobsSynced} jobs and ${candidatesSynced} candidates from JobAdder.`,
+        description: `Successfully synced ${jobsSynced} jobs and ${candidatesSynced} candidates from JazzHR.`,
       });
 
     } catch (error) {
@@ -131,18 +115,6 @@ export function useJobSync() {
 
   const checkSyncStatus = useCallback(async () => {
     try {
-      // Check if user is authenticated with JobAdder
-      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
-      const isAuth = await oauth2Manager.isAuthenticated();
-      
-      if (!isAuth) {
-        return {
-          connected: false,
-          error: 'No JobAdder authentication. Please connect your JobAdder account first.',
-          apiHealth: 'unauthenticated'
-        };
-      }
-
       // Get current user ID
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
@@ -155,30 +127,26 @@ export function useJobSync() {
         };
       }
 
-      // Check JobAdder API connectivity with user token
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+      // Check JazzHR API connectivity
+      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
-          endpoint: 'current-user',
-          userId: userId
-        },
-        headers: {
-          'x-user-id': userId
+          endpoint: 'users'
         }
-        });
+      });
 
-        if (error) {
-          throw new Error(`JobAdder API connectivity check failed: ${error.message}`);
-        }
+      if (error) {
+        throw new Error(`JazzHR API connectivity check failed: ${error.message}`);
+      }
 
-        if (!data || !data.success) {
-          throw new Error(`JobAdder API connectivity check failed: ${data?.error || 'Unknown error'}`);
-        }
+      if (!data || !data.success) {
+        throw new Error(`JazzHR API connectivity check failed: ${data?.error || 'Unknown error'}`);
+      }
 
-        return {
-          connected: true,
-          user: data.data,
-          apiHealth: 'healthy'
-        };
+      return {
+        connected: true,
+        user: data.data,
+        apiHealth: 'healthy'
+      };
     } catch (error) {
       return {
         connected: false,

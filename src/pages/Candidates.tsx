@@ -34,7 +34,7 @@ const Candidates = () => {
     refetch: refetchJazzHR 
   } = useJazzHRApplicants(searchFilters);
 
-  const { importCandidate, isImporting } = useCandidateImport();
+  const { importCandidate, importingCandidates } = useCandidateImport();
 
   const {
     paginatedItems: paginatedCandidates,
@@ -111,12 +111,12 @@ const Candidates = () => {
       <CandidatesFilters
         searchTerm={searchTerm}
         selectedStatus={selectedStatus}
-        selectedJob={selectedJob}
+        selectedSource={selectedJob}
         uniqueStatuses={[]} // Will be populated when we implement proper filtering
-        uniqueJobs={[]} // Will be populated when we implement proper filtering
+        uniqueSources={[]} // Will be populated when we implement proper filtering
         onSearchChange={handleSearchChange}
         onStatusChange={handleStatusChange}
-        onJobChange={handleJobChange}
+        onSourceChange={handleJobChange}
       />
 
       {isLoading ? (
@@ -153,7 +153,7 @@ const Candidates = () => {
             <JazzHRCandidatesList 
               candidates={paginatedCandidates} 
               onImportCandidate={handleImportCandidate}
-              isLoading={isImporting}
+              importingCandidates={importingCandidates}
             />
             {totalPages > 1 && (
               <CandidatesPagination

@@ -9,7 +9,7 @@ import { Calendar, MapPin, Phone, Mail, Star, Building2, FileText, UserPlus } fr
 interface JazzHRCandidatesListProps {
   candidates: JazzHRApplicant[];
   onImportCandidate: (candidate: JazzHRApplicant) => void;
-  isLoading: boolean;
+  importingCandidates: Set<string>;
 }
 
 const getJazzHRStatusColor = (status?: string) => {
@@ -32,8 +32,9 @@ const getJazzHRStatusColor = (status?: string) => {
 const JazzHRCandidatesList = ({ 
   candidates, 
   onImportCandidate, 
-  isLoading 
+  importingCandidates 
 }: JazzHRCandidatesListProps) => {
+  const isLoading = importingCandidates.size > 0;
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

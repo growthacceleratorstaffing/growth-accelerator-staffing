@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import oauth2Manager from "@/lib/oauth2-manager";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Auth() {
@@ -28,9 +27,8 @@ export default function Auth() {
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
-  const [isJobAdderConnected, setIsJobAdderConnected] = useState(false);
-  const [jobAdderLoading, setJobAdderLoading] = useState(true);
-  const [jobAdderUser, setJobAdderUser] = useState(null);
+  const [isJazzHRConnected, setIsJazzHRConnected] = useState(false);
+  const [jazzHRLoading, setJazzHRLoading] = useState(true);
   const { signIn, signUp, isAuthenticated, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,120 +41,62 @@ export default function Auth() {
     if (isAuthenticated && tab !== 'integrations') {
       navigate("/dashboard");
     }
-    checkJobAdderConnection();
+    checkJazzHRConnection();
   }, [isAuthenticated, navigate]);
 
-  const checkJobAdderConnection = async () => {
-    setJobAdderLoading(true);
+  const checkJazzHRConnection = async () => {
+    setJazzHRLoading(true);
     try {
-      // First check if user is authenticated with JobAdder OAuth tokens
-      const authenticated = await oauth2Manager.isAuthenticated();
-      
-      if (authenticated) {
-        setIsJobAdderConnected(true);
-        setJobAdderUser(null); // Clear any JobAdder user data since OAuth is active
-      } else if (profile?.email) {
-        // Check if user's email matches a JobAdder user account
-        const { data: jobAdderUserData, error } = await supabase
-          .from('jobadder_users')
-          .select('*')
-          .eq('jobadder_email', profile.email)
-          .maybeSingle();
-
-        if (!error && jobAdderUserData) {
-          console.log('Found matching JobAdder user:', jobAdderUserData);
-          setJobAdderUser(jobAdderUserData);
-          setIsJobAdderConnected(false); // Still needs OAuth connection
-          toast({
-            title: "JobAdder Account Found",
-            description: `We found your JobAdder account (${jobAdderUserData.jobadder_email}). Click Connect to complete the OAuth integration.`,
-          });
-        } else {
-          setIsJobAdderConnected(false);
-          setJobAdderUser(null);
+      // Test JazzHR API connection
+      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
+        body: { 
+          endpoint: 'users'
         }
+      });
+
+      if (!error && data?.success) {
+        setIsJazzHRConnected(true);
       } else {
-        setIsJobAdderConnected(false);
-        setJobAdderUser(null);
+        setIsJazzHRConnected(false);
       }
     } catch (error) {
-      console.error('Failed to check JobAdder connection:', error);
-      setIsJobAdderConnected(false);
-      setJobAdderUser(null);
+      console.error('Failed to check JazzHR connection:', error);
+      setIsJazzHRConnected(false);
     } finally {
-      setJobAdderLoading(false);
+      setJazzHRLoading(false);
     }
   };
 
   const handleTestConnection = async () => {
     try {
-      setJobAdderLoading(true);
+      setJazzHRLoading(true);
       
-      // First check if we have a valid token
-      const accessToken = await oauth2Manager.getValidAccessToken();
-      
-      if (!accessToken) {
-        throw new Error('No valid access token available. Please re-authenticate with JobAdder.');
-      }
-      
-      // Get current user session for API call
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        throw new Error('User session not found');
-      }
-      
-      // Test the API with the valid token
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+      // Test the JazzHR API
+      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
-          action: 'test-connection'
-        },
-        headers: {
-          'x-user-id': session.user.id
+          endpoint: 'users'
         }
       });
       
       if (data?.success) {
         toast({
           title: "Connection Test Successful", 
-          description: "JobAdder API is accessible",
+          description: "JazzHR API is accessible",
         });
+        setIsJazzHRConnected(true);
       } else {
         throw new Error(data?.error || 'API test failed');
       }
     } catch (error) {
       console.error('Test connection failed:', error);
+      setIsJazzHRConnected(false);
       toast({
         title: "Test Connection Failed",
         description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive"
       });
     } finally {
-      setJobAdderLoading(false);
-    }
-  };
-
-  const handleJobAdderConnect = async () => {
-    try {
-      // Always use real OAuth flow (both dev and production)
-      console.log('=== Starting JobAdder OAuth flow ===');
-      console.log('Current window.location.origin:', window.location.origin);
-      console.log('Current full URL:', window.location.href);
-      
-      // Store current page URL for redirect after OAuth
-      sessionStorage.setItem('jobadder_redirect', '/auth?tab=integrations');
-      
-      const authUrl = await oauth2Manager.getAuthorizationUrl();
-      
-      console.log('About to redirect to:', authUrl);
-      window.location.href = authUrl;
-    } catch (error) {
-      console.error('Failed to initiate connection:', error);
-      toast({
-        title: "Connection Failed",
-        description: "Failed to initiate JobAdder authentication",
-        variant: "destructive"
-      });
-      setJobAdderLoading(false);
+      setJazzHRLoading(false);
     }
   };
 
@@ -195,7 +135,7 @@ export default function Auth() {
               <h1 className="text-3xl font-bold">Growth Accelerator</h1>
             </div>
             <p className="text-muted-foreground">
-              Sign in to your account or set up integrations
+              Sign in to your account or check integrations
             </p>
           </div>
 
@@ -349,26 +289,26 @@ export default function Auth() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Settings className="h-5 w-5" />
-                    JobAdder Integration
+                    JazzHR Integration
                   </CardTitle>
                   <CardDescription>
-                    Connect your JobAdder account to access job boards and applications
+                    Check your JazzHR API connection status
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {jobAdderLoading ? (
+                  {jazzHRLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
-                  ) : isJobAdderConnected ? (
+                  ) : isJazzHRConnected ? (
                     <Alert className="border-green-500/50 bg-green-50 dark:bg-green-950/30">
                       <CheckCircle className="h-4 w-4 text-green-600" />
                       <AlertDescription className="text-green-800 dark:text-green-200">
                         <div className="flex items-center justify-between">
                           <div>
-                            <strong>JobAdder Connected</strong>
+                            <strong>JazzHR Connected</strong>
                             <p className="text-sm mt-1">
-                              Your JobAdder account is successfully connected and ready to use.
+                              Your JazzHR API is successfully connected and ready to use.
                             </p>
                           </div>
                           <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -378,115 +318,47 @@ export default function Auth() {
                       </AlertDescription>
                     </Alert>
                   ) : (
-                  <div className="space-y-4">
                     <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
                       <AlertCircle className="h-4 w-4 text-orange-600" />
                       <AlertDescription className="text-orange-800 dark:text-orange-200">
-                        <strong>JobAdder Not Connected</strong>
+                        <strong>JazzHR Not Connected</strong>
                         <p className="text-sm mt-1">
-                          {jobAdderUser 
-                            ? `We found your JobAdder account (${jobAdderUser.jobadder_email}). Complete OAuth integration to access job boards.`
-                            : "Connect your JobAdder account to access job boards, listings, and submit applications."
-                          }
+                          JazzHR API is not accessible. Please check your API key configuration.
                         </p>
                       </AlertDescription>
                     </Alert>
-                    
-                    {jobAdderUser && (
-                      <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle className="h-4 w-4 text-blue-600" />
-                          <span className="font-medium text-blue-800 dark:text-blue-200">JobAdder Account Recognized</span>
-                        </div>
-                        <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                          <p><strong>Email:</strong> {jobAdderUser.jobadder_email}</p>
-                          <p><strong>Role:</strong> {jobAdderUser.jobadder_role}</p>
-                          <p><strong>User ID:</strong> {jobAdderUser.jobadder_user_id}</p>
-                          {jobAdderUser.assigned_jobs?.length > 0 && (
-                            <p><strong>Assigned Jobs:</strong> {jobAdderUser.assigned_jobs.length} jobs</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                      
-                      <div className="space-y-3">
-                        <Button 
-                          onClick={handleJobAdderConnect} 
-                          className="w-full"
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          {jobAdderUser ? 'Complete OAuth Integration' : 'Connect JobAdder Account'}
-                        </Button>
-                        
-                        <div className="text-sm text-muted-foreground">
-                          <p className="font-medium mb-2">What happens when you connect:</p>
-                          <ul className="space-y-1 text-xs">
-                            <li>• Access to your JobAdder job boards</li>
-                            <li>• View and search job listings</li>
-                            <li>• Submit job applications directly</li>
-                            <li>• Import jobs to your local database</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
                   )}
                   
-                  <div className="flex items-center gap-2">
+                  <div className="space-y-3">
                     <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={checkJobAdderConnection}
-                      disabled={jobAdderLoading}
+                      onClick={handleTestConnection} 
+                      className="w-full"
+                      disabled={jazzHRLoading}
                     >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${jobAdderLoading ? 'animate-spin' : ''}`} />
+                      {jazzHRLoading ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Testing Connection...
+                        </>
+                      ) : (
+                        "Test Connection"
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      onClick={checkJazzHRConnection} 
+                      variant="outline" 
+                      className="w-full"
+                      disabled={jazzHRLoading}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
                       Refresh Status
                     </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={handleTestConnection}
-                      disabled={jobAdderLoading}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Test Connection
-                    </Button>
-                    {isJobAdderConnected && (
-                      <>
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate('/job-board')}
-                        >
-                          Go to Job Board
-                        </Button>
-                        <Button 
-                          variant="destructive"
-                          size="sm"
-                          onClick={async () => {
-                            await oauth2Manager.clearTokens();
-                            await checkJobAdderConnection();
-                            toast({
-                              title: "Disconnected",
-                              description: "JobAdder connection has been removed",
-                            });
-                          }}
-                        >
-                          Disconnect
-                        </Button>
-                      </>
-                    )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
-
-          {/* Footer */}
-          <div className="text-center">
-            <Link to="/" className="text-sm text-muted-foreground hover:underline">
-              ← Back to Home
-            </Link>
-          </div>
         </div>
       </div>
     </div>

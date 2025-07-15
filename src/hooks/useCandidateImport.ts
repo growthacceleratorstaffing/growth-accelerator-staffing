@@ -11,19 +11,10 @@ export const useCandidateImport = () => {
     setImportingCandidates(prev => new Set([...prev, candidateId]));
     
     try {
-      // Get user access token from OAuth2 manager
-      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
-      
-      if (!userAccessToken) {
-        throw new Error('No JobAdder access token available. Please authenticate first.');
-      }
-
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
           endpoint: 'import-candidate',
-          candidate: candidate,
-          accessToken: userAccessToken
+          candidate: candidate
         }
       });
 

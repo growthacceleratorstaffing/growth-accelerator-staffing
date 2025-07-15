@@ -208,75 +208,59 @@ export function useJobs() {
       // Fetch jobs from JobAdder JobBoard (primary source)
       let jobAdderJobs: JobAdderJob[] = [];
       try {
-        // Get user access token from OAuth2 manager
-        const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
-        const userAccessToken = await oauth2Manager.getValidAccessToken();
-        
-        if (userAccessToken) {
-          // Get current user ID
-          const { data: { session } } = await supabase.auth.getSession();
-          const userId = session?.user?.id;
-          
-          if (userId) {
-            // Fetch jobs from JobBoard
-            const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jobadder-api', {
-              body: { 
-                endpoint: 'jobboard-jobads',
-                jobboardId: boardId,
-                limit: 50,
-                offset: 0,
-                search: searchTerm
-              },
-              headers: {
-                'x-user-id': userId
-              }
-            });
-
-            if (!jobsError && jobsData?.data?.items) {
-              jobAdderJobs = jobsData.data.items;
-              console.log('Fetched JobAdder JobBoard jobs:', jobAdderJobs.length);
-
-              // For each job, fetch related applicants (people who applied to this job)
-              const jobsWithApplicants = await Promise.all(
-                jobAdderJobs.map(async (job) => {
-                  try {
-                    const { data: applicantsData, error: applicantsError } = await supabase.functions.invoke('jobadder-api', {
-                      body: { 
-                        endpoint: 'job-applications',
-                        jobId: job.adId.toString(),
-                        limit: 100,
-                        offset: 0
-                      },
-                      headers: {
-                        'x-user-id': userId
-                      }
-                    });
-
-                    if (!applicantsError && applicantsData?.data?.items) {
-                      job.applicants = applicantsData.data.items;
-                      console.log(`Job ${job.title} has ${job.applicants.length} applicants`);
-                    } else {
-                      job.applicants = [];
-                      console.warn(`No applicants found for job ${job.title}:`, applicantsError);
-                    }
-                  } catch (applicantErr) {
-                    console.warn(`Error fetching applicants for job ${job.title}:`, applicantErr);
-                    job.applicants = [];
-                  }
-                  return job;
-                })
-              );
-
-              jobAdderJobs = jobsWithApplicants;
-            } else {
-              console.warn('JobAdder JobBoard API call failed:', jobsError);
+        // Get current user ID for JazzHR API
+        try {
+          // Fetch jobs from JazzHR
+          const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jazzhr-api', {
+            body: { 
+              endpoint: 'jobs',
+              limit: 50,
+              offset: 0,
+              search: searchTerm
             }
+          });
+
+          if (!jobsError && jobsData?.data) {
+            jobAdderJobs = jobsData.data;
+            console.log('Fetched JazzHR jobs:', jobAdderJobs.length);
+
+            // For each job, fetch related applicants (people who applied to this job)
+            const jobsWithApplicants = await Promise.all(
+              jobAdderJobs.map(async (job) => {
+                try {
+                  const { data: applicantsData, error: applicantsError } = await supabase.functions.invoke('jazzhr-api', {
+                    body: { 
+                      endpoint: 'applicants',
+                      jobId: job.adId?.toString() || (job as any).id?.toString(),
+                      limit: 100,
+                      offset: 0
+                    }
+                  });
+
+                  if (!applicantsError && applicantsData?.data) {
+                    job.applicants = applicantsData.data;
+                    console.log(`Job ${job.title} has ${job.applicants.length} applicants`);
+                  } else {
+                    job.applicants = [];
+                    console.warn(`No applicants found for job ${job.title}:`, applicantsError);
+                  }
+                } catch (applicantErr) {
+                  console.warn(`Error fetching applicants for job ${job.title}:`, applicantErr);
+                  job.applicants = [];
+                }
+                return job;
+              })
+            );
+
+            jobAdderJobs = jobsWithApplicants;
+          } else {
+            console.warn('JazzHR API call failed:', jobsError);
           }
-        } else {
-          console.warn('No JobAdder access token available - user needs to authenticate');
+        } catch (err) {
+          console.warn('JazzHR API error:', err);
         }
       } catch (err) {
-        console.warn('JobAdder API error:', err);
+        console.warn('JazzHR API error:', err);
       }
 
       // Also fetch local jobs from database as backup
@@ -352,7 +336,7 @@ export function useJobs() {
         }
         setJobs(filteredJobs);
         setUseMockData(true);
-        setError('Using demo data - Connect to JobAdder to see real jobs');
+        setError('Using demo data - Configure JazzHR API to see real jobs');
       }
       
       console.log('Total jobs loaded:', allJobs.length, '(', jobAdderJobs.length, 'JobBoard,', localJobs.length, 'local)');

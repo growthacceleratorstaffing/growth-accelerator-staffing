@@ -126,21 +126,13 @@ class JobApplicationsAPI {
     limit?: number;
   }): Promise<JobApplicationsResponse> {
     try {
-      // Use Supabase edge function instead of direct API call
-      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
-      
-      if (!userAccessToken) {
-        throw new Error('No JobAdder access token available. Please authenticate first.');
-      }
-
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+      // Use JazzHR API instead
+      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
-          endpoint: 'job-applications',
+          endpoint: 'applicants',
           jobId: jobId.toString(),
           limit: params?.limit?.toString() || '50',
-          offset: params?.offset?.toString() || '0',
-          accessToken: userAccessToken
+          offset: params?.offset?.toString() || '0'
         }
       });
 
@@ -160,21 +152,14 @@ class JobApplicationsAPI {
     limit?: number;
   }): Promise<JobApplicationsResponse> {
     try {
-      // Use Supabase edge function instead of direct API call
-      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
-      
-      if (!userAccessToken) {
-        throw new Error('No JobAdder access token available. Please authenticate first.');
-      }
-
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
+      // Use JazzHR API instead
+      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
-          endpoint: 'job-applications-active',
+          endpoint: 'applicants',
           jobId: jobId.toString(),
           limit: params?.limit?.toString() || '50',
           offset: params?.offset?.toString() || '0',
-          accessToken: userAccessToken
+          status: 'active'
         }
       });
 
@@ -195,21 +180,12 @@ class JobApplicationsAPI {
     activeOnly?: boolean;
   }): Promise<JobApplicationCandidate[]> {
     try {
-      // First, get the user's jobs from JobAdder
-      const { default: oauth2Manager } = await import('@/lib/oauth2-manager');
-      const userAccessToken = await oauth2Manager.getValidAccessToken();
-      
-      if (!userAccessToken) {
-        throw new Error('No JobAdder access token available. Please authenticate first.');
-      }
-
-      // Get user's jobs first
-      const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jobadder-api', {
+      // Get user's jobs from JazzHR first
+      const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
           endpoint: 'jobs',
           limit: '100',
-          offset: '0',
-          accessToken: userAccessToken
+          offset: '0'
         }
       });
 
@@ -225,13 +201,12 @@ class JobApplicationsAPI {
       
       for (const job of userJobs) {
         try {
-          const { data: applicationsData, error: applicationsError } = await supabase.functions.invoke('jobadder-api', {
+          const { data: applicationsData, error: applicationsError } = await supabase.functions.invoke('jazzhr-api', {
             body: { 
-              endpoint: 'job-applications',
+              endpoint: 'applicants',
               jobId: job.jobId.toString(),
               limit: '50',
-              offset: '0',
-              accessToken: userAccessToken
+              offset: '0'
             }
           });
 

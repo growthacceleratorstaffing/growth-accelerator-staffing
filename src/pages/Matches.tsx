@@ -37,7 +37,7 @@ import { useJobs } from "@/hooks/useJobs";
 import { useJobApplications } from "@/hooks/useJobApplications";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import JobAdderAPIExplorer from "@/components/JobAdderAPIExplorer";
+import JazzHRCandidatesList from "@/components/candidates/JazzHRCandidatesList";
 
 const Matches = () => {
   const [searchTerm, setSearchTerm] = useState("");
