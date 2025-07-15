@@ -1,61 +1,40 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Building, Clock, DollarSign, Search, AlertCircle, ExternalLink, Briefcase } from "lucide-react";
-import { Link } from "react-router-dom";
+import { MapPin, DollarSign, Clock, Building, AlertCircle, Search } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
-
-import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { JobAdderTest } from "@/components/test/JobAdderTest";
-
+import JobApplicationForm from "@/components/job-search/JobApplicationForm";
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJob, setSelectedJob] = useState(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
-  const [isTestingAPI, setIsTestingAPI] = useState(false);
-  
+  const navigate = useNavigate();
   const { toast } = useToast();
-  
   const { jobs, loading, error, useMockData, refetch } = useJobs();
 
-  const testJobAdderAPI = async () => {
-    setIsTestingAPI(true);
+  const testJazzHRAPI = async () => {
     try {
-      console.log('Testing JobAdder API health...');
-      const { data, error } = await supabase.functions.invoke('jobadder-api', {
-        body: { endpoint: 'health' }
-      });
+      const response = await fetch('/api/jazzhr/test');
+      const data = await response.json();
       
-      if (error) {
-        console.error('JobAdder API test failed:', error);
-        toast({
-          title: "API Test Failed",
-          description: `Error: ${error.message}`,
-          variant: "destructive",
-        });
-      } else {
-        console.log('JobAdder API test success:', data);
-        toast({
-          title: "API Test Successful",
-          description: `Status: ${data.status}, Has credentials: ${data.credentials?.hasClientId && data.credentials?.hasClientSecret}`,
-        });
-      }
-    } catch (err) {
-      console.error('API test exception:', err);
       toast({
-        title: "API Test Exception",
-        description: `Exception: ${err.message}`,
-        variant: "destructive",
+        title: "JazzHR API Test",
+        description: data.success ? "Connection successful!" : "Connection failed",
+        variant: data.success ? "default" : "destructive"
       });
-    } finally {
-      setIsTestingAPI(false);
+    } catch (error) {
+      toast({
+        title: "JazzHR API Test Failed",
+        description: "Could not connect to JazzHR API",
+        variant: "destructive"
+      });
     }
   };
 
@@ -79,39 +58,31 @@ const Jobs = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Vacancies</h1>
-          <p className="text-muted-foreground mt-2">Find your next opportunity - synced with JobAdder</p>
+          <p className="text-muted-foreground mt-2">Find your next opportunity - synced with JazzHR</p>
         </div>
       </div>
-
 
       {error && useMockData && (
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error} - Showing sample job listings for demonstration.
+            {error}
           </AlertDescription>
         </Alert>
       )}
 
       <Tabs defaultValue="vacancies" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="vacancies" className="flex items-center gap-2">
-            <Briefcase className="h-4 w-4" />
-            Vacancies ({jobs.length})
-          </TabsTrigger>
-          <TabsTrigger value="debug" className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
-            API Test
-          </TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="vacancies">Vacancies</TabsTrigger>
+          <TabsTrigger value="api-test">API Test</TabsTrigger>
         </TabsList>
 
         <TabsContent value="vacancies" className="space-y-6">
-          {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative">
+          <div className="flex gap-4 mb-6">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search vacancies, companies, or locations..."
+                placeholder="Search jobs by title, company, or location..."
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10"
@@ -120,109 +91,92 @@ const Jobs = () => {
           </div>
 
           {loading ? (
-            <div className="flex justify-center items-center min-h-[400px]">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Loading vacancies...</p>
-              </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-muted rounded"></div>
+                      <div className="h-3 bg-muted rounded w-5/6"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           ) : (
-            <div className="grid gap-6">
-              {jobs.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">No vacancies found matching your search.</p>
-                </div>
-              ) : (
-                jobs.map((job) => (
-                  <Card key={job.adId} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-xl mb-2">{job.title}</CardTitle>
-                          <CardDescription className="flex items-center gap-4 text-base">
-                            <span className="flex items-center gap-1">
-                              <Building className="h-4 w-4" />
-                              {job.company.name}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-4 w-4" />
-                              {job.location.name}
-                            </span>
-                            {job.applicants && job.applicants.length > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Badge variant="outline">
-                                  {job.applicants.length} Applicant{job.applicants.length !== 1 ? 's' : ''}
-                                </Badge>
-                              </span>
-                            )}
-                          </CardDescription>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="secondary">{job.workType?.name || 'Full-time'}</Badge>
-                          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {new Date(job.postAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground mb-4">{job.summary}</p>
-                      {job.applicants && job.applicants.length > 0 && (
-                        <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-                          <h4 className="text-sm font-medium mb-2">Recent Applicants:</h4>
-                          <div className="space-y-1">
-                            {job.applicants.slice(0, 3).map((applicant, idx) => (
-                              <div key={idx} className="text-xs text-muted-foreground flex justify-between">
-                                <span>{applicant.candidate.firstName} {applicant.candidate.lastName}</span>
-                                <span>{applicant.status.name}</span>
-                              </div>
-                            ))}
-                            {job.applicants.length > 3 && (
-                              <div className="text-xs text-muted-foreground">
-                                +{job.applicants.length - 3} more applicants
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-center">
-                       <div className="flex items-center gap-4">
-                          <span className="flex items-center gap-1 font-semibold">
-                            <DollarSign className="h-4 w-4" />
-                            {job.salary 
-                              ? `$${job.salary.rateLow?.toLocaleString()} - $${job.salary.rateHigh?.toLocaleString()}` 
-                              : 'Competitive'
-                            }
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">
-                              Ref: {job.reference}
-                            </span>
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <ExternalLink className="h-3 w-3" />
-                              JobBoard
-                            </Badge>
-                          </div>
-                        </div>
-                         <div className="flex gap-2">
-                           <Link to={`/jobs/${job.adId}`}>
-                             <Button variant="outline">View Details</Button>
-                           </Link>
-                           <Button onClick={() => handleApplyClick(job)}>Apply Now</Button>
-                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {jobs.map((job) => (
+                <Card key={job.id || job.adId} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/job/${job.id || job.adId}`)}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{job.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      {job.department || job.company?.name || "Company"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      {job.city && job.state ? `${job.city}, ${job.state}` : job.location?.name || "Remote"}
+                    </div>
+                    
+                    {job.employment_type && (
+                      <Badge variant="secondary">{job.employment_type}</Badge>
+                    )}
+                    
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {job.description}
+                    </p>
+                    
+                    <div className="flex justify-between items-center pt-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApplyClick(job);
+                        }}
+                      >
+                        Apply Now
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        {job.created_at ? new Date(job.created_at).toLocaleDateString() : "Recently posted"}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {jobs.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-muted-foreground">No jobs found</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Try adjusting your search terms or check back later.
+              </p>
             </div>
           )}
         </TabsContent>
 
-
-        <TabsContent value="debug" className="space-y-6">
-          <JobAdderTest />
+        <TabsContent value="api-test" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>JazzHR API Test</CardTitle>
+              <CardDescription>
+                Test the connection to JazzHR API
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={testJazzHRAPI} className="w-full">
+                Test JazzHR Connection
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
