@@ -64,27 +64,6 @@ const AppSidebar = () => {
 
       <SidebarContent>
         {/* Dashboard Section */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a 
-                    href="https://startup-accelerator.hiringmanager.com/Account/login" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span className="text-base">Hiring Manager Portal</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator />
 
         <SidebarGroup>
           <SidebarGroupContent>
