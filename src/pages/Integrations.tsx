@@ -20,10 +20,12 @@ export default function Integrations() {
     setJazzHRLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('jazzhr-api', {
-        body: { endpoint: 'users' }
+        body: { action: 'getUsers', params: {} }
       });
-      setIsJazzHRConnected(!error && data?.success);
+      console.log('JazzHR API response:', { data, error });
+      setIsJazzHRConnected(!error && data);
     } catch (error) {
+      console.error('Test connection failed:', error);
       setIsJazzHRConnected(false);
     } finally {
       setJazzHRLoading(false);

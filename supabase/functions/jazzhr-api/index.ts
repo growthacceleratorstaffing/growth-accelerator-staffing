@@ -96,12 +96,10 @@ async function handleGetJobs(apiKey: string, params: any) {
   if (params?.state) queryParams.append('state', params.state)
   
   if (queryParams.toString()) {
-    url += `?${queryParams.toString()}&apikey=${apiKey}`
-  } else {
-    url += `?apikey=${apiKey}`
+    url += `?${queryParams.toString()}`
   }
   
-  const data = await makeJazzHRRequest(url, '', 'GET')
+  const data = await makeJazzHRRequest(url, apiKey, 'GET')
   
   return new Response(
     JSON.stringify(data),
@@ -152,12 +150,10 @@ async function handleGetApplicants(apiKey: string, params: any) {
   if (params?.to_apply_date) queryParams.append('to_apply_date', params.to_apply_date)
   
   if (queryParams.toString()) {
-    url += `?${queryParams.toString()}&apikey=${apiKey}`
-  } else {
-    url += `?apikey=${apiKey}`
+    url += `?${queryParams.toString()}`
   }
   
-  const data = await makeJazzHRRequest(url, '', 'GET')
+  const data = await makeJazzHRRequest(url, apiKey, 'GET')
   
   return new Response(
     JSON.stringify(data),
@@ -214,12 +210,10 @@ async function handleGetActivities(apiKey: string, params: any) {
   if (params?.category) queryParams.append('category', params.category)
   
   if (queryParams.toString()) {
-    url += `?${queryParams.toString()}&apikey=${apiKey}`
-  } else {
-    url += `?apikey=${apiKey}`
+    url += `?${queryParams.toString()}`
   }
   
-  const data = await makeJazzHRRequest(url, '', 'GET')
+  const data = await makeJazzHRRequest(url, apiKey, 'GET')
   
   return new Response(
     JSON.stringify(data),
