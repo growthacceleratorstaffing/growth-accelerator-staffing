@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, Upload } from "lucide-react";
+import { Sparkles, Upload, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,10 @@ const JobPosting = () => {
   const { toast } = useToast();
   const { canPostJobs } = useAuth();
   const { refetch } = useJobs();
+
+  const handleAddJob = () => {
+    window.open('https://mijn.cootje.com/recruiter/vacatures/aanmaken', '_blank');
+  };
 
   const generateWithAI = async () => {
     if (!aiPrompt.trim()) {
@@ -269,6 +273,10 @@ const JobPosting = () => {
           <h1 className="text-3xl font-bold">Job Posting</h1>
           <p className="text-muted-foreground mt-2">Create and post new job opportunities - automatically synced to JobAdder</p>
         </div>
+        <Button onClick={handleAddJob} className="flex items-center gap-2">
+          Add job
+          <ExternalLink className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* AI Job Creator */}

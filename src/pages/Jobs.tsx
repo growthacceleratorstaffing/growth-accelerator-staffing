@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, DollarSign, Clock, Building, AlertCircle, Search } from "lucide-react";
+import { MapPin, DollarSign, Clock, Building, AlertCircle, Search, ExternalLink } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
 import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
@@ -53,6 +54,10 @@ const Jobs = () => {
     setSelectedJob(null);
   };
 
+  const handleGoToJobs = () => {
+    window.open('https://mijn.cootje.com/recruiter/vacatures', '_blank');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -60,6 +65,10 @@ const Jobs = () => {
           <h1 className="text-3xl font-bold">Vacancies</h1>
           <p className="text-muted-foreground mt-2">Find your next opportunity - synced with JazzHR</p>
         </div>
+        <Button onClick={handleGoToJobs} className="flex items-center gap-2">
+          Go to jobs
+          <ExternalLink className="h-4 w-4" />
+        </Button>
       </div>
 
       {error && useMockData && (

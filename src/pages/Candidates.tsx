@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { useJazzHRApplicants } from "@/hooks/useJazzHRApplicants";
 import { useCandidateImport } from "@/hooks/useCandidateImport";
@@ -9,7 +10,7 @@ import JazzHRCandidatesList from "@/components/candidates/JazzHRCandidatesList";
 import { JazzHRApplicant } from "@/lib/jazzhr-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Users } from "lucide-react";
+import { AlertCircle, Users, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
@@ -78,6 +79,10 @@ const Candidates = () => {
     setCurrentPage(1);
   };
 
+  const handleGoToCandidates = () => {
+    window.open('https://mijn.cootje.com/recruiter/kandidaten', '_blank');
+  };
+
   const isLoading = isJazzHRLoading;
   const error = jazzhrError;
   const totalCandidates = jazzhrCandidates.length;
@@ -89,7 +94,13 @@ const Candidates = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <CandidatesHeader candidateCount={totalCandidates} isLoading={isLoading} onRefresh={handleRefresh} />
+        <div className="flex justify-between items-center">
+          <CandidatesHeader candidateCount={totalCandidates} isLoading={isLoading} onRefresh={handleRefresh} />
+          <Button onClick={handleGoToCandidates} className="flex items-center gap-2">
+            Go to candidates
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        </div>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -107,7 +118,13 @@ const Candidates = () => {
 
   return (
     <div className="space-y-6">
-      <CandidatesHeader candidateCount={totalCandidates} isLoading={isLoading} onRefresh={handleRefresh} />
+      <div className="flex justify-between items-center">
+        <CandidatesHeader candidateCount={totalCandidates} isLoading={isLoading} onRefresh={handleRefresh} />
+        <Button onClick={handleGoToCandidates} className="flex items-center gap-2">
+          Go to candidates
+          <ExternalLink className="h-4 w-4" />
+        </Button>
+      </div>
       <CandidatesFilters
         searchTerm={searchTerm}
         selectedStatus={selectedStatus}
