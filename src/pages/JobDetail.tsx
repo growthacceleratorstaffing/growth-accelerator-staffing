@@ -7,11 +7,11 @@ import { ArrowLeft, MapPin, Building, DollarSign, Clock, User, AlertCircle } fro
 import { useJobDetail } from "@/hooks/useJobDetail";
 
 const JobDetail = () => {
-  const { jobId } = useParams<{ jobId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
   const { jobDetail, loading, error, useMockData } = useJobDetail(
-    jobId || ""
+    id || ""
   );
 
   if (loading) {
@@ -99,7 +99,7 @@ const JobDetail = () => {
                 Ref: {jobDetail.id}
               </span>
             </div>
-            <Link to={`/jobs/${jobDetail.id}/apply`}>
+            <Link to={`/job/${jobDetail.id}/apply`}>
               <Button size="lg">Apply Now</Button>
             </Link>
           </div>
@@ -135,7 +135,7 @@ const JobDetail = () => {
 
       {/* Action Buttons */}
       <div className="flex gap-4 justify-center">
-        <Link to={`/jobs/${jobDetail.id}/apply`}>
+        <Link to={`/job/${jobDetail.id}/apply`}>
           <Button size="lg" className="px-8">Apply Now</Button>
         </Link>
         <Button variant="outline" size="lg" onClick={() => navigate("/jobs")}>
