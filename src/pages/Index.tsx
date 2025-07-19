@@ -29,61 +29,87 @@ const Index = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch jobs (vacancies) data
-      const { data: jobs, error: jobsError } = await supabase
-        .from('jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch JazzHR jobs data
+      const { data: jazzhrJobs, error: jazzhrJobsError } = await supabase.functions.invoke('jazzhr-api', {
+        body: { action: 'getJobs', params: {} }
+      });
 
-      // Fetch candidates (applicants) data
-      const { data: candidates, error: candidatesError } = await supabase
-        .from('candidates')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch JazzHR applicants data
+      const { data: jazzhrApplicants, error: jazzhrApplicantsError } = await supabase.functions.invoke('jazzhr-api', {
+        body: { action: 'getApplicants', params: {} }
+      });
 
-      // Fetch placements data
+      // Fetch local placements data (keep this as it's our internal data)
       const { data: placements, error: placementsError } = await supabase
         .from('local_placements')
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Fetch candidate responses for applicant count
-      const { data: candidateResponses, error: responsesError } = await supabase
-        .from('candidate_responses')
-        .select('*');
-
-      if (!jobsError && jobs) {
-        // Update stats
+      // Process JazzHR jobs
+      if (!jazzhrJobsError && jazzhrJobs && Array.isArray(jazzhrJobs)) {
+        console.log('JazzHR Jobs fetched:', jazzhrJobs.length);
+        
+        // Update stats with real JazzHR data
         setStats({
-          activeJobs: jobs.length,
-          totalCandidates: candidates?.length || 0,
-          totalApplicants: candidateResponses?.length || 0,
-          syncedJobs: jobs.filter(job => job.synced_to_jobadder).length
+          activeJobs: jazzhrJobs.length,
+          totalCandidates: Array.isArray(jazzhrApplicants) ? jazzhrApplicants.length : 0,
+          totalApplicants: Array.isArray(jazzhrApplicants) ? jazzhrApplicants.length : 0,
+          syncedJobs: jazzhrJobs.length // All JazzHR jobs are considered synced
         });
 
-        // Set recent jobs (limit to 5 for display)
-        setRecentJobs(jobs.slice(0, 5).map(job => ({
+        // Set recent jobs from JazzHR (limit to 6 for display)
+        setRecentJobs(jazzhrJobs.slice(0, 6).map(job => ({
           id: job.id,
-          title: job.title,
-          company: job.company_name || 'Unknown Company',
-          applications: 0, // Could be enhanced to count actual applications
-          posted: new Date(job.created_at).toLocaleDateString(),
-          synced: job.synced_to_jobadder
+          title: job.title || 'Untitled Job',
+          company: job.department || job.company || 'Company',
+          applications: 0, // Will be calculated from applicants if needed
+          posted: job.original_open_date ? new Date(job.original_open_date).toLocaleDateString() : 'Recently posted',
+          synced: true // JazzHR jobs are always synced
         })));
+      } else {
+        console.error('Error fetching JazzHR jobs:', jazzhrJobsError);
+        // Fallback to empty state
+        setStats({
+          activeJobs: 0,
+          totalCandidates: 0,
+          totalApplicants: 0,
+          syncedJobs: 0
+        });
+        setRecentJobs([]);
       }
 
-      if (!candidatesError && candidates) {
-        // Set recent candidates (limit to 5 for display)
-        setRecentCandidates(candidates.slice(0, 5).map(candidate => ({
-          id: candidate.id,
-          name: candidate.name,
-          title: candidate.current_position || 'No position specified',
-          status: candidate.interview_stage || 'New'
+      // Process JazzHR applicants
+      if (!jazzhrApplicantsError && jazzhrApplicants && Array.isArray(jazzhrApplicants)) {
+        console.log('JazzHR Applicants fetched:', jazzhrApplicants.length);
+        
+        // Set recent candidates from JazzHR (limit to 6 for display)
+        setRecentCandidates(jazzhrApplicants.slice(0, 6).map(applicant => ({
+          id: applicant.id,
+          name: `${applicant.first_name || ''} ${applicant.last_name || ''}`.trim() || 'Unknown Candidate',
+          title: applicant.job_title || 'No position specified',
+          status: applicant.prospect_detail?.status || 'Applied'
         })));
+
+        // Set talent pool data from qualified JazzHR applicants
+        const qualifiedApplicants = jazzhrApplicants
+          .filter(applicant => applicant.prospect_detail?.status === 'interviewed' || applicant.prospect_detail?.status === 'qualified')
+          .slice(0, 5);
+        
+        setTalentPoolData(qualifiedApplicants.map(applicant => ({
+          id: applicant.id,
+          name: `${applicant.first_name || ''} ${applicant.last_name || ''}`.trim() || 'Unknown Candidate',
+          role: applicant.job_title || 'No position specified',
+          experience: 'Not specified',
+          availability: applicant.prospect_detail?.status === 'interviewed' ? 'Available' : 'In Process'
+        })));
+      } else {
+        console.error('Error fetching JazzHR applicants:', jazzhrApplicantsError);
+        setRecentCandidates([]);
+        setTalentPoolData([]);
       }
 
+      // Process local placements (keep as is)
       if (!placementsError && placements) {
-        // Set recent matches from placements (limit to 3 for display)
         setRecentMatches(placements.slice(0, 3).map(placement => ({
           id: placement.id,
           candidate: placement.candidate_name,
@@ -91,39 +117,36 @@ const Index = () => {
           company: placement.company_name,
           status: placement.status_name || 'Active'
         })));
-      }
-
-      // Set talent pool data from candidates with interview stage 'completed' or 'passed'
-      if (!candidatesError && candidates) {
-        const talentPool = candidates
-          .filter(candidate => candidate.interview_stage === 'completed' || candidate.interview_stage === 'passed')
-          .slice(0, 5);
-        
-        setTalentPoolData(talentPool.map(candidate => ({
-          id: candidate.id,
-          name: candidate.name,
-          role: candidate.current_position || 'No position specified',
-          experience: candidate.experience_years ? `${candidate.experience_years} years` : 'Not specified',
-          availability: candidate.interview_stage === 'completed' ? 'Available' : 'In Process'
-        })));
+      } else {
+        setRecentMatches([]);
       }
 
       console.log('Dashboard stats:', {
-        jobs: jobs?.length || 0,
-        candidates: candidates?.length || 0,
-        placements: placements?.length || 0,
-        responses: candidateResponses?.length || 0
+        jobs: jazzhrJobs?.length || 0,
+        applicants: jazzhrApplicants?.length || 0,
+        placements: placements?.length || 0
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      // Set empty state on error
+      setStats({
+        activeJobs: 0,
+        totalCandidates: 0,
+        totalApplicants: 0,
+        syncedJobs: 0
+      });
+      setRecentJobs([]);
+      setRecentCandidates([]);
+      setRecentMatches([]);
+      setTalentPoolData([]);
     } finally {
       setLoading(false);
     }
   };
 
   const statsCards = [
-    { title: "JazzHR Candidates", value: "0", subtitle: "Active applicants", icon: Users, color: "text-blue-600" },
-    { title: "Talent Pool", value: stats.totalApplicants.toString(), subtitle: "Local candidates", icon: UserCheck, color: "text-green-600" },
+    { title: "JazzHR Candidates", value: stats.totalApplicants.toString(), subtitle: "Active applicants", icon: Users, color: "text-blue-600" },
+    { title: "Talent Pool", value: talentPoolData.length.toString(), subtitle: "Qualified candidates", icon: UserCheck, color: "text-green-600" },
     { title: "Active Jobs", value: stats.activeJobs.toString(), subtitle: "Open positions", icon: Briefcase, color: "text-purple-600" },
     { title: "Placements", value: recentMatches.length.toString(), subtitle: "Successful matches", icon: TrendingUp, color: "text-orange-600" }
   ];
@@ -198,9 +221,10 @@ const Index = () => {
                   </div>
                   <Badge variant="secondary" className="mb-3">Full-time</Badge>
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                    {job.title.includes('Tester') ? 'Job Title: Software Tester – Banking Applications ## About the Role Are you passionate about delivering...' : 
+                    {job.title.includes('Data Engineer') ? 'Startup Accelerator biedt Data & AI consultants een kickstart om zelfstandig freelance consultant te worden...' : 
+                     job.title.includes('Tester') ? 'Job Title: Software Tester – Banking Applications ## About the Role Are you passionate about delivering...' : 
                      job.title.includes('Cloud') ? 'We are looking for a Senior Cloud Engineer to join our team and help build scalable cloud infrastructure.' :
-                     'Exciting opportunity to join our growing team.'}
+                     'Exciting opportunity to join our growing team in this role.'}
                   </p>
                   <div className="text-xs text-muted-foreground">{job.posted}</div>
                 </CardContent>
