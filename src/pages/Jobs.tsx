@@ -6,10 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, DollarSign, Clock, Building, AlertCircle, Search, ExternalLink } from "lucide-react";
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
 import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
+import { JazzHRSyncManager } from "@/components/job-search/JazzHRSyncManager";
 import { supabase } from "@/integrations/supabase/client";
 
 const Jobs = () => {
@@ -17,24 +19,8 @@ const Jobs = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
   
   const { jobs: allJobs, loading, error, refetch } = useJobs();
-
-  // Auto-sync on component mount
-  useEffect(() => {
-    const performAutoSync = async () => {
-      try {
-        await supabase.functions.invoke('jazzhr-sync', {
-          body: { action: 'bidirectionalSync' }
-        });
-      } catch (error) {
-        console.error('Auto-sync failed:', error);
-      }
-    };
-
-    performAutoSync();
-  }, []);
 
   // Client-side filter to ensure only open jobs are shown
   const jobs = allJobs.filter(job => job.status === 'Open' || job.status === 'open');
@@ -73,7 +59,13 @@ const Jobs = () => {
         </Alert>
       )}
 
-      <div className="space-y-6">
+      <Tabs defaultValue="vacancies" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="vacancies">Vacancies</TabsTrigger>
+          <TabsTrigger value="sync">JazzHR Sync</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="vacancies" className="space-y-6">
           <div className="flex gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -167,7 +159,12 @@ const Jobs = () => {
               </p>
             </div>
           )}
-        </div>
+        </TabsContent>
+
+        <TabsContent value="sync" className="space-y-6">
+          <JazzHRSyncManager />
+        </TabsContent>
+      </Tabs>
 
       <JobApplicationForm
         job={selectedJob}
