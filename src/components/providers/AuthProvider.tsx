@@ -9,9 +9,11 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   profile: any;
+  jazzhrProfile: any;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  syncJazzHRUsers: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [jazzhrProfile, setJazzhrProfile] = useState<any>(null);
   const { toast } = useToast();
 
   const isAuthenticated = !!user && !!session;
@@ -48,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Use setTimeout to avoid blocking the auth state change
           setTimeout(async () => {
             try {
+              // Fetch basic profile
               const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
@@ -55,12 +59,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .maybeSingle();
               
               setProfile(profileData);
+
+              // Fetch JazzHR profile data
+              const { data: jazzhrData } = await supabase
+                .from('jazzhr_users')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+              
+              setJazzhrProfile(jazzhrData);
             } catch (error) {
               console.error('Error fetching profile:', error);
             }
           }, 0);
         } else {
           setProfile(null);
+          setJazzhrProfile(null);
         }
       }
     );
@@ -76,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setSession(null);
       setProfile(null);
+      setJazzhrProfile(null);
       
       toast({
         title: "Signed out successfully",
@@ -117,6 +132,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     try {
+      // First check if the email is allowed (exists in JazzHR users)
+      const { data: emailValidation, error: validationError } = await supabase
+        .rpc('validate_jazzhr_email', { email_to_check: email });
+
+      if (validationError) {
+        console.error('Email validation error:', validationError);
+        throw new Error('Unable to validate email. Please try again.');
+      }
+
+      if (!emailValidation) {
+        throw new Error('This email is not authorized for registration. Only JazzHR team members can create accounts.');
+      }
+
       const redirectUrl = `${window.location.origin}/`;
       
       const { error } = await supabase.auth.signUp({
@@ -147,15 +175,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const syncJazzHRUsers = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
+        body: { action: 'syncUsers', params: {} }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "JazzHR Users Synced",
+        description: `Successfully synced ${data.synced_count} users from JazzHR.`,
+      });
+
+      return data;
+    } catch (error) {
+      console.error('JazzHR sync error:', error);
+      toast({
+        title: "Sync failed",
+        description: error instanceof Error ? error.message : 'Failed to sync JazzHR users',
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     session,
     isAuthenticated,
     isLoading,
     profile,
+    jazzhrProfile,
     signIn,
     signUp,
     signOut,
+    syncJazzHRUsers,
   };
 
   return (

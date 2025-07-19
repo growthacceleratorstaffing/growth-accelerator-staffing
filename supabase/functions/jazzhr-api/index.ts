@@ -52,6 +52,8 @@ serve(async (req) => {
         return await handleCreateApplicant(apiKey, params)
       case 'getUsers':
         return await handleGetUsers(apiKey, params)
+      case 'syncUsers':
+        return await handleSyncUsers(apiKey)
       case 'getActivities':
         return await handleGetActivities(apiKey, params)
       case 'createNote':
@@ -378,6 +380,118 @@ async function handleGetUsers(apiKey: string, params: any) {
     JSON.stringify(data),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   )
+}
+
+async function handleSyncUsers(apiKey: string) {
+  try {
+    console.log('Starting JazzHR users sync...');
+    
+    // Get users from JazzHR API
+    const jazzhrUsers = await makeJazzHRRequest('https://api.resumatorapi.com/v1/users', apiKey);
+    
+    if (!Array.isArray(jazzhrUsers)) {
+      throw new Error('Invalid response from JazzHR users API');
+    }
+    
+    console.log(`Found ${jazzhrUsers.length} users in JazzHR`);
+    
+    // Get Supabase client with service role
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+    
+    let syncedCount = 0;
+    let errorCount = 0;
+    
+    // Sync each user to our database
+    for (const jazzhrUser of jazzhrUsers) {
+      try {
+        // Map JazzHR role to our enum
+        const mapJazzHRRole = (jazzhrType: string): string => {
+          switch (jazzhrType?.toLowerCase()) {
+            case 'super admin':
+            case 'admin':
+              return 'super_admin';
+            case 'recruiting admin':
+              return 'recruiting_admin';
+            case 'super user':
+              return 'super_user';
+            case 'recruiting user':
+              return 'recruiting_user';
+            case 'interviewer':
+              return 'interviewer';
+            case 'developer':
+              return 'developer';
+            case 'external recruiter':
+              return 'external_recruiter';
+            default:
+              return 'recruiting_user';
+          }
+        };
+        
+        const userData = {
+          jazzhr_user_id: jazzhrUser.id || jazzhrUser.user_id,
+          email: jazzhrUser.email,
+          name: `${jazzhrUser.first_name || ''} ${jazzhrUser.last_name || ''}`.trim() || jazzhrUser.name || jazzhrUser.email,
+          jazzhr_role: mapJazzHRRole(jazzhrUser.type || jazzhrUser.role),
+          permissions: jazzhrUser.permissions || {},
+          assigned_jobs: jazzhrUser.assigned_jobs || [],
+          is_active: jazzhrUser.active !== false, // Default to true unless explicitly false
+          last_synced_at: new Date().toISOString()
+        };
+        
+        // Upsert user data
+        const { error } = await supabase
+          .from('jazzhr_users')
+          .upsert(userData, {
+            onConflict: 'jazzhr_user_id'
+          });
+        
+        if (error) {
+          console.error(`Failed to sync user ${userData.email}:`, error);
+          errorCount++;
+        } else {
+          console.log(`Successfully synced user: ${userData.email}`);
+          syncedCount++;
+        }
+      } catch (userError) {
+        console.error(`Error processing user:`, userError);
+        errorCount++;
+      }
+    }
+    
+    const result = {
+      success: true,
+      message: `JazzHR users sync completed`,
+      total_users: jazzhrUsers.length,
+      synced_count: syncedCount,
+      error_count: errorCount
+    };
+    
+    console.log('Sync result:', result);
+    
+    return new Response(
+      JSON.stringify(result),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+    
+  } catch (error) {
+    console.error('handleSyncUsers error:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        message: 'Failed to sync JazzHR users',
+        error: error.message
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 }
 
 async function handleGetActivities(apiKey: string, params: any) {

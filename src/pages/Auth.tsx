@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { 
   User,
   LogIn,
-  CheckCircle
+  CheckCircle,
+  Shield,
+  RefreshCw
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -20,7 +22,7 @@ export default function Auth() {
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
-  const { signIn, signUp, isAuthenticated, profile } = useAuth();
+  const { signIn, signUp, isAuthenticated, profile, jazzhrProfile, syncJazzHRUsers } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,6 +56,23 @@ export default function Auth() {
     }
   };
 
+  const handleSyncJazzHRUsers = async () => {
+    setIsLoading(true);
+    try {
+      await syncJazzHRUsers();
+    } catch (error) {
+      // Error handling is done in the useAuth hook
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatJazzHRRole = (role: string): string => {
+    return role?.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ') || 'User';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       <div className="container mx-auto px-4 py-8">
@@ -65,7 +84,7 @@ export default function Auth() {
               <h1 className="text-3xl font-bold">Growth Accelerator</h1>
             </div>
             <p className="text-muted-foreground">
-              Sign in to your account
+              Welcome to the JazzHR-powered Growth Accelerator Platform
             </p>
           </div>
 
@@ -81,10 +100,10 @@ export default function Auth() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      Signed In
+                      Welcome Back
                     </CardTitle>
                     <CardDescription>
-                      You are currently signed in to your account
+                      You are signed in with JazzHR credentials
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -92,17 +111,43 @@ export default function Auth() {
                       <User className="h-4 w-4" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">
-                          {profile?.full_name || profile?.email || 'User'}
+                          {jazzhrProfile?.name || profile?.full_name || profile?.email || 'User'}
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {profile?.role || 'viewer'}
-                        </Badge>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {jazzhrProfile?.email || profile?.email}
+                        </div>
                       </div>
                     </div>
+                    
+                    {jazzhrProfile && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-md">
+                        <Shield className="h-4 w-4 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium">
+                            JazzHR Role: {formatJazzHRRole(jazzhrProfile.jazzhr_role)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Last synced: {new Date(jazzhrProfile.last_synced_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex gap-4">
                       <Button onClick={() => navigate('/dashboard')} className="flex-1">
                         Go to Dashboard
                       </Button>
+                      {jazzhrProfile?.jazzhr_role === 'super_admin' && (
+                        <Button 
+                          variant="outline" 
+                          onClick={handleSyncJazzHRUsers}
+                          disabled={isLoading}
+                          className="flex items-center gap-2"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                          Sync Users
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -118,20 +163,20 @@ export default function Auth() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <LogIn className="h-5 w-5" />
-                          Sign In
+                          Sign In to JazzHR Platform
                         </CardTitle>
                         <CardDescription>
-                          Enter your credentials to access your account
+                          Enter your JazzHR credentials to access the platform
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <form onSubmit={handleSignIn} className="space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor="signin-email">Email</Label>
+                            <Label htmlFor="signin-email">JazzHR Email</Label>
                             <Input
                               id="signin-email"
                               type="email"
-                              placeholder="Enter your email"
+                              placeholder="Enter your JazzHR email"
                               value={signInEmail}
                               onChange={(e) => setSignInEmail(e.target.value)}
                               required
@@ -161,13 +206,19 @@ export default function Auth() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <User className="h-5 w-5" />
-                          Create Account
+                          Join JazzHR Platform
                         </CardTitle>
                         <CardDescription>
-                          Create a new account to get started
+                          Create an account with your JazzHR email address
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
+                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <p className="text-sm text-blue-700">
+                            <Shield className="h-4 w-4 inline mr-1" />
+                            Only JazzHR team members can register. Your email must be registered in the JazzHR system.
+                          </p>
+                        </div>
                         <form onSubmit={handleSignUp} className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="signup-name">Full Name</Label>
@@ -180,11 +231,11 @@ export default function Auth() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="signup-email">Email</Label>
+                            <Label htmlFor="signup-email">JazzHR Email</Label>
                             <Input
                               id="signup-email"
                               type="email"
-                              placeholder="Enter your email"
+                              placeholder="Enter your JazzHR email"
                               value={signUpEmail}
                               onChange={(e) => setSignUpEmail(e.target.value)}
                               required

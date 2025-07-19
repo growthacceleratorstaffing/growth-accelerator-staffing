@@ -367,6 +367,51 @@ export type Database = {
           },
         ]
       }
+      jazzhr_users: {
+        Row: {
+          assigned_jobs: string[] | null
+          created_at: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          jazzhr_role: Database["public"]["Enums"]["jazzhr_role"]
+          jazzhr_user_id: string
+          last_synced_at: string | null
+          name: string
+          permissions: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          assigned_jobs?: string[] | null
+          created_at?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          jazzhr_role?: Database["public"]["Enums"]["jazzhr_role"]
+          jazzhr_user_id: string
+          last_synced_at?: string | null
+          name: string
+          permissions?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          assigned_jobs?: string[] | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          jazzhr_role?: Database["public"]["Enums"]["jazzhr_role"]
+          jazzhr_user_id?: string
+          last_synced_at?: string | null
+          name?: string
+          permissions?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       jobadder_tokens: {
         Row: {
           access_token: string
@@ -941,6 +986,13 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      has_jazzhr_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["jazzhr_role"]
+        }
+        Returns: boolean
+      }
       has_jobadder_scope: {
         Args: {
           _user_id: string
@@ -982,6 +1034,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      validate_jazzhr_email: {
+        Args: { email_to_check: string }
+        Returns: boolean
+      }
       validate_jobadder_email: {
         Args: { email_to_check: string }
         Returns: boolean
@@ -1007,6 +1063,14 @@ export type Database = {
         | "hired"
         | "rejected"
         | "withdrawn"
+      jazzhr_role:
+        | "super_admin"
+        | "recruiting_admin"
+        | "super_user"
+        | "recruiting_user"
+        | "interviewer"
+        | "developer"
+        | "external_recruiter"
       jobadder_scope:
         | "read"
         | "write"
@@ -1181,6 +1245,15 @@ export const Constants = {
         "hired",
         "rejected",
         "withdrawn",
+      ],
+      jazzhr_role: [
+        "super_admin",
+        "recruiting_admin",
+        "super_user",
+        "recruiting_user",
+        "interviewer",
+        "developer",
+        "external_recruiter",
       ],
       jobadder_scope: [
         "read",

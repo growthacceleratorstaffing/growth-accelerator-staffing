@@ -27,6 +27,7 @@ import ApplyJob from "./pages/ApplyJob";
 import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
+import "./utils/addTestJazzHRUsers"; // Import for browser console access
 
 
 import NotFound from "./pages/NotFound";
