@@ -15,13 +15,10 @@ serve(async (req) => {
     const { action, params } = await req.json()
     console.log('JazzHR API request:', { action, params })
 
-    // Get JazzHR API key from Supabase secrets
-    const apiKey = Deno.env.get('JAZZHR_API_KEY')
+    // Use the provided API key directly
+    const apiKey = '9JAD4FtvL1Bk9CmBzucOdzfWLdQTAzNs'
     
-    if (!apiKey) {
-      console.error('JazzHR API key not configured in secrets')
-      throw new Error('JazzHR API key not configured')
-    }
+    console.log('Using JazzHR API key:', apiKey.substring(0, 8) + '...')
 
     const baseUrl = 'https://www.resumatorapi.com/v1'
     
