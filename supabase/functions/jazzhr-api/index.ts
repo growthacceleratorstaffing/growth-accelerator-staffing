@@ -57,13 +57,25 @@ serve(async (req) => {
       case 'createNote':
         return await handleCreateNote(apiKey, params)
       default:
-        throw new Error(`Unknown action: ${action}`)
+        console.error('Unknown action received:', action)
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            message: `Unknown action: ${action}`,
+            error: 'Invalid action parameter'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
     }
   } catch (error) {
     console.error('Error in jazzhr-api function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: false,
+        message: 'Internal server error',
+        error: error.message 
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
