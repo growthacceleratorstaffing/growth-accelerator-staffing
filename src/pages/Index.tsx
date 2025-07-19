@@ -191,57 +191,149 @@ const Index = () => {
         ))}
       </div>
 
-      {/* Single Page Content - Only Jobs Section */}
-      <div className="space-y-8">
-        {/* Recent Job Openings Section */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Recent Job Openings</h2>
-            <Link to="/jobs">
-              <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                View All Jobs <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentJobs.length > 0 ? recentJobs.map((job) => (
-              <Card key={job.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="font-semibold">{job.title}</h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                        <Briefcase className="h-4 w-4" />
-                        <span>{job.company}</span>
+      {/* JazzHR Data Cards */}
+      <div className="space-y-6">
+        {/* JazzHR Jobs Overview */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5" />
+                JazzHR Jobs
+              </CardTitle>
+              <Link to="/jobs">
+                <Button variant="outline" size="sm">
+                  View All Jobs
+                </Button>
+              </Link>
+            </div>
+            <CardDescription>Live job postings from your JazzHR account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentJobs.length > 0 ? (
+              <div className="space-y-4">
+                {recentJobs.map((job) => (
+                  <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{job.title}</h3>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Briefcase className="h-4 w-4" />
+                          {job.company}
+                        </span>
+                        <span>Remote</span>
+                        <span>Posted: {job.posted}</span>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">Full-time</Badge>
+                      {job.synced && <Badge variant="default" className="bg-green-500">JazzHR</Badge>}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                    <span>Remote</span>
-                  </div>
-                  <Badge variant="secondary" className="mb-3">Full-time</Badge>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                    {job.title.includes('Data Engineer') ? 'Startup Accelerator biedt Data & AI consultants een kickstart om zelfstandig freelance consultant te worden...' : 
-                     job.title.includes('Tester') ? 'Job Title: Software Tester – Banking Applications ## About the Role Are you passionate about delivering...' : 
-                     job.title.includes('Cloud') ? 'We are looking for a Senior Cloud Engineer to join our team and help build scalable cloud infrastructure.' :
-                     'Exciting opportunity to join our growing team in this role.'}
-                  </p>
-                  <div className="text-xs text-muted-foreground">{job.posted}</div>
-                </CardContent>
-              </Card>
-            )) : (
-              <div className="text-center py-8 text-muted-foreground col-span-full">
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
                 <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No jobs posted yet</p>
-                <Link to="/job-posting">
-                  <Button variant="outline" size="sm" className="mt-2">
-                    Post Your First Job
-                  </Button>
-                </Link>
+                <p>No JazzHR jobs found</p>
+                <p className="text-sm">Jobs will appear here when available in your JazzHR account</p>
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+
+        {/* JazzHR Candidates Overview */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                JazzHR Candidates
+              </CardTitle>
+              <Link to="/candidates">
+                <Button variant="outline" size="sm">
+                  View All Candidates
+                </Button>
+              </Link>
+            </div>
+            <CardDescription>Live candidate data from your JazzHR account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentCandidates.length > 0 ? (
+              <div className="space-y-4">
+                {recentCandidates.map((candidate) => (
+                  <div key={candidate.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{candidate.name}</h3>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                        <span>{candidate.title}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={candidate.status === "interviewed" ? "default" : "secondary"}>
+                        {candidate.status}
+                      </Badge>
+                      <Badge variant="outline" className="bg-blue-50">JazzHR</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No JazzHR candidates found</p>
+                <p className="text-sm">Candidates will appear here as they apply to your jobs</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Talent Pool Overview */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center gap-2">
+                <UserCheck className="h-5 w-5" />
+                Qualified Talent Pool
+              </CardTitle>
+              <Link to="/applications">
+                <Button variant="outline" size="sm">
+                  View Talent Pool
+                </Button>
+              </Link>
+            </div>
+            <CardDescription>Qualified candidates from JazzHR ready for placement</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {talentPoolData.length > 0 ? (
+              <div className="space-y-4">
+                {talentPoolData.map((talent) => (
+                  <div key={talent.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{talent.name}</h3>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                        <span>{talent.role}</span>
+                        <span>{talent.experience}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default" className="bg-green-500">
+                        {talent.availability}
+                      </Badge>
+                      <Badge variant="outline" className="bg-green-50">Qualified</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <UserCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No qualified candidates yet</p>
+                <p className="text-sm">Qualified candidates from JazzHR will appear here</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
