@@ -19,10 +19,13 @@ const Jobs = () => {
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const navigate = useNavigate();
   
-  const { data: jobs = [], isLoading: loading, error } = useJazzHRJobs({
+  const { data: allJobs = [], isLoading: loading, error } = useJazzHRJobs({
     title: searchTerm || undefined,
     status: 'Open'
   });
+
+  // Client-side filter to ensure only open jobs are shown
+  const jobs = allJobs.filter(job => job.status === 'Open');
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
