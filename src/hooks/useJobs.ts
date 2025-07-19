@@ -4,6 +4,8 @@ import { JazzHRJob, JazzHRApplicant } from '@/lib/jazzhr-api';
 
 export interface JazzHRJobWithApplicants extends JazzHRJob {
   applicants?: JazzHRApplicant[];
+  company_name?: string;
+  location_name?: string;
 }
 
 // Mock data as fallback - JazzHR structure
@@ -57,25 +59,44 @@ export function useJobs() {
     setError(null);
 
     try {
-      console.log('Fetching jobs from JazzHR...');
+      console.log('Fetching jobs from JazzHR and local database...');
       
-      // Fetch jobs from JazzHR API only
-      let jazzHRJobs: JazzHRJobWithApplicants[] = [];
-      
-      try {
-        const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jazzhr-api', {
+      // Fetch jobs from JazzHR API and local database in parallel
+      const [jazzHRResult, localResult] = await Promise.allSettled([
+        // JazzHR API call
+        supabase.functions.invoke('jazzhr-api', {
           body: { 
             action: 'getJobs',
             params: searchTerm ? { title: searchTerm } : {}
           }
-        });
+        }),
+        // Local database call
+        (() => {
+          let localJobsQuery = supabase
+            .from('jobs')
+            .select('*')
+            .order('created_at', { ascending: false });
 
+          if (searchTerm) {
+            localJobsQuery = localJobsQuery.or(`title.ilike.%${searchTerm}%,job_description.ilike.%${searchTerm}%`);
+          }
+
+          return localJobsQuery;
+        })()
+      ]);
+
+      let jazzHRJobs: JazzHRJobWithApplicants[] = [];
+      let localJobs: JazzHRJobWithApplicants[] = [];
+
+      // Process JazzHR results
+      if (jazzHRResult.status === 'fulfilled') {
+        const { data: jobsData, error: jobsError } = jazzHRResult.value;
         if (!jobsError && jobsData && jobsData.success !== false) {
           const jobs = Array.isArray(jobsData) ? jobsData : [jobsData];
           jazzHRJobs = jobs.filter(job => job && job.id);
           console.log('Fetched JazzHR jobs:', jazzHRJobs.length);
 
-          // Fetch applicants for each job
+          // Fetch applicants for each JazzHR job
           const jobsWithApplicants = await Promise.all(
             jazzHRJobs.map(async (job) => {
               try {
@@ -103,44 +124,35 @@ export function useJobs() {
           jazzHRJobs = jobsWithApplicants;
         } else {
           console.warn('JazzHR API call failed:', jobsError || 'No data returned');
-          if (jobsData?.message) {
-            console.warn('JazzHR API message:', jobsData.message);
-          }
         }
-      } catch (err) {
-        console.warn('JazzHR API error:', err);
+      } else {
+        console.warn('JazzHR API error:', jazzHRResult.reason);
       }
 
-      // Always fetch local database jobs to combine with JazzHR jobs
-      let localJobs: JazzHRJobWithApplicants[] = [];
-      try {
-        let localJobsQuery = supabase
-          .from('jobs')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (searchTerm) {
-          localJobsQuery = localJobsQuery.or(`title.ilike.%${searchTerm}%,job_description.ilike.%${searchTerm}%`);
-        }
-
-        const { data: localJobsData, error: localError } = await localJobsQuery;
-        
+      // Process local database results
+      if (localResult.status === 'fulfilled') {
+        const { data: localJobsData, error: localError } = localResult.value;
         if (!localError && localJobsData) {
           localJobs = localJobsData.map(job => ({
             id: job.id,
             title: job.title,
             description: job.job_description || '',
             department: job.company_name || '',
+            company_name: job.company_name || '',
             city: job.location_name?.split(',')[0] || '',
             state: job.location_name?.split(',')[1]?.trim() || '',
+            location_name: job.location_name || '',
             employment_type: job.work_type_name || 'Full-time',
             created_at: job.created_at,
-            status: 'Open', // Ensure consistent status format
+            status: 'Open',
             applicants: []
           }));
+          console.log('Fetched local jobs:', localJobs.length);
+        } else {
+          console.warn('Error fetching local jobs:', localError);
         }
-      } catch (localErr) {
-        console.warn('Error fetching local jobs:', localErr);
+      } else {
+        console.warn('Local database error:', localResult.reason);
       }
 
       // Combine JazzHR and local jobs
@@ -159,7 +171,14 @@ export function useJobs() {
         }
         setJobs(filteredJobs);
         setUseMockData(true);
-        setError('Using demo data - JazzHR API not available');
+        setError('Using demo data - API services temporarily unavailable');
+      } else {
+        // Show warning if only one source is working
+        if (jazzHRJobs.length === 0 && localJobs.length > 0) {
+          setError('JazzHR API temporarily unavailable - showing local jobs only');
+        } else if (localJobs.length === 0 && jazzHRJobs.length > 0) {
+          setError('Local database temporarily unavailable - showing JazzHR jobs only');
+        }
       }
       
       console.log('Total jobs loaded:', allJobs.length, '(', jazzHRJobs.length, 'JazzHR,', localJobs.length, 'local)');
@@ -167,7 +186,7 @@ export function useJobs() {
       console.log('Total applicants across all jobs:', totalApplicants);
     } catch (err) {
       console.error('Error fetching jobs:', err);
-      setError(err.message || 'Failed to fetch jobs');
+      setError('Failed to fetch jobs - please check your connection');
       
       // Fallback to mock data on error
       setJobs(mockJobs);
