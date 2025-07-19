@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, DollarSign, Clock, Building, AlertCircle, Search, ExternalLink } from "lucide-react";
-import { useJobs } from "@/hooks/useJobs";
+import { useJazzHRJobs } from "@/hooks/useJazzHRJobs";
 import { useToast } from "@/hooks/use-toast";
 import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,11 +18,13 @@ const Jobs = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const navigate = useNavigate();
-  const { jobs, loading, error, useMockData, refetch } = useJobs();
+  
+  const { data: jobs = [], isLoading: loading, error } = useJazzHRJobs({
+    title: searchTerm || undefined
+  });
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    refetch(value);
   };
 
   const handleApplyClick = (job) => {
@@ -45,11 +47,11 @@ const Jobs = () => {
         </div>
       </div>
 
-      {error && useMockData && (
+      {error && (
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error}
+            Failed to load JazzHR jobs. Please check your connection.
           </AlertDescription>
         </Alert>
       )}
@@ -97,7 +99,7 @@ const Jobs = () => {
                     <CardTitle className="text-lg">{job.title}</CardTitle>
                     <CardDescription className="flex items-center gap-2">
                       <Building className="h-4 w-4" />
-                      {job.department || "Company"}
+                      {job.department || "Growth Accelerator"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -106,8 +108,8 @@ const Jobs = () => {
                       {job.city && job.state ? `${job.city}, ${job.state}` : "Remote"}
                     </div>
                     
-                    {job.employment_type && (
-                      <Badge variant="secondary">{job.employment_type}</Badge>
+                    {job.status && (
+                      <Badge variant={job.status === 'Open' ? 'default' : 'secondary'}>{job.status}</Badge>
                     )}
                     
                     <p className="text-sm text-muted-foreground line-clamp-3">
@@ -136,7 +138,7 @@ const Jobs = () => {
                         Apply Now
                       </Button>
                       <span className="text-xs text-muted-foreground">
-                        {job.created_at ? new Date(job.created_at).toLocaleDateString() : "Recently posted"}
+                        {job.created_at ? new Date(job.created_at).toLocaleDateString() : "JazzHR Job"}
                       </span>
                     </div>
                   </CardContent>
@@ -149,7 +151,7 @@ const Jobs = () => {
             <div className="text-center py-12">
               <h3 className="text-lg font-medium text-muted-foreground">No jobs found</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {useMockData ? "Using demo data - Configure JazzHR API to see real jobs" : "Try adjusting your search terms or check back later."}
+                Try adjusting your search terms or check back later for new JazzHR job postings.
               </p>
             </div>
           )}
