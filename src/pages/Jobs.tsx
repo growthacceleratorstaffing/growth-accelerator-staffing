@@ -20,7 +20,8 @@ const Jobs = () => {
   const navigate = useNavigate();
   
   const { data: jobs = [], isLoading: loading, error } = useJazzHRJobs({
-    title: searchTerm || undefined
+    title: searchTerm || undefined,
+    status: 'Open'
   });
 
   const handleSearch = (value: string) => {
