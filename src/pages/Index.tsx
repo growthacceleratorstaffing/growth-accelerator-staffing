@@ -191,7 +191,7 @@ const Index = () => {
         ))}
       </div>
 
-      {/* Single Page Content - All sections displayed without tabs */}
+      {/* Single Page Content - Only Jobs Section */}
       <div className="space-y-8">
         {/* Recent Job Openings Section */}
         <div>
@@ -236,88 +236,6 @@ const Index = () => {
                 <Link to="/job-posting">
                   <Button variant="outline" size="sm" className="mt-2">
                     Post Your First Job
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Candidates Section */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Recent Candidates</h2>
-            <Link to="/candidates">
-              <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                View All Candidates <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentCandidates.length > 0 ? recentCandidates.map((candidate) => (
-              <Card key={candidate.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{candidate.name}</h3>
-                      <p className="text-sm text-muted-foreground">{candidate.title}</p>
-                    </div>
-                    <Badge 
-                      variant={candidate.status === "completed" ? "default" : "secondary"}
-                    >
-                      {candidate.status}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            )) : (
-              <div className="text-center py-8 text-muted-foreground col-span-full">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No candidates yet</p>
-                <Link to="/candidates">
-                  <Button variant="outline" size="sm" className="mt-2">
-                    View Candidates
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Placements Section */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Recent Placements</h2>
-            <Link to="/matches">
-              <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                View All Placements <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentMatches.length > 0 ? recentMatches.map((match) => (
-              <Card key={match.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{match.candidate}</h3>
-                      <p className="text-sm text-muted-foreground">{match.job} at {match.company}</p>
-                    </div>
-                    <Badge 
-                      variant={match.status === "Active" ? "default" : "secondary"}
-                    >
-                      {match.status}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            )) : (
-              <div className="text-center py-8 text-muted-foreground col-span-full">
-                <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No placements yet</p>
-                <Link to="/matches">
-                  <Button variant="outline" size="sm" className="mt-2">
-                    View Placements
                   </Button>
                 </Link>
               </div>
