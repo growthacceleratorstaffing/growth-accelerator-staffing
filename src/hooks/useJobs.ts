@@ -72,9 +72,8 @@ export function useJobs() {
 
         if (!jobsError && jobsData && jobsData.success !== false) {
           const jobs = Array.isArray(jobsData) ? jobsData : [jobsData];
-          // Filter to only show active/open jobs
-          jazzHRJobs = jobs.filter(job => job && job.id && (job.status === 'open' || job.status === 'active'));
-          console.log('Fetched JazzHR jobs (active only):', jazzHRJobs.length);
+          jazzHRJobs = jobs.filter(job => job && job.id);
+          console.log('Fetched JazzHR jobs:', jazzHRJobs.length);
 
           // Fetch applicants for each job
           const jobsWithApplicants = await Promise.all(
