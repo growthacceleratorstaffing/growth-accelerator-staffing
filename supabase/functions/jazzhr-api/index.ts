@@ -83,71 +83,112 @@ serve(async (req) => {
 })
 
 async function makeJazzHRRequest(url: string, apiKey: string, method = 'GET', body?: any) {
-  // JazzHR API uses Bearer token authentication with api.resumatorapi.com
-  const options: RequestInit = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-      'Accept': 'application/json',
-      'User-Agent': 'Lovable-JazzHR-Integration/1.0'
+  // Try both authentication methods - first Bearer token, then query parameter
+  const authMethods = [
+    { type: 'bearer', baseUrl: 'https://api.resumatorapi.com/v1' },
+    { type: 'query', baseUrl: 'https://www.resumatorapi.com/v1' }
+  ];
+  
+  let lastError = null;
+  
+  for (const authMethod of authMethods) {
+    try {
+      let requestUrl = url;
+      // Replace the base URL to match the auth method
+      if (authMethod.type === 'bearer') {
+        requestUrl = url.replace('https://www.resumatorapi.com/v1', 'https://api.resumatorapi.com/v1');
+      } else {
+        requestUrl = url.replace('https://api.resumatorapi.com/v1', 'https://www.resumatorapi.com/v1');
+      }
+      
+      const options: RequestInit = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Lovable-JazzHR-Integration/1.0'
+        }
+      };
+      
+      if (authMethod.type === 'bearer') {
+        options.headers['Authorization'] = `Bearer ${apiKey}`;
+      } else {
+        // Add apikey as query parameter
+        const urlObj = new URL(requestUrl);
+        urlObj.searchParams.set('apikey', apiKey);
+        requestUrl = urlObj.toString();
+      }
+      
+      if (body && method !== 'GET') {
+        options.body = JSON.stringify(body);
+      }
+      
+      console.log(`Making JazzHR API call with ${authMethod.type} auth: ${method} ${requestUrl.replace(apiKey, 'API_KEY_HIDDEN')}`);
+      
+      const response = await fetch(requestUrl, options);
+      
+      if (response.ok) {
+        const responseText = await response.text();
+        console.log(`JazzHR API response (first 500 chars): ${responseText.substring(0, 500)}`);
+        
+        try {
+          return JSON.parse(responseText);
+        } catch (e) {
+          console.error('Failed to parse JSON response:', responseText);
+          throw new Error('Invalid JSON response from JazzHR API');
+        }
+      } else {
+        const errorText = await response.text();
+        lastError = new Error(`JazzHR API error: ${response.status} - ${errorText}`);
+        console.warn(`${authMethod.type} auth failed: ${response.status} - ${errorText}`);
+        continue; // Try next auth method
+      }
+    } catch (error) {
+      lastError = error;
+      console.warn(`${authMethod.type} auth method failed:`, error.message);
+      continue; // Try next auth method
     }
   }
   
-  if (body && method !== 'GET') {
-    options.body = JSON.stringify(body)
-  }
-  
-  console.log(`Making JazzHR API call: ${method} ${url}`)
-  
-  const response = await fetch(url, options)
-  
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error(`JazzHR API error: ${response.status} - ${errorText}`)
-    throw new Error(`JazzHR API error: ${response.status} - ${errorText}`)
-  }
-  
-  const responseText = await response.text()
-  console.log(`JazzHR API response (first 500 chars): ${responseText.substring(0, 500)}`)
-  
-  try {
-    return JSON.parse(responseText)
-  } catch (e) {
-    console.error('Failed to parse JSON response:', responseText)
-    throw new Error('Invalid JSON response from JazzHR API')
-  }
+  // If we get here, all auth methods failed
+  console.error('All authentication methods failed');
+  throw lastError || new Error('All JazzHR API authentication methods failed');
 }
 
 async function handleTestConnection(apiKey: string) {
   try {
     console.log(`Testing JazzHR API with key: ${apiKey.substring(0, 8)}...`);
     
-    // Try different potential API endpoints and URL structures
+    // Try both authentication methods - Bearer token and query parameter
     const testEndpoints = [
-      // Current API structure with Bearer token
-      'https://api.resumatorapi.com/v1/jobs',
-      'https://api.resumatorapi.com/v1/applicants',
-      'https://api.resumatorapi.com/v1/users',
-      // Legacy endpoints for fallback
-      `https://www.resumatorapi.com/v1/jobs?apikey=${apiKey}`,
-      `https://www.resumatorapi.com/v1/users?apikey=${apiKey}`,
+      // Try Bearer token authentication with api.resumatorapi.com
+      {
+        url: 'https://api.resumatorapi.com/v1/jobs',
+        authMethod: 'bearer'
+      },
+      // Try query parameter authentication with www.resumatorapi.com
+      {
+        url: 'https://www.resumatorapi.com/v1/jobs',
+        authMethod: 'query'
+      }
     ];
     
-    for (const requestUrl of testEndpoints) {
+    for (const endpoint of testEndpoints) {
       try {
-        const cleanUrl = requestUrl.includes('apikey=') ? requestUrl.replace(apiKey, 'API_KEY_HIDDEN') : requestUrl;
-        console.log(`Testing endpoint: ${cleanUrl}`);
+        console.log(`Testing endpoint: ${endpoint.url} with ${endpoint.authMethod} auth`);
         
+        let requestUrl = endpoint.url;
         const headers: HeadersInit = {
           'Accept': 'application/json',
           'User-Agent': 'Lovable-JazzHR-Integration/1.0',
           'Content-Type': 'application/json'
         };
         
-        // Use Bearer token for api.resumatorapi.com endpoints
-        if (requestUrl.includes('api.resumatorapi.com')) {
+        if (endpoint.authMethod === 'bearer') {
           headers['Authorization'] = `Bearer ${apiKey}`;
+        } else {
+          // Add apikey as query parameter
+          requestUrl += `?apikey=${apiKey}`;
         }
         
         const response = await fetch(requestUrl, {
@@ -155,7 +196,7 @@ async function handleTestConnection(apiKey: string) {
           headers
         });
         
-        console.log(`Response status for ${cleanUrl}: ${response.status}`);
+        console.log(`Response status for ${endpoint.url}: ${response.status}`);
         
         const responseText = await response.text();
         console.log(`Response body (first 300 chars): ${responseText.substring(0, 300)}`);
@@ -168,46 +209,33 @@ async function handleTestConnection(apiKey: string) {
             data = { raw: responseText };
           }
           
+          // Store the working authentication method for future use
+          console.log(`SUCCESS: ${endpoint.authMethod} authentication works with ${endpoint.url}`);
+          
           return new Response(
             JSON.stringify({ 
               success: true, 
-              message: `JazzHR API connection successful! Working endpoint found.`,
-              endpoint: cleanUrl,
+              message: `JazzHR API connection successful!`,
+              endpoint: endpoint.url,
+              authMethod: endpoint.authMethod,
               statusCode: response.status,
-              dataType: typeof data,
               jobCount: Array.isArray(data) ? data.length : (data ? Object.keys(data).length : 0)
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         
-        // Log specific error types but continue testing other endpoints
-        if (response.status === 401) {
-          console.log(`401 Unauthorized for ${cleanUrl} - API key might be invalid`);
-        } else if (response.status === 403) {
-          console.log(`403 Forbidden for ${cleanUrl} - Account might not have API access`);
-        } else if (response.status === 404) {
-          console.log(`404 Not Found for ${cleanUrl} - Endpoint doesn't exist`);
-        }
-        
       } catch (endpointError) {
-        console.error(`Error testing endpoint:`, endpointError.message);
+        console.error(`Error testing ${endpoint.url}:`, endpointError.message);
         continue;
       }
     }
     
-    // If all endpoints failed, provide comprehensive error info
+    // If all endpoints failed
     return new Response(
       JSON.stringify({ 
         success: false, 
         message: 'Unable to connect to JazzHR API with any known endpoint',
-        details: 'All tested endpoints returned errors. This could indicate:\n1. Invalid API key\n2. Account does not have API access enabled\n3. JazzHR API structure has changed\n4. Network connectivity issues',
-        suggestions: [
-          'Verify your API key is correct at: https://app.jazz.co/app/settings/integrations',
-          'Ensure your JazzHR subscription includes API access',
-          'Contact JazzHR support if the issue persists',
-          'Check if your account has the necessary permissions'
-        ],
         apiKeyPreview: `${apiKey.substring(0, 8)}...`,
         testedEndpoints: testEndpoints.length
       }),
@@ -220,9 +248,7 @@ async function handleTestConnection(apiKey: string) {
       JSON.stringify({ 
         success: false, 
         message: 'Connection test failed with network error',
-        error: error.message,
-        errorType: error.constructor.name,
-        suggestion: 'Check network connectivity and try again'
+        error: error.message
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

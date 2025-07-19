@@ -18,47 +18,7 @@ const Jobs = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { jobs, loading, error, useMockData, refetch } = useJobs();
-
-  const testJazzHRAPI = async () => {
-    try {
-      // Test connection first
-      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
-        body: { action: 'testConnection', params: {} }
-      });
-      
-      if (error) {
-        console.error('Supabase function invoke error:', error);
-        throw error;
-      }
-      
-      console.log('JazzHR API response:', data);
-      
-      if (data?.success) {
-        toast({
-          title: "JazzHR API Test Successful",
-          description: data.message || "Connection successful!",
-          variant: "default"
-        });
-      } else {
-        // Enhanced debugging - show the actual error details
-        console.error('JazzHR API error details:', data);
-        toast({
-          title: "JazzHR API Test Failed", 
-          description: data?.message || data?.error || "Connection failed",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('JazzHR API test error:', error);
-      toast({
-        title: "JazzHR API Test Failed", 
-        description: error.message || "Could not connect to JazzHR API",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -75,9 +35,6 @@ const Jobs = () => {
     setSelectedJob(null);
   };
 
-  const handleGoToJobs = () => {
-    window.open('https://app.jazz.co/', '_blank');
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -85,15 +42,6 @@ const Jobs = () => {
         <div>
           <h1 className="text-3xl font-bold">Vacancies</h1>
           <p className="text-muted-foreground mt-2">Find your next opportunity - synced with JazzHR</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={testJazzHRAPI} variant="outline">
-            Test JazzHR API
-          </Button>
-          <Button onClick={handleGoToJobs} className="flex items-center gap-2">
-            Go to JazzHR
-            <ExternalLink className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
