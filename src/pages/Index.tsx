@@ -28,11 +28,25 @@ const Index = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch jobs stats
-      const { data: jobs, error: jobsError } = await supabase
+      // Fetch local jobs stats
+      const { data: localJobs, error: jobsError } = await supabase
         .from('jobs')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Fetch JazzHR jobs for complete picture
+      let jazzhrJobs = [];
+      try {
+        const { data: jazzhrData, error: jazzhrError } = await supabase.functions.invoke('jazzhr-api', {
+          body: { action: 'getJobs', params: {} }
+        });
+        
+        if (!jazzhrError && jazzhrData && Array.isArray(jazzhrData)) {
+          jazzhrJobs = jazzhrData;
+        }
+      } catch (jazzhrFetchError) {
+        console.warn('Could not fetch JazzHR jobs:', jazzhrFetchError);
+      }
 
       // Fetch all candidates from candidates table
       const { data: allCandidates, error: allCandidatesError } = await supabase
@@ -46,7 +60,7 @@ const Index = () => {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      // Fetch candidate responses
+      // Fetch candidate responses for applicant count
       const { data: candidateResponsesData, error: candidateResponsesError } = await supabase
         .from('candidate_responses')
         .select('*');
@@ -58,31 +72,55 @@ const Index = () => {
         .order('created_at', { ascending: false })
         .limit(3);
 
-      if (!jobsError && jobs) {
+      // Fetch top talent pool candidates (those with high completeness scores or passed interviews)
+      const { data: talentPoolData, error: talentPoolError } = await supabase
+        .from('candidates')
+        .select('*')
+        .or('profile_completeness_score.gte.80,interview_stage.eq.passed')
+        .order('profile_completeness_score', { ascending: false })
+        .limit(5);
+
+      // Combine local and JazzHR jobs for total count
+      const totalJobs = (localJobs?.length || 0) + jazzhrJobs.length;
+      const syncedJobs = localJobs?.filter(job => job.synced_to_jobadder).length || 0;
+
+      if (!jobsError) {
         setStats(prev => ({
           ...prev,
-          activeJobs: jobs.length,
-          syncedJobs: jobs.filter(job => job.synced_to_jobadder).length
+          activeJobs: totalJobs,
+          syncedJobs: syncedJobs
         }));
 
-        // Set recent jobs (last 5)
-        setRecentJobs(jobs.slice(0, 5).map(job => ({
-          id: job.id,
-          title: job.title,
-          company: job.company_name || `Company ${job.company_id}`,
-          applications: 0, // TODO: Connect to applications table
-          posted: new Date(job.created_at).toLocaleDateString(),
-          synced: job.synced_to_jobadder
-        })));
+        // Set recent jobs - combine local and JazzHR jobs
+        const allJobsForDisplay = [
+          ...(localJobs || []).map(job => ({
+            id: job.id,
+            title: job.title,
+            company: job.company_name || job.company_id || 'Unknown Company',
+            applications: 0, // TODO: Connect to applications table
+            posted: new Date(job.created_at).toLocaleDateString(),
+            synced: job.synced_to_jobadder,
+            source: 'local'
+          })),
+          ...jazzhrJobs.slice(0, 3).map(job => ({
+            id: job.id,
+            title: job.title,
+            company: job.department || 'JazzHR Company',
+            applications: 0, // Would need to fetch applicants for each job
+            posted: new Date(job.original_open_date || job.created_at || Date.now()).toLocaleDateString(),
+            synced: true,
+            source: 'jazzhr'
+          }))
+        ].slice(0, 5);
+
+        setRecentJobs(allJobsForDisplay);
       }
 
       // Calculate total candidates count from actual data
       const totalCandidatesCount = allCandidates?.length || 0;
       
-      // Calculate talent pool count (advanced candidates or fallback to 3)
-      const talentPoolCount = allCandidates?.filter(candidate => 
-        candidate.interview_stage === 'passed'
-      ).length || 3; // Fallback to 3 as mentioned by user
+      // Calculate talent pool count from candidate responses or high-quality candidates
+      const talentPoolCount = candidateResponsesData?.length || talentPoolData?.length || 0;
 
       setStats(prev => ({
         ...prev,
@@ -111,10 +149,24 @@ const Index = () => {
         })));
       }
 
+      // Set talent pool data
+      if (!talentPoolError && talentPoolData) {
+        setTalentPoolData(talentPoolData.map(candidate => ({
+          id: candidate.id,
+          name: candidate.name,
+          role: candidate.current_position || 'No position specified',
+          experience: candidate.experience_years ? `${candidate.experience_years} years` : 'Not specified',
+          availability: candidate.interview_stage === 'passed' ? 'Available' : 
+                      candidate.interview_stage === 'pending' ? 'In Process' : 'Available'
+        })));
+      }
+
       console.log('Dashboard stats:', {
         candidates: totalCandidatesCount,
         talentPool: talentPoolCount,
-        jobs: jobs?.length || 0
+        jobs: totalJobs,
+        localJobs: localJobs?.length || 0,
+        jazzhrJobs: jazzhrJobs.length
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -123,24 +175,13 @@ const Index = () => {
     }
   };
 
+  const [talentPoolData, setTalentPoolData] = useState([]);
+
   const statsCards = [
     { title: "Active Jobs", value: stats.activeJobs.toString(), icon: Briefcase, color: "text-blue-600" },
     { title: "Candidates", value: stats.totalCandidates.toString(), icon: Users, color: "text-green-600" },
     { title: "Talent Pool", value: stats.totalApplicants.toString(), icon: UserCheck, color: "text-orange-600" },
-    { title: "Synced to JobAdder", value: stats.syncedJobs.toString(), icon: TrendingUp, color: "text-purple-600" }
-  ];
-
-  const talentPool = [
-    { id: "1", name: "Alex Thompson", role: "Full Stack Developer", experience: "5 years", availability: "Immediate" },
-    { id: "2", name: "Jessica Wang", role: "Data Scientist", experience: "3 years", availability: "2 weeks notice" },
-    { id: "3", name: "David Kumar", role: "DevOps Engineer", experience: "7 years", availability: "1 month" }
-  ];
-
-  // Fallback data for recent matches if no placements data available
-  const fallbackMatches = [
-    { id: "1", candidate: "Sarah Johnson", job: "Senior Frontend Developer", company: "Tech Corp", status: "Interview Scheduled" },
-    { id: "2", candidate: "Michael Chen", job: "Product Manager", company: "Innovation Inc", status: "Offer Extended" },
-    { id: "3", candidate: "Emily Rodriguez", job: "UX Designer", company: "Design Studio", status: "Reference Check" }
+    { title: "Synced to JazzHR", value: stats.syncedJobs.toString(), icon: TrendingUp, color: "text-purple-600" }
   ];
 
   if (loading) {
@@ -282,7 +323,7 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {talentPool.map((talent) => (
+              {talentPoolData.length > 0 ? talentPoolData.map((talent) => (
                 <div key={talent.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <h4 className="font-medium">{talent.name}</h4>
@@ -292,7 +333,17 @@ const Index = () => {
                     <Badge variant="outline">{talent.availability}</Badge>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <UserCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No talent pool data yet</p>
+                  <Link to="/candidates">
+                    <Button variant="outline" size="sm" className="mt-2">
+                      View Candidates
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -312,7 +363,7 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {(recentMatches.length > 0 ? recentMatches : fallbackMatches).map((match) => (
+              {recentMatches.length > 0 ? recentMatches.map((match) => (
                 <div key={match.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <h4 className="font-medium">{match.candidate}</h4>
@@ -324,7 +375,17 @@ const Index = () => {
                     {match.status}
                   </Badge>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No matches yet</p>
+                  <Link to="/matches">
+                    <Button variant="outline" size="sm" className="mt-2">
+                      View Matches
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
