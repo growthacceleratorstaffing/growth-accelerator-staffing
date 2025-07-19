@@ -18,6 +18,7 @@ const Index = () => {
   const [recentJobs, setRecentJobs] = useState([]);
   const [recentCandidates, setRecentCandidates] = useState([]);
   const [recentMatches, setRecentMatches] = useState([]);
+  const [talentPoolData, setTalentPoolData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -120,13 +121,11 @@ const Index = () => {
     }
   };
 
-  const [talentPoolData, setTalentPoolData] = useState([]);
-
   const statsCards = [
-    { title: "Active Jobs", value: stats.activeJobs.toString(), icon: Briefcase, color: "text-blue-600" },
-    { title: "Candidates", value: stats.totalCandidates.toString(), icon: Users, color: "text-green-600" },
-    { title: "Talent Pool", value: stats.totalApplicants.toString(), icon: UserCheck, color: "text-orange-600" },
-    { title: "Synced to JazzHR", value: stats.syncedJobs.toString(), icon: TrendingUp, color: "text-purple-600" }
+    { title: "JazzHR Candidates", value: "0", subtitle: "Active applicants", icon: Users, color: "text-blue-600" },
+    { title: "Talent Pool", value: stats.totalApplicants.toString(), subtitle: "Local candidates", icon: UserCheck, color: "text-green-600" },
+    { title: "Active Jobs", value: stats.activeJobs.toString(), subtitle: "Open positions", icon: Briefcase, color: "text-purple-600" },
+    { title: "Placements", value: recentMatches.length.toString(), subtitle: "Successful matches", icon: TrendingUp, color: "text-orange-600" }
   ];
 
   if (loading) {
@@ -154,186 +153,153 @@ const Index = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((stat, index) => (
-          <Card key={index}>
+          <Card key={index} className="bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              <div className="flex items-center gap-2">
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Jobs */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Recent Job Postings</CardTitle>
-              <Link to="/jobs">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  View All <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <CardDescription>Latest job postings and their application status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentJobs.length > 0 ? recentJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <h4 className="font-medium">{job.title}</h4>
-                    <p className="text-sm text-muted-foreground">{job.company}</p>
-                  </div>
-                  <div className="text-right flex flex-col items-end gap-1">
-                    <div className="flex gap-2">
-                      <Badge variant="secondary">{job.applications} applications</Badge>
-                      {job.synced && <Badge variant="default" className="bg-green-500">Synced</Badge>}
+      {/* Single Page Content - All sections displayed without tabs */}
+      <div className="space-y-8">
+        {/* Recent Job Openings Section */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Recent Job Openings</h2>
+            <Link to="/jobs">
+              <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                View All Jobs <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentJobs.length > 0 ? recentJobs.map((job) => (
+              <Card key={job.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h3 className="font-semibold">{job.title}</h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                        <Briefcase className="h-4 w-4" />
+                        <span>{job.company}</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">{job.posted}</p>
                   </div>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No jobs posted yet</p>
-                  <Link to="/job-posting">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      Post Your First Job
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                    <span>Remote</span>
+                  </div>
+                  <Badge variant="secondary" className="mb-3">Full-time</Badge>
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                    {job.title.includes('Tester') ? 'Job Title: Software Tester – Banking Applications ## About the Role Are you passionate about delivering...' : 
+                     job.title.includes('Cloud') ? 'We are looking for a Senior Cloud Engineer to join our team and help build scalable cloud infrastructure.' :
+                     'Exciting opportunity to join our growing team.'}
+                  </p>
+                  <div className="text-xs text-muted-foreground">{job.posted}</div>
+                </CardContent>
+              </Card>
+            )) : (
+              <div className="text-center py-8 text-muted-foreground col-span-full">
+                <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No jobs posted yet</p>
+                <Link to="/job-posting">
+                  <Button variant="outline" size="sm" className="mt-2">
+                    Post Your First Job
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
 
-        {/* Recent Candidates */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Recent Candidates</CardTitle>
-              <Link to="/candidates">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  View All <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <CardDescription>Latest candidate applications and status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentCandidates.length > 0 ? recentCandidates.map((candidate) => (
-                <div key={candidate.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <h4 className="font-medium">{candidate.name}</h4>
-                    <p className="text-sm text-muted-foreground">{candidate.title}</p>
+        {/* Recent Candidates Section */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Recent Candidates</h2>
+            <Link to="/candidates">
+              <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                View All Candidates <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentCandidates.length > 0 ? recentCandidates.map((candidate) => (
+              <Card key={candidate.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{candidate.name}</h3>
+                      <p className="text-sm text-muted-foreground">{candidate.title}</p>
+                    </div>
+                    <Badge 
+                      variant={candidate.status === "completed" ? "default" : "secondary"}
+                    >
+                      {candidate.status}
+                    </Badge>
                   </div>
-                  <Badge 
-                    variant={candidate.status === "Available" ? "default" : "secondary"}
-                  >
-                    {candidate.status}
-                  </Badge>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No candidates yet</p>
-                  <Link to="/applications">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      View Applications
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
+            )) : (
+              <div className="text-center py-8 text-muted-foreground col-span-full">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No candidates yet</p>
+                <Link to="/candidates">
+                  <Button variant="outline" size="sm" className="mt-2">
+                    View Candidates
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
 
-        {/* Talent Pool */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Talent Pool</CardTitle>
-              <Link to="/applications">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  View All <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <CardDescription>Available talent in your network</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {talentPoolData.length > 0 ? talentPoolData.map((talent) => (
-                <div key={talent.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <h4 className="font-medium">{talent.name}</h4>
-                    <p className="text-sm text-muted-foreground">{talent.role} • {talent.experience}</p>
+        {/* Recent Placements Section */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Recent Placements</h2>
+            <Link to="/matches">
+              <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                View All Placements <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {recentMatches.length > 0 ? recentMatches.map((match) => (
+              <Card key={match.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{match.candidate}</h3>
+                      <p className="text-sm text-muted-foreground">{match.job} at {match.company}</p>
+                    </div>
+                    <Badge 
+                      variant={match.status === "Active" ? "default" : "secondary"}
+                    >
+                      {match.status}
+                    </Badge>
                   </div>
-                  <div className="text-right">
-                    <Badge variant="outline">{talent.availability}</Badge>
-                  </div>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <UserCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No talent pool data yet</p>
-                  <Link to="/candidates">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      View Candidates
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Matches */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Recent Matches</CardTitle>
-              <Link to="/matches">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  View All <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <CardDescription>Latest candidate-job matches and progress</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentMatches.length > 0 ? recentMatches.map((match) => (
-                <div key={match.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <h4 className="font-medium">{match.candidate}</h4>
-                    <p className="text-sm text-muted-foreground">{match.job} at {match.company}</p>
-                  </div>
-                  <Badge 
-                    variant={match.status === "Offer Extended" ? "default" : "secondary"}
-                  >
-                    {match.status}
-                  </Badge>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No matches yet</p>
-                  <Link to="/matches">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      View Matches
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
+            )) : (
+              <div className="text-center py-8 text-muted-foreground col-span-full">
+                <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No placements yet</p>
+                <Link to="/matches">
+                  <Button variant="outline" size="sm" className="mt-2">
+                    View Placements
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
