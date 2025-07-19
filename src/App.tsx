@@ -112,12 +112,6 @@ const AppSidebar = () => {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-               <SidebarMenuItem>
-                 <SidebarMenuButton disabled>
-                   <User className="h-4 w-4 opacity-50" />
-                   <span className="text-base opacity-50">Career Page (Disabled)</span>
-                 </SidebarMenuButton>
-               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
