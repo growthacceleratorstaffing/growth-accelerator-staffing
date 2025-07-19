@@ -206,7 +206,7 @@ export default function Auth() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <User className="h-5 w-5" />
-                          Join JazzHR Platform
+                          Join the platform
                         </CardTitle>
                         <CardDescription>
                           Create an account with your JazzHR email address
