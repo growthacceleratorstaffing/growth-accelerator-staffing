@@ -1,397 +1,382 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
-import { Briefcase, Users, TrendingUp, ArrowRight, UserCheck, User } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Users, 
+  Briefcase, 
+  TrendingUp, 
+  Calendar,
+  ExternalLink,
+  Building,
+  MapPin,
+  Clock,
+  DollarSign,
+  UserCheck,
+  Search,
+  ChevronRight
+} from "lucide-react";
+import { useJobs } from "@/hooks/useJobs";
+import { useJazzHRApplicants } from "@/hooks/useJazzHRApplicants";
+import { useCandidates } from "@/hooks/useCandidates";
+import { usePlacements } from "@/hooks/usePlacements";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 
-const Index = () => {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
-    activeJobs: 0,
-    totalCandidates: 0,
-    totalApplicants: 0,
-    syncedJobs: 0
+    candidates: 0,
+    talentPool: 0,
+    jobs: 0,
+    localJobs: 0,
+    jazzhrJobs: 0
   });
-  const [recentJobs, setRecentJobs] = useState([]);
-  const [recentCandidates, setRecentCandidates] = useState([]);
-  const [recentMatches, setRecentMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  // Fetch data from hooks
+  const { jobs, loading: jobsLoading } = useJobs();
+  const { data: jazzhrCandidates = [], isLoading: candidatesLoading } = useJazzHRApplicants({});
+  const { candidates, loading: talentPoolLoading } = useCandidates();
+  const { placements, loading: placementsLoading } = usePlacements();
 
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      fetchDashboardData();
-    }
-  }, [isAuthenticated, authLoading]);
-
-  const fetchDashboardData = async () => {
-    try {
-      // Fetch local jobs stats
-      const { data: localJobs, error: jobsError } = await supabase
-        .from('jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      // Fetch JazzHR jobs for complete picture
-      let jazzhrJobs = [];
+    const loadStats = async () => {
       try {
-        const { data: jazzhrData, error: jazzhrError } = await supabase.functions.invoke('jazzhr-api', {
-          body: { action: 'getJobs', params: {} }
-        });
-        
-        if (!jazzhrError && jazzhrData && Array.isArray(jazzhrData)) {
-          jazzhrJobs = jazzhrData;
-        }
-      } catch (jazzhrFetchError) {
-        console.warn('Could not fetch JazzHR jobs:', jazzhrFetchError);
+        // Get local job count
+        const { count: localJobCount } = await supabase
+          .from('jobs')
+          .select('*', { count: 'exact', head: true });
+
+        const newStats = {
+          candidates: jazzhrCandidates?.length || 0,
+          talentPool: candidates?.length || 0,
+          jobs: jobs?.length || 0,
+          localJobs: localJobCount || 0,
+          jazzhrJobs: jobs?.filter(job => job.id)?.length || 0
+        };
+
+        setStats(newStats);
+        console.log('Dashboard stats:', newStats);
+      } catch (error) {
+        console.error('Error loading dashboard stats:', error);
       }
+    };
 
-      // Fetch all candidates from candidates table
-      const { data: allCandidates, error: allCandidatesError } = await supabase
-        .from('candidates')
-        .select('*');
+    loadStats();
+  }, [jobs, jazzhrCandidates, candidates]);
 
-      // Fetch recent candidates for display (limited to 5)
-      const { data: recentCandidatesData, error: recentCandidatesError } = await supabase
-        .from('candidates')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
+  const isLoading = jobsLoading || candidatesLoading || talentPoolLoading || placementsLoading;
 
-      // Fetch candidate responses for applicant count
-      const { data: candidateResponsesData, error: candidateResponsesError } = await supabase
-        .from('candidate_responses')
-        .select('*');
-
-      // Fetch recent placements for matches
-      const { data: recentPlacementsData, error: placementsError } = await supabase
-        .from('local_placements')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      // Fetch top talent pool candidates (those with high completeness scores or passed interviews)
-      const { data: talentPoolData, error: talentPoolError } = await supabase
-        .from('candidates')
-        .select('*')
-        .or('profile_completeness_score.gte.80,interview_stage.eq.passed')
-        .order('profile_completeness_score', { ascending: false })
-        .limit(5);
-
-      // Combine local and JazzHR jobs for total count
-      const totalJobs = (localJobs?.length || 0) + jazzhrJobs.length;
-      const syncedJobs = localJobs?.filter(job => job.synced_to_jobadder).length || 0;
-
-      if (!jobsError) {
-        setStats(prev => ({
-          ...prev,
-          activeJobs: totalJobs,
-          syncedJobs: syncedJobs
-        }));
-
-        // Set recent jobs - combine local and JazzHR jobs
-        const allJobsForDisplay = [
-          ...(localJobs || []).map(job => ({
-            id: job.id,
-            title: job.title,
-            company: job.company_name || job.company_id || 'Unknown Company',
-            applications: 0, // TODO: Connect to applications table
-            posted: new Date(job.created_at).toLocaleDateString(),
-            synced: job.synced_to_jobadder,
-            source: 'local'
-          })),
-          ...jazzhrJobs.slice(0, 3).map(job => ({
-            id: job.id,
-            title: job.title,
-            company: job.department || 'JazzHR Company',
-            applications: 0, // Would need to fetch applicants for each job
-            posted: new Date(job.original_open_date || job.created_at || Date.now()).toLocaleDateString(),
-            synced: true,
-            source: 'jazzhr'
-          }))
-        ].slice(0, 5);
-
-        setRecentJobs(allJobsForDisplay);
-      }
-
-      // Calculate total candidates count from actual data
-      const totalCandidatesCount = allCandidates?.length || 0;
-      
-      // Calculate talent pool count from candidate responses or high-quality candidates
-      const talentPoolCount = candidateResponsesData?.length || talentPoolData?.length || 0;
-
-      setStats(prev => ({
-        ...prev,
-        totalCandidates: totalCandidatesCount,
-        totalApplicants: talentPoolCount
-      }));
-
-      // Set recent candidates for display
-      if (!recentCandidatesError && recentCandidatesData) {
-        setRecentCandidates(recentCandidatesData.map(candidate => ({
-          id: candidate.id,
-          name: candidate.name,
-          title: candidate.current_position || 'No position specified',
-          status: candidate.interview_stage || 'New'
-        })));
-      }
-
-      // Set recent matches from actual placements data
-      if (!placementsError && recentPlacementsData) {
-        setRecentMatches(recentPlacementsData.map(placement => ({
-          id: placement.id,
-          candidate: placement.candidate_name,
-          job: placement.job_title,
-          company: placement.company_name,
-          status: placement.status_name || 'Active'
-        })));
-      }
-
-      // Set talent pool data
-      if (!talentPoolError && talentPoolData) {
-        setTalentPoolData(talentPoolData.map(candidate => ({
-          id: candidate.id,
-          name: candidate.name,
-          role: candidate.current_position || 'No position specified',
-          experience: candidate.experience_years ? `${candidate.experience_years} years` : 'Not specified',
-          availability: candidate.interview_stage === 'passed' ? 'Available' : 
-                      candidate.interview_stage === 'pending' ? 'In Process' : 'Available'
-        })));
-      }
-
-      console.log('Dashboard stats:', {
-        candidates: totalCandidatesCount,
-        talentPool: talentPoolCount,
-        jobs: totalJobs,
-        localJobs: localJobs?.length || 0,
-        jazzhrJobs: jazzhrJobs.length
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const [talentPoolData, setTalentPoolData] = useState([]);
-
-  const statsCards = [
-    { title: "Active Jobs", value: stats.activeJobs.toString(), icon: Briefcase, color: "text-blue-600" },
-    { title: "Candidates", value: stats.totalCandidates.toString(), icon: Users, color: "text-green-600" },
-    { title: "Talent Pool", value: stats.totalApplicants.toString(), icon: UserCheck, color: "text-orange-600" },
-    { title: "Synced to JazzHR", value: stats.syncedJobs.toString(), icon: TrendingUp, color: "text-purple-600" }
-  ];
-
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading dashboard...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Get recent items
+  const recentJobs = jobs?.slice(0, 3) || [];
+  const recentCandidates = jazzhrCandidates?.slice(0, 3) || [];
+  const recentPlacements = placements?.slice(0, 3) || [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Welcome to your job posting portal</p>
+          <p className="text-muted-foreground mt-2">Overview of your recruitment activities</p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {statsCards.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Jobs */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Recent Job Postings</CardTitle>
-              <Link to="/jobs">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  View All <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <CardDescription>Latest job postings and their application status</CardDescription>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/candidates')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">JazzHR Candidates</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentJobs.length > 0 ? recentJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <h4 className="font-medium">{job.title}</h4>
-                    <p className="text-sm text-muted-foreground">{job.company}</p>
-                  </div>
-                  <div className="text-right flex flex-col items-end gap-1">
-                    <div className="flex gap-2">
-                      <Badge variant="secondary">{job.applications} applications</Badge>
-                      {job.synced && <Badge variant="default" className="bg-green-500">Synced</Badge>}
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold">{stats.candidates}</div>
+            )}
+            <p className="text-xs text-muted-foreground">Active applicants</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/candidates')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Talent Pool</CardTitle>
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold">{stats.talentPool}</div>
+            )}
+            <p className="text-xs text-muted-foreground">Local candidates</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/jobs')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold">{stats.jobs}</div>
+            )}
+            <p className="text-xs text-muted-foreground">Open positions</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/matches')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Placements</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold">{recentPlacements.length}</div>
+            )}
+            <p className="text-xs text-muted-foreground">Successful matches</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Content Tabs */}
+      <Tabs defaultValue="jobs" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="jobs">Recent Jobs</TabsTrigger>
+          <TabsTrigger value="candidates">Recent Candidates</TabsTrigger>
+          <TabsTrigger value="placements">Recent Placements</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="jobs" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Recent Job Openings</h2>
+            <Button variant="outline" onClick={() => navigate('/jobs')} className="flex items-center gap-2">
+              View All Jobs
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {jobsLoading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-5/6" />
                     </div>
-                    <p className="text-xs text-muted-foreground">{job.posted}</p>
-                  </div>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No jobs posted yet</p>
-                  <Link to="/job-posting">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      Post Your First Job
-                    </Button>
-                  </Link>
-                </div>
-              )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {recentJobs.map((job) => (
+                <Card key={job.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/job/${job.id}`)}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{job.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      {job.department || "Company"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      {job.city && job.state ? `${job.city}, ${job.state}` : "Remote"}
+                    </div>
+                    
+                    {job.employment_type && (
+                      <Badge variant="secondary">{job.employment_type}</Badge>
+                    )}
+                    
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {job.description ? 
+                        job.description
+                          .replace(/<[^>]*>/g, '')
+                          .replace(/&amp;/g, '&')
+                          .replace(/&lt;/g, '<')
+                          .replace(/&gt;/g, '>')
+                          .replace(/&quot;/g, '"')
+                          .replace(/&#39;/g, "'")
+                          .replace(/&nbsp;/g, ' ')
+                        : "No description available"
+                      }
+                    </p>
+                    
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-xs text-muted-foreground">
+                        {job.created_at ? new Date(job.created_at).toLocaleDateString() : "Recently posted"}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
-        {/* Recent Candidates */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Recent Candidates</CardTitle>
-              <Link to="/candidates">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  View All <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+          {recentJobs.length === 0 && !jobsLoading && (
+            <div className="text-center py-8">
+              <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No jobs found</h3>
+              <p className="text-muted-foreground">Start by creating your first job posting.</p>
+              <Button onClick={() => navigate('/job-posting')} className="mt-4">
+                Post a Job
+              </Button>
             </div>
-            <CardDescription>Latest candidate applications and status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentCandidates.length > 0 ? recentCandidates.map((candidate) => (
-                <div key={candidate.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <h4 className="font-medium">{candidate.name}</h4>
-                    <p className="text-sm text-muted-foreground">{candidate.title}</p>
-                  </div>
-                  <Badge 
-                    variant={candidate.status === "Available" ? "default" : "secondary"}
-                  >
-                    {candidate.status}
-                  </Badge>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No candidates yet</p>
-                  <Link to="/applications">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      View Applications
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          )}
+        </TabsContent>
 
-        {/* Talent Pool */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Talent Pool</CardTitle>
-              <Link to="/applications">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  View All <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <CardDescription>Available talent in your network</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {talentPoolData.length > 0 ? talentPoolData.map((talent) => (
-                <div key={talent.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <h4 className="font-medium">{talent.name}</h4>
-                    <p className="text-sm text-muted-foreground">{talent.role} • {talent.experience}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="outline">{talent.availability}</Badge>
-                  </div>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <UserCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No talent pool data yet</p>
-                  <Link to="/candidates">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      View Candidates
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <TabsContent value="candidates" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Recent Candidates</h2>
+            <Button variant="outline" onClick={() => navigate('/candidates')} className="flex items-center gap-2">
+              View All Candidates
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
 
-        {/* Recent Matches */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Recent Matches</CardTitle>
-              <Link to="/matches">
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  View All <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+          {candidatesLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-3 w-3/4 mb-4" />
+                    <Skeleton className="h-3 w-full mb-2" />
+                    <Skeleton className="h-3 w-5/6" />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <CardDescription>Latest candidate-job matches and progress</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentMatches.length > 0 ? recentMatches.map((match) => (
-                <div key={match.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <h4 className="font-medium">{match.candidate}</h4>
-                    <p className="text-sm text-muted-foreground">{match.job} at {match.company}</p>
-                  </div>
-                  <Badge 
-                    variant={match.status === "Offer Extended" ? "default" : "secondary"}
-                  >
-                    {match.status}
-                  </Badge>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No matches yet</p>
-                  <Link to="/matches">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      View Matches
-                    </Button>
-                  </Link>
-                </div>
-              )}
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {recentCandidates.map((candidate) => (
+                <Card key={candidate.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="font-semibold text-lg">
+                          {candidate.first_name} {candidate.last_name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                      </div>
+                      <Badge variant="outline">{typeof candidate.status === 'string' ? candidate.status : 'Applied'}</Badge>
+                    </div>
+                    
+                    {candidate.phone && (
+                      <p className="text-sm text-muted-foreground mb-2">{candidate.phone}</p>
+                    )}
+                    
+                    {(candidate.city || candidate.state) && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <MapPin className="h-4 w-4" />
+                        {[candidate.city, candidate.state].filter(Boolean).join(', ')}
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Applied: Recently
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+
+          {recentCandidates.length === 0 && !candidatesLoading && (
+            <div className="text-center py-8">
+              <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No candidates found</h3>
+              <p className="text-muted-foreground">Candidates will appear here as they apply to your jobs.</p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="placements" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Recent Placements</h2>
+            <Button variant="outline" onClick={() => navigate('/matches')} className="flex items-center gap-2">
+              View All Placements
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {placementsLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-3 w-3/4 mb-4" />
+                    <Skeleton className="h-3 w-full mb-2" />
+                    <Skeleton className="h-3 w-5/6" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {recentPlacements.map((placement) => (
+                <Card key={placement.placementId} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="font-semibold text-lg">{placement.candidate?.firstName} {placement.candidate?.lastName}</h3>
+                        <p className="text-sm text-muted-foreground">{placement.job?.jobTitle}</p>
+                      </div>
+                      <Badge variant="default">Placed</Badge>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      {placement.job?.company?.name && (
+                        <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4" />
+                          {placement.job.company.name}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Recently placed
+                      </div>
+                      
+                      {placement.salary && (
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4" />
+                          ${placement.salary.toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {recentPlacements.length === 0 && !placementsLoading && (
+            <div className="text-center py-8">
+              <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No placements yet</h3>
+              <p className="text-muted-foreground">Successful placements will appear here.</p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
 
-export default Index;
+export default Dashboard;
