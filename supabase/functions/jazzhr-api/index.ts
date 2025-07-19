@@ -33,7 +33,7 @@ serve(async (req) => {
     
     console.log('Using JazzHR API key from Supabase secrets:', apiKey.substring(0, 8) + '...')
 
-    const baseUrl = 'https://www.resumatorapi.com/v1'
+    const baseUrl = 'https://api.resumatorapi.com/v1'
     
     switch (action) {
       case 'testConnection':
@@ -127,7 +127,7 @@ async function handleTestConnection(apiKey: string) {
     console.log(`Testing JazzHR API with key: ${apiKey.substring(0, 8)}...`);
     
     // Test the exact URL format from the documentation
-    const testUrl = `https://www.resumatorapi.com/v1/jobs?apikey=${apiKey}`;
+    const testUrl = `https://api.resumatorapi.com/v1/jobs?apikey=${apiKey}`;
     
     console.log(`Testing endpoint: ${testUrl.replace(apiKey, 'API_KEY_HIDDEN')}`);
     
@@ -192,7 +192,7 @@ async function handleGetJobs(apiKey: string, params: any) {
     console.log('handleGetJobs called with params:', params);
     
     // Use the correct JazzHR API endpoint
-    let url = 'https://www.resumatorapi.com/v1/jobs';
+    let url = 'https://api.resumatorapi.com/v1/jobs';
     
     // Add query parameters if provided
     const queryParams = new URLSearchParams();
@@ -235,7 +235,7 @@ async function handleGetJob(apiKey: string, params: any) {
     throw new Error('job_id is required')
   }
   
-  const url = `https://www.resumatorapi.com/v1/jobs/${params.job_id}`
+  const url = `https://api.resumatorapi.com/v1/jobs/${params.job_id}`
   const data = await makeJazzHRRequest(url, apiKey)
   
   return new Response(
@@ -249,7 +249,7 @@ async function handleCreateJob(apiKey: string, params: any) {
     throw new Error('title, hiring_lead_id, description, and workflow_id are required')
   }
   
-  const url = 'https://www.resumatorapi.com/v1/jobs'
+  const url = 'https://api.resumatorapi.com/v1/jobs'
   const data = await makeJazzHRRequest(url, apiKey, 'POST', params)
   
   return new Response(
@@ -262,7 +262,7 @@ async function handleGetApplicants(apiKey: string, params: any) {
   try {
     console.log('handleGetApplicants called with params:', params);
     
-    let url = 'https://www.resumatorapi.com/v1/applicants';
+    let url = 'https://api.resumatorapi.com/v1/applicants';
     
     // Add query parameters if provided
     const queryParams = new URLSearchParams();
@@ -307,7 +307,7 @@ async function handleGetApplicant(apiKey: string, params: any) {
     throw new Error('applicant_id is required')
   }
   
-  const url = `https://www.resumatorapi.com/v1/applicants/${params.applicant_id}`
+  const url = `https://api.resumatorapi.com/v1/applicants/${params.applicant_id}`
   const data = await makeJazzHRRequest(url, apiKey)
   
   return new Response(
@@ -321,7 +321,7 @@ async function handleCreateApplicant(apiKey: string, params: any) {
     throw new Error('first_name, last_name, and email are required')
   }
   
-  const url = 'https://www.resumatorapi.com/v1/applicants'
+  const url = 'https://api.resumatorapi.com/v1/applicants'
   const data = await makeJazzHRRequest(url, apiKey, 'POST', params)
   
   return new Response(
@@ -331,7 +331,7 @@ async function handleCreateApplicant(apiKey: string, params: any) {
 }
 
 async function handleGetUsers(apiKey: string, params: any) {
-  const url = 'https://www.resumatorapi.com/v1/users'
+  const url = 'https://api.resumatorapi.com/v1/users'
   const data = await makeJazzHRRequest(url, apiKey)
   
   return new Response(
@@ -345,7 +345,7 @@ async function handleSyncUsers(apiKey: string) {
     console.log('Starting JazzHR users sync...');
     
     // Get users from JazzHR API
-    const jazzhrUsers = await makeJazzHRRequest('https://www.resumatorapi.com/v1/users', apiKey);
+    const jazzhrUsers = await makeJazzHRRequest('https://api.resumatorapi.com/v1/users', apiKey);
     
     if (!Array.isArray(jazzhrUsers)) {
       throw new Error('Invalid response from JazzHR users API');
@@ -453,7 +453,7 @@ async function handleSyncUsers(apiKey: string) {
 }
 
 async function handleGetActivities(apiKey: string, params: any) {
-  const baseUrl = 'https://www.resumatorapi.com/v1/activities'
+  const baseUrl = 'https://api.resumatorapi.com/v1/activities'
   let url = baseUrl
   
   // Add query parameters if provided
@@ -479,7 +479,7 @@ async function handleCreateNote(apiKey: string, params: any) {
     throw new Error('applicant_id and contents are required')
   }
   
-  const url = 'https://www.resumatorapi.com/v1/notes'
+  const url = 'https://api.resumatorapi.com/v1/notes'
   const data = await makeJazzHRRequest(url, apiKey, 'POST', params)
   
   return new Response(

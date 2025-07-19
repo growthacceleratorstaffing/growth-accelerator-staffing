@@ -180,6 +180,20 @@ export function useJobs() {
 
   useEffect(() => {
     fetchJobs();
+    
+    // Auto-test API connection on load
+    const testConnection = async () => {
+      try {
+        const { data } = await supabase.functions.invoke('jazzhr-api', {
+          body: { action: 'testConnection', params: {} }
+        });
+        console.log('JazzHR Auto-Test:', data);
+      } catch (error) {
+        console.error('JazzHR Auto-Test failed:', error);
+      }
+    };
+    
+    testConnection();
   }, []);
 
   return {
