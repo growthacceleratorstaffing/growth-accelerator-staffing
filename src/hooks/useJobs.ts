@@ -91,15 +91,15 @@ export function useJobs() {
           // Fetch jobs from JazzHR
           const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jazzhr-api', {
             body: { 
-              endpoint: 'jobs',
-              limit: 50,
-              offset: 0,
-              search: searchTerm
+              action: 'getJobs',
+              params: {
+                title: searchTerm
+              }
             }
           });
 
-          if (!jobsError && jobsData?.data) {
-            jobAdderJobs = jobsData.data;
+          if (!jobsError && jobsData) {
+            jobAdderJobs = Array.isArray(jobsData) ? jobsData : [jobsData];
             console.log('Fetched JazzHR jobs:', jobAdderJobs.length);
 
             // For each job, fetch related applicants (people who applied to this job)
@@ -108,15 +108,15 @@ export function useJobs() {
                 try {
                   const { data: applicantsData, error: applicantsError } = await supabase.functions.invoke('jazzhr-api', {
                     body: { 
-                      endpoint: 'applicants',
-                      jobId: job.id?.toString(),
-                      limit: 100,
-                      offset: 0
+                      action: 'getApplicants',
+                      params: {
+                        job_id: job.id?.toString()
+                      }
                     }
                   });
 
-                  if (!applicantsError && applicantsData?.data) {
-                    job.applicants = applicantsData.data;
+                  if (!applicantsError && applicantsData) {
+                    job.applicants = Array.isArray(applicantsData) ? applicantsData : [applicantsData];
                     console.log(`Job ${job.title} has ${job.applicants.length} applicants`);
                   } else {
                     job.applicants = [];
