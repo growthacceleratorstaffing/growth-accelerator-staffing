@@ -111,41 +111,40 @@ export function useJobs() {
         console.warn('JazzHR API error:', err);
       }
 
-      // Fallback to local database jobs if JazzHR fails
+      // Always fetch local database jobs to combine with JazzHR jobs
       let localJobs: JazzHRJobWithApplicants[] = [];
-      if (jazzHRJobs.length === 0) {
-        try {
-          let localJobsQuery = supabase
-            .from('jobs')
-            .select('*')
-            .order('created_at', { ascending: false });
+      try {
+        let localJobsQuery = supabase
+          .from('jobs')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-          if (searchTerm) {
-            localJobsQuery = localJobsQuery.or(`title.ilike.%${searchTerm}%,job_description.ilike.%${searchTerm}%`);
-          }
-
-          const { data: localJobsData, error: localError } = await localJobsQuery;
-          
-          if (!localError && localJobsData) {
-            localJobs = localJobsData.map(job => ({
-              id: job.id,
-              title: job.title,
-              description: job.job_description || '',
-              department: job.company_name || '',
-              city: job.location_name?.split(',')[0] || '',
-              state: job.location_name?.split(',')[1]?.trim() || '',
-              employment_type: job.work_type_name || 'Full-time',
-              created_at: job.created_at,
-              status: 'open',
-              applicants: []
-            }));
-          }
-        } catch (localErr) {
-          console.warn('Error fetching local jobs:', localErr);
+        if (searchTerm) {
+          localJobsQuery = localJobsQuery.or(`title.ilike.%${searchTerm}%,job_description.ilike.%${searchTerm}%`);
         }
+
+        const { data: localJobsData, error: localError } = await localJobsQuery;
+        
+        if (!localError && localJobsData) {
+          localJobs = localJobsData.map(job => ({
+            id: job.id,
+            title: job.title,
+            description: job.job_description || '',
+            department: job.company_name || '',
+            city: job.location_name?.split(',')[0] || '',
+            state: job.location_name?.split(',')[1]?.trim() || '',
+            employment_type: job.work_type_name || 'Full-time',
+            created_at: job.created_at,
+            status: 'Open', // Ensure consistent status format
+            applicants: []
+          }));
+        }
+      } catch (localErr) {
+        console.warn('Error fetching local jobs:', localErr);
       }
 
-      const allJobs = jazzHRJobs.length > 0 ? jazzHRJobs : localJobs;
+      // Combine JazzHR and local jobs
+      const allJobs = [...jazzHRJobs, ...localJobs];
       setJobs(allJobs);
       setUseMockData(false);
       
