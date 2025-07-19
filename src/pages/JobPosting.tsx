@@ -189,16 +189,39 @@ const JobPosting = () => {
 
       // Try to sync to JazzHR API in the background (optional)
       try {
+        // Get valid hiring lead ID - use the current user's JazzHR ID or default
+        const currentUser = (await supabase.auth.getUser()).data.user;
+        let hiringLeadId = 'usr_20250716133911_07UCQOAM1SBJ7IIC'; // Default JazzHR user
+        
+        if (currentUser?.email) {
+          const { data: jazzhrUser } = await supabase
+            .from('jazzhr_users')
+            .select('jazzhr_user_id')
+            .eq('email', currentUser.email)
+            .single();
+          
+          if (jazzhrUser?.jazzhr_user_id) {
+            hiringLeadId = jazzhrUser.jazzhr_user_id;
+          }
+        }
+        
         const jazzHRJobData = {
           title: formData.jobTitle,
-          hiring_lead_id: formData.contactId || '1', // Default to user 1 if no contact specified
+          hiring_lead_id: hiringLeadId,
           description: formData.jobDescription,
-          workflow_id: '1', // Default workflow
-          employment_type: getEmploymentType(formData.workTypeId),
-          department: formData.companyId,
-          city: formData.locationId, // This should be mapped to actual city name
-          state: formData.areaId, // This should be mapped to actual state
-          job_status: 'Open'
+          workflow_id: '1', // Default workflow - should be updated based on JazzHR setup
+          employment_type: getEmploymentType(formData.workTypeId), // Maps workTypeId to JazzHR employment types
+          department: formData.companyId || '', // Company/department
+          city: formData.locationId || '', // Location as city
+          state: formData.areaId || '', // Area as state
+          job_status: 'Open',
+          // Add salary info if available
+          ...(formData.salaryRateLow && {
+            minimum_salary: parseFloat(formData.salaryRateLow).toString()
+          }),
+          ...(formData.salaryRateHigh && {
+            maximum_salary: parseFloat(formData.salaryRateHigh).toString()
+          })
         };
 
         const { data: jazzHRResponse, error: jazzHRError } = await supabase.functions.invoke('jazzhr-api', {
