@@ -94,29 +94,70 @@ async function makeJazzHRRequest(url: string, apiKey: string, method = 'GET', bo
 
 async function handleTestConnection(apiKey: string) {
   try {
-    // Test with a simple endpoint first - users endpoint is usually accessible
-    const url = 'https://www.resumatorapi.com/v1/users'
+    // First test if the API key is valid by making a simple request
+    // According to JazzHR documentation, let's try /jobs endpoint without filters
+    const url = 'https://www.resumatorapi.com/v1/jobs'
     console.log(`Testing connection with: ${url}`)
+    console.log(`API Key (first 8 chars): ${apiKey.substring(0, 8)}...`)
     
-    const data = await makeJazzHRRequest(url, apiKey, 'GET')
+    // Make a simple request to test API key validity
+    const requestUrl = `${url}?apikey=${apiKey}`
+    console.log(`Full request URL: ${requestUrl}`)
+    
+    const response = await fetch(requestUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    
+    console.log(`Response status: ${response.status}`)
+    console.log(`Response headers:`, Object.fromEntries(response.headers.entries()))
+    
+    const responseText = await response.text()
+    console.log(`Response body: ${responseText}`)
+    
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `JazzHR API returned ${response.status}: ${response.statusText}`,
+          details: responseText,
+          apiKeyPreview: `${apiKey.substring(0, 8)}...`
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    let data
+    try {
+      data = JSON.parse(responseText)
+    } catch (e) {
+      console.error('Failed to parse response as JSON')
+      data = { raw: responseText }
+    }
     
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Connection successful',
-        data: data 
+        message: 'JazzHR API connection successful!',
+        statusCode: response.status,
+        dataType: typeof data,
+        dataLength: Array.isArray(data) ? data.length : Object.keys(data || {}).length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Connection test failed:', error)
+    console.error('Connection test failed with error:', error)
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: 'Connection failed',
-        error: error.message 
+        message: 'Connection test failed',
+        error: error.message,
+        errorType: error.constructor.name
       }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 }
