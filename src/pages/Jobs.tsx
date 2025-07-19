@@ -11,6 +11,7 @@ import { MapPin, DollarSign, Clock, Building, AlertCircle, Search, ExternalLink 
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
 import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
+import { supabase } from "@/integrations/supabase/client";
 
 const Jobs = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,17 +23,24 @@ const Jobs = () => {
 
   const testJazzHRAPI = async () => {
     try {
-      const response = await fetch('/api/jazzhr/test');
-      const data = await response.json();
+      // Test by trying to fetch jobs from JazzHR API
+      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
+        body: { action: 'getJobs', params: {} }
+      });
+      
+      if (error) {
+        throw error;
+      }
       
       toast({
-        title: "JazzHR API Test",
-        description: data.success ? "Connection successful!" : "Connection failed",
-        variant: data.success ? "default" : "destructive"
+        title: "JazzHR API Test Successful",
+        description: `Connected successfully! Found ${Array.isArray(data) ? data.length : 0} jobs.`,
+        variant: "default"
       });
     } catch (error) {
+      console.error('JazzHR API test error:', error);
       toast({
-        title: "JazzHR API Test Failed",
+        title: "JazzHR API Test Failed", 
         description: "Could not connect to JazzHR API",
         variant: "destructive"
       });
