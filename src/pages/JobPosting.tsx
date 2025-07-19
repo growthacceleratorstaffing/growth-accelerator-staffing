@@ -293,10 +293,6 @@ const JobPosting = () => {
           <h1 className="text-3xl font-bold">Job Posting</h1>
           <p className="text-muted-foreground mt-2">Create and post new job opportunities - automatically synced to JazzHR</p>
         </div>
-        <Button onClick={handleAddJob} className="flex items-center gap-2">
-          Add job
-          <ExternalLink className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* AI Job Creator */}
