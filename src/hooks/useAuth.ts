@@ -147,7 +147,7 @@ export function useAuth() {
             id: userId,
             email,
             role: isAdmin ? 'admin' : 'viewer',
-            jobadder_scopes: defaultScopes
+            
           })
           .select()
           .single();
@@ -254,25 +254,21 @@ export function useAuth() {
     return (roleHierarchy as any)[profile.role] >= roleHierarchy[requiredRole]
   }
 
-  const hasJobAdderScope = (scope: 'read' | 'write' | 'read_candidate' | 'write_candidate' | 'read_company' | 'write_company' | 'read_contact' | 'write_contact' | 'read_jobad' | 'write_jobad' | 'read_jobapplication' | 'write_jobapplication' | 'read_job' | 'write_job' | 'read_placement' | 'write_placement' | 'read_user' | 'partner_jobboard' | 'offline_access') => {
-    if (!profile?.jobadder_scopes) return false
-    return profile.jobadder_scopes.includes(scope)
-  }
-
+  // JazzHR role-based permissions
   const canAccessJobs = () => {
-    return hasJobAdderScope('read_job') || hasJobAdderScope('read_jobad') || hasJobAdderScope('read')
+    return true; // All authenticated users can read jobs
   }
 
   const canPostJobs = () => {
-    return hasJobAdderScope('write_job') || hasJobAdderScope('write_jobad') || hasJobAdderScope('write')
+    return profile?.role === 'admin' || profile?.role === 'moderator';
   }
 
   const canViewCandidates = () => {
-    return hasJobAdderScope('read_candidate') || hasJobAdderScope('read')
+    return true; // All authenticated users can read candidates
   }
 
   const canManageCandidates = () => {
-    return hasJobAdderScope('write_candidate') || hasJobAdderScope('write')
+    return profile?.role === 'admin' || profile?.role === 'moderator';
   }
 
   return {
@@ -283,7 +279,7 @@ export function useAuth() {
     signUp,
     signOut,
     hasRole,
-    hasJobAdderScope,
+    
     canAccessJobs,
     canPostJobs,
     canViewCandidates,

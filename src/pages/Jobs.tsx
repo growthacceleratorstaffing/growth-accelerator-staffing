@@ -76,7 +76,7 @@ const Jobs = () => {
   };
 
   const handleGoToJobs = () => {
-    window.open('https://mijn.cootje.com/recruiter/vacatures', '_blank');
+    window.open('https://app.jazz.co/', '_blank');
   };
 
   return (
@@ -86,10 +86,15 @@ const Jobs = () => {
           <h1 className="text-3xl font-bold">Vacancies</h1>
           <p className="text-muted-foreground mt-2">Find your next opportunity - synced with JazzHR</p>
         </div>
-        <Button onClick={handleGoToJobs} className="flex items-center gap-2">
-          Go to jobs
-          <ExternalLink className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={testJazzHRAPI} variant="outline">
+            Test JazzHR API
+          </Button>
+          <Button onClick={handleGoToJobs} className="flex items-center gap-2">
+            Go to JazzHR
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {error && useMockData && (
