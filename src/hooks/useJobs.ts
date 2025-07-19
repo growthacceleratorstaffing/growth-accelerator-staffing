@@ -4,6 +4,8 @@ import { JazzHRJob, JazzHRApplicant } from '@/lib/jazzhr-api';
 
 export interface JazzHRJobWithApplicants extends JazzHRJob {
   applicants?: JazzHRApplicant[];
+  company_name?: string;
+  location_name?: string;
 }
 
 // Mock data as fallback - JazzHR structure
@@ -143,12 +145,30 @@ export function useJobs() {
         console.warn('Error fetching local jobs:', localErr);
       }
 
-      // Combine JazzHR and local jobs
-      const allJobs = [...jazzHRJobs, ...localJobs];
-      setJobs(allJobs);
+      // Combine JazzHR and local jobs with deduplication
+      const combinedJobs = [...jazzHRJobs, ...localJobs];
+      
+      // Remove duplicates by title and company, and filter out sample/test jobs
+      const uniqueJobs = combinedJobs.filter((job, index, array) => {
+        // Filter out sample/test jobs
+        if (job.title?.toLowerCase().includes('sample') || 
+            job.title?.toLowerCase().includes('test') ||
+            job.id?.toLowerCase().includes('sample')) {
+          return false;
+        }
+        
+        // Remove duplicates by checking if this is the first occurrence of this job
+        return array.findIndex(j => 
+          j.title?.toLowerCase() === job.title?.toLowerCase() && 
+          (j.department?.toLowerCase() === job.department?.toLowerCase() || 
+           j.company_name?.toLowerCase() === job.company_name?.toLowerCase())
+        ) === index;
+      });
+      
+      setJobs(uniqueJobs);
       setUseMockData(false);
       
-      if (allJobs.length === 0) {
+      if (uniqueJobs.length === 0) {
         let filteredJobs = mockJobs;
         if (searchTerm) {
           filteredJobs = mockJobs.filter(job => 
@@ -159,11 +179,18 @@ export function useJobs() {
         }
         setJobs(filteredJobs);
         setUseMockData(true);
-        setError('Using demo data - JazzHR API not available');
+        setError('Using demo data - API services temporarily unavailable');
+      } else {
+        // Show warning if only one source is working
+        if (jazzHRJobs.length === 0 && localJobs.length > 0) {
+          setError('JazzHR API temporarily unavailable - showing local jobs only');
+        } else if (localJobs.length === 0 && jazzHRJobs.length > 0) {
+          setError('Local database temporarily unavailable - showing JazzHR jobs only');
+        }
       }
       
-      console.log('Total jobs loaded:', allJobs.length, '(', jazzHRJobs.length, 'JazzHR,', localJobs.length, 'local)');
-      const totalApplicants = allJobs.reduce((sum, job) => sum + (job.applicants?.length || 0), 0);
+      console.log('Total unique jobs loaded:', uniqueJobs.length, '(', jazzHRJobs.length, 'JazzHR,', localJobs.length, 'local)');
+      const totalApplicants = uniqueJobs.reduce((sum, job) => sum + (job.applicants?.length || 0), 0);
       console.log('Total applicants across all jobs:', totalApplicants);
     } catch (err) {
       console.error('Error fetching jobs:', err);
