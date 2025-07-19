@@ -163,16 +163,16 @@ export default function Auth() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <LogIn className="h-5 w-5" />
-                          Sign In to JazzHR Platform
+                          Sign In
                         </CardTitle>
                         <CardDescription>
-                          Enter your JazzHR credentials to access the platform
+                          Enter your credentials to access the platform
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <form onSubmit={handleSignIn} className="space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor="signin-email">JazzHR Email</Label>
+                            <Label htmlFor="signin-email">Email</Label>
                             <Input
                               id="signin-email"
                               type="email"
