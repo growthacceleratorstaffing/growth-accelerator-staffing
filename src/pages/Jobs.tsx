@@ -23,25 +23,29 @@ const Jobs = () => {
 
   const testJazzHRAPI = async () => {
     try {
-      // Test by trying to fetch jobs from JazzHR API
+      // Test connection first
       const { data, error } = await supabase.functions.invoke('jazzhr-api', {
-        body: { action: 'getJobs', params: {} }
+        body: { action: 'testConnection', params: {} }
       });
       
       if (error) {
         throw error;
       }
       
-      toast({
-        title: "JazzHR API Test Successful",
-        description: `Connected successfully! Found ${Array.isArray(data) ? data.length : 0} jobs.`,
-        variant: "default"
-      });
+      if (data?.success) {
+        toast({
+          title: "JazzHR API Test Successful",
+          description: data.message,
+          variant: "default"
+        });
+      } else {
+        throw new Error(data?.error || 'Connection failed');
+      }
     } catch (error) {
       console.error('JazzHR API test error:', error);
       toast({
         title: "JazzHR API Test Failed", 
-        description: "Could not connect to JazzHR API",
+        description: error.message || "Could not connect to JazzHR API",
         variant: "destructive"
       });
     }

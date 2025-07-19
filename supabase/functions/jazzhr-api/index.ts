@@ -23,6 +23,8 @@ serve(async (req) => {
     const baseUrl = 'https://www.resumatorapi.com/v1'
     
     switch (action) {
+      case 'testConnection':
+        return await handleTestConnection(apiKey)
       case 'getJobs':
         return await handleGetJobs(apiKey, params)
       case 'getJob':
@@ -54,7 +56,9 @@ serve(async (req) => {
 })
 
 async function makeJazzHRRequest(url: string, apiKey: string, method = 'GET', body?: any) {
-  const requestUrl = `${url}?apikey=${apiKey}`
+  // JazzHR API expects the API key as a query parameter
+  const separator = url.includes('?') ? '&' : '?'
+  const requestUrl = `${url}${separator}apikey=${apiKey}`
   
   const options: RequestInit = {
     method,
@@ -74,15 +78,52 @@ async function makeJazzHRRequest(url: string, apiKey: string, method = 'GET', bo
   if (!response.ok) {
     const errorText = await response.text()
     console.error(`JazzHR API error: ${response.status} - ${errorText}`)
-    throw new Error(`JazzHR API error: ${response.status}`)
+    throw new Error(`JazzHR API error: ${response.status} - ${errorText}`)
   }
   
-  return await response.json()
+  const responseText = await response.text()
+  console.log(`JazzHR API response: ${responseText}`)
+  
+  try {
+    return JSON.parse(responseText)
+  } catch (e) {
+    console.error('Failed to parse JSON response:', responseText)
+    throw new Error('Invalid JSON response from JazzHR API')
+  }
+}
+
+async function handleTestConnection(apiKey: string) {
+  try {
+    // Test with a simple endpoint first - users endpoint is usually accessible
+    const url = 'https://www.resumatorapi.com/v1/users'
+    console.log(`Testing connection with: ${url}`)
+    
+    const data = await makeJazzHRRequest(url, apiKey, 'GET')
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Connection successful',
+        data: data 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error('Connection test failed:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        message: 'Connection failed',
+        error: error.message 
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
 }
 
 async function handleGetJobs(apiKey: string, params: any) {
-  const baseUrl = 'https://www.resumatorapi.com/v1/jobs'
-  let url = baseUrl
+  // According to JazzHR API docs, the correct endpoint is /jobs
+  let url = 'https://www.resumatorapi.com/v1/jobs'
   
   // Add query parameters if provided
   const queryParams = new URLSearchParams()
@@ -95,6 +136,8 @@ async function handleGetJobs(apiKey: string, params: any) {
   if (queryParams.toString()) {
     url += `?${queryParams.toString()}`
   }
+  
+  console.log(`Fetching jobs from: ${url}`)
   
   const data = await makeJazzHRRequest(url, apiKey, 'GET')
   
