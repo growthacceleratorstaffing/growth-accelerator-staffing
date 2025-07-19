@@ -367,6 +367,69 @@ export type Database = {
           },
         ]
       }
+      jazzhr_oauth_users: {
+        Row: {
+          access_token: string | null
+          company_id: string | null
+          company_name: string | null
+          company_rcid: string | null
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean | null
+          jazzhr_user_id: string
+          name: string
+          partner_owner_rcid: string | null
+          permissions: Json | null
+          refresh_token: string | null
+          role: Database["public"]["Enums"]["jazzhr_user_role"]
+          token_expires_at: string | null
+          updated_at: string
+          user_account_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          company_id?: string | null
+          company_name?: string | null
+          company_rcid?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean | null
+          jazzhr_user_id: string
+          name: string
+          partner_owner_rcid?: string | null
+          permissions?: Json | null
+          refresh_token?: string | null
+          role?: Database["public"]["Enums"]["jazzhr_user_role"]
+          token_expires_at?: string | null
+          updated_at?: string
+          user_account_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          company_id?: string | null
+          company_name?: string | null
+          company_rcid?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          jazzhr_user_id?: string
+          name?: string
+          partner_owner_rcid?: string | null
+          permissions?: Json | null
+          refresh_token?: string | null
+          role?: Database["public"]["Enums"]["jazzhr_user_role"]
+          token_expires_at?: string | null
+          updated_at?: string
+          user_account_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       jazzhr_users: {
         Row: {
           assigned_jobs: string[] | null
@@ -987,10 +1050,15 @@ export type Database = {
         Returns: string[]
       }
       has_jazzhr_role: {
-        Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["jazzhr_role"]
-        }
+        Args:
+          | {
+              _user_id: string
+              _role: Database["public"]["Enums"]["jazzhr_role"]
+            }
+          | {
+              _user_id: string
+              _role: Database["public"]["Enums"]["jazzhr_user_role"]
+            }
         Returns: boolean
       }
       has_jobadder_scope: {
@@ -1038,6 +1106,10 @@ export type Database = {
         Args: { email_to_check: string }
         Returns: boolean
       }
+      validate_jazzhr_oauth_email: {
+        Args: { email_to_check: string }
+        Returns: boolean
+      }
       validate_jobadder_email: {
         Args: { email_to_check: string }
         Returns: boolean
@@ -1071,6 +1143,7 @@ export type Database = {
         | "interviewer"
         | "developer"
         | "external_recruiter"
+      jazzhr_user_role: "user" | "admin" | "hiring_manager" | "super_admin"
       jobadder_scope:
         | "read"
         | "write"
@@ -1255,6 +1328,7 @@ export const Constants = {
         "developer",
         "external_recruiter",
       ],
+      jazzhr_user_role: ["user", "admin", "hiring_manager", "super_admin"],
       jobadder_scope: [
         "read",
         "write",
