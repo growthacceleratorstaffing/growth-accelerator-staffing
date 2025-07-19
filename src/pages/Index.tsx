@@ -353,12 +353,10 @@ const Dashboard = () => {
                         Recently placed
                       </div>
                       
-                      {placement.salary && (
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" />
-                          ${placement.salary.toLocaleString()}
-                        </div>
-                      )}
+                       <div className="flex items-center gap-2">
+                         <DollarSign className="h-4 w-4" />
+                         Placement value available
+                       </div>
                     </div>
                   </CardContent>
                 </Card>
