@@ -37,9 +37,12 @@ const Dashboard = () => {
 
   // Fetch data from hooks
   const { jobs, loading: jobsLoading } = useJobs();
-  const { data: jazzhrCandidates = [], isLoading: candidatesLoading } = useJazzHRApplicants({});
+  const { data: jazzhrCandidatesData, isLoading: candidatesLoading } = useJazzHRApplicants({});
   const { candidates, loading: talentPoolLoading } = useCandidates();
   const { placements, loading: placementsLoading } = usePlacements();
+
+  // Ensure jazzhrCandidates is always an array
+  const jazzhrCandidates = Array.isArray(jazzhrCandidatesData) ? jazzhrCandidatesData : [];
 
   useEffect(() => {
     const loadStats = async () => {
