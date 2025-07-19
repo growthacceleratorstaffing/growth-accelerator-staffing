@@ -974,6 +974,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      trigger_jazzhr_sync: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       trigger_workable_sync: {
         Args: Record<PropertyKey, never>
         Returns: undefined
