@@ -104,7 +104,6 @@ const Jobs = () => {
       <Tabs defaultValue="vacancies" className="space-y-6">
         <TabsList>
           <TabsTrigger value="vacancies">Vacancies</TabsTrigger>
-          <TabsTrigger value="api-test">API Test</TabsTrigger>
         </TabsList>
 
         <TabsContent value="vacancies" className="space-y-6">
@@ -187,26 +186,10 @@ const Jobs = () => {
             <div className="text-center py-12">
               <h3 className="text-lg font-medium text-muted-foreground">No jobs found</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Try adjusting your search terms or check back later.
+                {useMockData ? "Using demo data - Configure JazzHR API to see real jobs" : "Try adjusting your search terms or check back later."}
               </p>
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="api-test" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>JazzHR API Test</CardTitle>
-              <CardDescription>
-                Test the connection to JazzHR API
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={testJazzHRAPI} className="w-full">
-                Test JazzHR Connection
-              </Button>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
 

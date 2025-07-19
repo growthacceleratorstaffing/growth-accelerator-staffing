@@ -88,7 +88,8 @@ export function useJobs() {
       try {
         // Get current user ID for JazzHR API
         try {
-          // Fetch jobs from JazzHR
+          // Fetch jobs from JazzHR automatically
+          console.log('Fetching jobs from JazzHR...');
           const { data: jobsData, error: jobsError } = await supabase.functions.invoke('jazzhr-api', {
             body: { 
               action: 'getJobs',
@@ -98,14 +99,17 @@ export function useJobs() {
             }
           });
 
-          if (!jobsError && jobsData) {
-            jobAdderJobs = Array.isArray(jobsData) ? jobsData : [jobsData];
+          if (!jobsError && jobsData && jobsData.success !== false) {
+            // Handle successful response
+            const jobs = Array.isArray(jobsData) ? jobsData : [jobsData];
+            jobAdderJobs = jobs.filter(job => job && job.id); // Filter out invalid jobs
             console.log('Fetched JazzHR jobs:', jobAdderJobs.length);
 
-            // For each job, fetch related applicants (people who applied to this job)
+            // For each job, fetch related applicants (candidates who applied)
             const jobsWithApplicants = await Promise.all(
               jobAdderJobs.map(async (job) => {
                 try {
+                  console.log(`Fetching applicants for job: ${job.title}`);
                   const { data: applicantsData, error: applicantsError } = await supabase.functions.invoke('jazzhr-api', {
                     body: { 
                       action: 'getApplicants',
@@ -115,8 +119,9 @@ export function useJobs() {
                     }
                   });
 
-                  if (!applicantsError && applicantsData) {
-                    job.applicants = Array.isArray(applicantsData) ? applicantsData : [applicantsData];
+                  if (!applicantsError && applicantsData && applicantsData.success !== false) {
+                    const applicants = Array.isArray(applicantsData) ? applicantsData : [applicantsData];
+                    job.applicants = applicants.filter(app => app && app.id);
                     console.log(`Job ${job.title} has ${job.applicants.length} applicants`);
                   } else {
                     job.applicants = [];
@@ -132,7 +137,10 @@ export function useJobs() {
 
             jobAdderJobs = jobsWithApplicants;
           } else {
-            console.warn('JazzHR API call failed:', jobsError);
+            console.warn('JazzHR API call failed:', jobsError || 'No data returned');
+            if (jobsData?.message) {
+              console.warn('JazzHR API message:', jobsData.message);
+            }
           }
         } catch (err) {
           console.warn('JazzHR API error:', err);
