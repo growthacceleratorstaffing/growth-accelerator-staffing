@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, DollarSign, Clock, Building, AlertCircle, Search, ExternalLink } from "lucide-react";
-import { useJazzHRJobs } from "@/hooks/useJazzHRJobs";
+import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
 import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,16 +19,14 @@ const Jobs = () => {
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const navigate = useNavigate();
   
-  const { data: allJobs = [], isLoading: loading, error } = useJazzHRJobs({
-    title: searchTerm || undefined,
-    status: 'Open'
-  });
+  const { jobs: allJobs, loading, error, refetch } = useJobs();
 
   // Client-side filter to ensure only open jobs are shown
-  const jobs = allJobs.filter(job => job.status === 'Open');
+  const jobs = allJobs.filter(job => job.status === 'Open' || job.status === 'open');
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
+    refetch(value);
   };
 
   const handleApplyClick = (job) => {
@@ -47,7 +45,7 @@ const Jobs = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Vacancies</h1>
-          <p className="text-muted-foreground mt-2">Find your next opportunity - synced with JazzHR</p>
+          <p className="text-muted-foreground mt-2">Find your next opportunity - from JazzHR and local job postings</p>
         </div>
       </div>
 
