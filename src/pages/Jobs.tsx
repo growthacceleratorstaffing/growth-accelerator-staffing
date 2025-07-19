@@ -29,17 +29,26 @@ const Jobs = () => {
       });
       
       if (error) {
+        console.error('Supabase function invoke error:', error);
         throw error;
       }
+      
+      console.log('JazzHR API response:', data);
       
       if (data?.success) {
         toast({
           title: "JazzHR API Test Successful",
-          description: data.message,
+          description: data.message || "Connection successful!",
           variant: "default"
         });
       } else {
-        throw new Error(data?.error || 'Connection failed');
+        // Enhanced debugging - show the actual error details
+        console.error('JazzHR API error details:', data);
+        toast({
+          title: "JazzHR API Test Failed", 
+          description: data?.message || data?.error || "Connection failed",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('JazzHR API test error:', error);
