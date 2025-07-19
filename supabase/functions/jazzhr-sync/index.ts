@@ -43,7 +43,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'syncToJazzHR':
-        return await syncLocalJobToJazzHR(apiKey, supabase, jobData)
+        return await syncAllLocalJobsToJazzHR(apiKey, supabase)
       case 'syncFromJazzHR':
         return await syncJazzHRJobsToLocal(apiKey, supabase)
       case 'bidirectionalSync':
@@ -106,6 +106,120 @@ async function makeJazzHRRequest(url: string, apiKey: string, method = 'GET', bo
   } catch (e) {
     console.error('Failed to parse JSON response:', responseText)
     throw new Error('Invalid JSON response from JazzHR API')
+  }
+}
+
+async function syncAllLocalJobsToJazzHR(apiKey: string, supabase: any) {
+  try {
+    console.log('Syncing all local jobs to JazzHR')
+
+    // Get all unsynced local jobs
+    const { data: unsyncedJobs, error: fetchError } = await supabase
+      .from('jobs')
+      .select('*')
+      .or('synced_to_jobadder.is.null,synced_to_jobadder.eq.false')
+      .is('jobadder_job_id', null)
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch local jobs: ${fetchError.message}`)
+    }
+
+    if (!unsyncedJobs || unsyncedJobs.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'No local jobs need syncing to JazzHR',
+          synced_count: 0
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log(`Found ${unsyncedJobs.length} unsynced local jobs`)
+
+    let syncedCount = 0
+    let errorCount = 0
+
+    for (const job of unsyncedJobs) {
+      try {
+        console.log(`Syncing job: ${job.title}`)
+
+        // Prepare JazzHR job data
+        const jazzHRJobData = {
+          title: job.title || 'Untitled Job',
+          hiring_lead_id: 'usr_20250716133911_07UCQOAM1SBJ7IIC', // Default hiring lead
+          description: job.job_description || 'No description provided',
+          workflow_id: '1', // Default workflow
+          employment_type: job.work_type_name || 'Full Time',
+          department: job.company_name || 'Growth Accelerator',
+          city: job.location_name?.split(',')[0]?.trim() || 'Amsterdam',
+          state: job.location_name?.split(',')[1]?.trim() || 'Noord-Holland',
+          job_status: 'Open'
+        }
+
+        console.log('JazzHR job data:', jazzHRJobData)
+
+        // Create job in JazzHR
+        const jazzHRJob = await makeJazzHRRequest(
+          'https://api.resumatorapi.com/v1/jobs',
+          apiKey,
+          'POST',
+          jazzHRJobData
+        )
+
+        console.log('JazzHR job created:', jazzHRJob.id)
+
+        // Update local job with JazzHR ID
+        const { error: updateError } = await supabase
+          .from('jobs')
+          .update({ 
+            synced_to_jobadder: true,
+            jobadder_job_id: jazzHRJob.id
+          })
+          .eq('id', job.id)
+
+        if (updateError) {
+          console.error('Failed to update local job:', updateError)
+          errorCount++
+        } else {
+          syncedCount++
+        }
+
+      } catch (jobError) {
+        console.error(`Failed to sync job ${job.title}:`, jobError)
+        errorCount++
+        
+        // Mark job as failed to sync
+        await supabase
+          .from('jobs')
+          .update({ 
+            synced_to_jobadder: false,
+            jobadder_job_id: null
+          })
+          .eq('id', job.id)
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        message: `Synced ${syncedCount} jobs to JazzHR`,
+        synced_count: syncedCount,
+        error_count: errorCount,
+        total_jobs: unsyncedJobs.length
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error('Failed to sync local jobs to JazzHR:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        message: 'Failed to sync local jobs to JazzHR',
+        error: error.message
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 }
 
