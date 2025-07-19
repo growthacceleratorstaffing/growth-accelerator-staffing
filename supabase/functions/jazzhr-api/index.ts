@@ -19,7 +19,16 @@ serve(async (req) => {
     const apiKey = Deno.env.get('JAZZHR_API_KEY')
     
     if (!apiKey) {
-      throw new Error('JAZZHR_API_KEY not configured in Supabase secrets')
+      console.error('JAZZHR_API_KEY not found in environment variables')
+      console.log('Available environment variables:', Object.keys(Deno.env.toObject()))
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'JAZZHR_API_KEY not configured in Supabase secrets',
+          error: 'Missing API key configuration'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
     
     console.log('Using JazzHR API key from Supabase secrets:', apiKey.substring(0, 8) + '...')
