@@ -43,6 +43,14 @@ const Jobs = () => {
           <h1 className="text-3xl font-bold">Vacancies</h1>
           <p className="text-muted-foreground mt-2">Find your next opportunity - synced with JazzHR</p>
         </div>
+        <Button onClick={async () => {
+          const { data } = await supabase.functions.invoke('jazzhr-api', {
+            body: { action: 'testConnection', params: {} }
+          });
+          console.log('JazzHR Test:', data);
+        }} variant="outline">
+          Test API
+        </Button>
       </div>
 
       {error && useMockData && (

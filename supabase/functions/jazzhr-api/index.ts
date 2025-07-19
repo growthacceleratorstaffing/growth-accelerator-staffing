@@ -126,88 +126,53 @@ async function handleTestConnection(apiKey: string) {
   try {
     console.log(`Testing JazzHR API with key: ${apiKey.substring(0, 8)}...`);
     
-    // Try both authentication methods - Bearer token and query parameter
-    const testEndpoints = [
-      // Try Bearer token authentication with api.resumatorapi.com
-      {
-        url: 'https://api.resumatorapi.com/v1/jobs',
-        authMethod: 'bearer'
-      },
-      // Try query parameter authentication with www.resumatorapi.com
-      {
-        url: 'https://www.resumatorapi.com/v1/jobs',
-        authMethod: 'query'
-      }
-    ];
+    // Test the exact URL format from the documentation
+    const testUrl = `https://www.resumatorapi.com/v1/jobs?apikey=${apiKey}`;
     
-    for (const endpoint of testEndpoints) {
+    console.log(`Testing endpoint: ${testUrl.replace(apiKey, 'API_KEY_HIDDEN')}`);
+    
+    const response = await fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Lovable-JazzHR-Integration/1.0'
+      }
+    });
+    
+    console.log(`Response status: ${response.status}`);
+    
+    const responseText = await response.text();
+    console.log(`Response body (first 500 chars): ${responseText.substring(0, 500)}`);
+    
+    if (response.ok) {
+      let data;
       try {
-        console.log(`Testing endpoint: ${endpoint.url} with ${endpoint.authMethod} auth`);
-        
-        let requestUrl = endpoint.url;
-        const headers: HeadersInit = {
-          'Accept': 'application/json',
-          'User-Agent': 'Lovable-JazzHR-Integration/1.0',
-          'Content-Type': 'application/json'
-        };
-        
-        if (endpoint.authMethod === 'bearer') {
-          headers['Authorization'] = `Bearer ${apiKey}`;
-        } else {
-          // Add apikey as query parameter
-          requestUrl += `?apikey=${apiKey}`;
-        }
-        
-        const response = await fetch(requestUrl, {
-          method: 'GET',
-          headers
-        });
-        
-        console.log(`Response status for ${endpoint.url}: ${response.status}`);
-        
-        const responseText = await response.text();
-        console.log(`Response body (first 300 chars): ${responseText.substring(0, 300)}`);
-        
-        if (response.ok) {
-          let data;
-          try {
-            data = JSON.parse(responseText);
-          } catch (e) {
-            data = { raw: responseText };
-          }
-          
-          // Store the working authentication method for future use
-          console.log(`SUCCESS: ${endpoint.authMethod} authentication works with ${endpoint.url}`);
-          
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: `JazzHR API connection successful!`,
-              endpoint: endpoint.url,
-              authMethod: endpoint.authMethod,
-              statusCode: response.status,
-              jobCount: Array.isArray(data) ? data.length : (data ? Object.keys(data).length : 0)
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        
-      } catch (endpointError) {
-        console.error(`Error testing ${endpoint.url}:`, endpointError.message);
-        continue;
+        data = JSON.parse(responseText);
+      } catch (e) {
+        data = { raw: responseText };
       }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `JazzHR API connection successful!`,
+          statusCode: response.status,
+          jobCount: Array.isArray(data) ? data.length : (data ? Object.keys(data).length : 0),
+          data: data
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `JazzHR API connection failed: ${response.status}`,
+          error: responseText,
+          statusCode: response.status
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    
-    // If all endpoints failed
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        message: 'Unable to connect to JazzHR API with any known endpoint',
-        apiKeyPreview: `${apiKey.substring(0, 8)}...`,
-        testedEndpoints: testEndpoints.length
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
     
   } catch (error) {
     console.error('Connection test failed with error:', error);
