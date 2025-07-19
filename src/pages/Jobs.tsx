@@ -11,6 +11,7 @@ import { MapPin, DollarSign, Clock, Building, AlertCircle, Search, ExternalLink 
 import { useJobs } from "@/hooks/useJobs";
 import { useToast } from "@/hooks/use-toast";
 import { JobApplicationForm } from "@/components/job-search/JobApplicationForm";
+import { JazzHRSyncManager } from "@/components/job-search/JazzHRSyncManager";
 import { supabase } from "@/integrations/supabase/client";
 
 const Jobs = () => {
@@ -61,6 +62,7 @@ const Jobs = () => {
       <Tabs defaultValue="vacancies" className="space-y-6">
         <TabsList>
           <TabsTrigger value="vacancies">Vacancies</TabsTrigger>
+          <TabsTrigger value="sync">JazzHR Sync</TabsTrigger>
         </TabsList>
 
         <TabsContent value="vacancies" className="space-y-6">
@@ -157,6 +159,10 @@ const Jobs = () => {
               </p>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="sync" className="space-y-6">
+          <JazzHRSyncManager />
         </TabsContent>
       </Tabs>
 

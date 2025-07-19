@@ -187,96 +187,34 @@ const JobPosting = () => {
 
       console.log('Job saved locally:', localJob);
 
-      // Try to sync to JazzHR API in the background (optional)
+      // Try to sync to JazzHR API using the new sync edge function
       try {
         console.log('Starting JazzHR sync for job:', formData.jobTitle);
         
-        // Get valid hiring lead ID - use the current user's JazzHR ID or default
-        const currentUser = (await supabase.auth.getUser()).data.user;
-        let hiringLeadId = 'usr_20250716133911_07UCQOAM1SBJ7IIC'; // Default JazzHR user
-        
-        if (currentUser?.email) {
-          console.log('Looking up JazzHR user for email:', currentUser.email);
-          const { data: jazzhrUser } = await supabase
-            .from('jazzhr_users')
-            .select('jazzhr_user_id')
-            .eq('email', currentUser.email)
-            .single();
-          
-          if (jazzhrUser?.jazzhr_user_id) {
-            hiringLeadId = jazzhrUser.jazzhr_user_id;
-            console.log('Found JazzHR user ID:', hiringLeadId);
-          } else {
-            console.log('No JazzHR user found for email, using default:', hiringLeadId);
-          }
-        }
-        
-        const jazzHRJobData = {
-          title: formData.jobTitle,
-          hiring_lead_id: hiringLeadId,
-          description: formData.jobDescription,
-          workflow_id: '1', // Default workflow - should be updated based on JazzHR setup
-          employment_type: getEmploymentType(formData.workTypeId), // Maps workTypeId to JazzHR employment types
-          department: formData.companyId || '', // Company/department
-          city: formData.locationId || '', // Location as city
-          state: formData.areaId || '', // Area as state
-          job_status: 'Open',
-          // Add salary info if available
-          ...(formData.salaryRateLow && {
-            minimum_salary: parseFloat(formData.salaryRateLow).toString()
-          }),
-          ...(formData.salaryRateHigh && {
-            maximum_salary: parseFloat(formData.salaryRateHigh).toString()
-          })
-        };
-
-        console.log('JazzHR job data to be sent:', jazzHRJobData);
-
-        const { data: jazzHRResponse, error: jazzHRError } = await supabase.functions.invoke('jazzhr-api', {
+        const { data: syncResponse, error: syncError } = await supabase.functions.invoke('jazzhr-sync', {
           body: { 
-            action: 'createJob',
-            params: jazzHRJobData
+            action: 'syncToJazzHR',
+            jobData: {
+              id: localJob.id,
+              title: formData.jobTitle,
+              description: formData.jobDescription,
+              department: formData.companyId || 'Growth Accelerator',
+              city: formData.locationId || 'Amsterdam',
+              state: formData.areaId || 'Noord-Holland',
+              employment_type: getEmploymentType(formData.workTypeId)
+            }
           }
         });
 
-        console.log('JazzHR API response:', jazzHRResponse);
-        console.log('JazzHR API error:', jazzHRError);
-
-        if (!jazzHRError && jazzHRResponse && jazzHRResponse.id) {
-          // Update local job to mark as synced
-          await supabase
-            .from('jobs')
-            .update({ 
-              synced_to_jobadder: true, // Keep the field name for compatibility
-              jobadder_job_id: jazzHRResponse.id?.toString() || null
-            })
-            .eq('id', localJob.id);
-          
-          console.log('Job successfully synced to JazzHR with ID:', jazzHRResponse.id);
+        if (syncError) {
+          console.warn('JazzHR sync failed:', syncError);
+        } else if (syncResponse?.success) {
+          console.log('Job successfully synced to JazzHR:', syncResponse.jazzhr_job_id);
         } else {
-          console.warn('Failed to sync to JazzHR, but job saved locally. Error:', jazzHRError);
-          console.warn('Response:', jazzHRResponse);
-          
-          // Don't mark as synced if it actually failed
-          await supabase
-            .from('jobs')
-            .update({ 
-              synced_to_jobadder: false,
-              jobadder_job_id: null
-            })
-            .eq('id', localJob.id);
+          console.warn('JazzHR sync response indicates failure:', syncResponse);
         }
       } catch (syncError) {
-        console.warn('JazzHR sync failed, but job saved locally:', syncError);
-        
-        // Don't mark as synced if there was an exception
-        await supabase
-          .from('jobs')
-          .update({ 
-            synced_to_jobadder: false,
-            jobadder_job_id: null
-          })
-          .eq('id', localJob.id);
+        console.warn('JazzHR sync failed with exception:', syncError);
       }
       
       toast({
