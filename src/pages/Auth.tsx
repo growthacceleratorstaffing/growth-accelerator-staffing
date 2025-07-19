@@ -176,7 +176,7 @@ export default function Auth() {
                             <Input
                               id="signin-email"
                               type="email"
-                              placeholder="Enter your JazzHR email"
+                              placeholder="Enter your email"
                               value={signInEmail}
                               onChange={(e) => setSignInEmail(e.target.value)}
                               required
@@ -231,11 +231,11 @@ export default function Auth() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="signup-email">JazzHR Email</Label>
+                            <Label htmlFor="signup-email">Email</Label>
                             <Input
                               id="signup-email"
                               type="email"
-                              placeholder="Enter your JazzHR email"
+                              placeholder="Enter your email"
                               value={signUpEmail}
                               onChange={(e) => setSignUpEmail(e.target.value)}
                               required
