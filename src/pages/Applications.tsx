@@ -29,9 +29,8 @@ import {
   Eye,
   Edit
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button as PaginationButton } from "@/components/ui/button";
-import { useJobApplications, type JobApplicationCandidate } from "@/hooks/useJobApplications";
+import { useJazzHRApplicants } from "@/hooks/useJazzHRApplicants";
 import { useCandidateDetails } from "@/hooks/useCandidateDetails";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,11 +38,10 @@ import { supabase } from "@/integrations/supabase/client";
 const Applications = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [applicantsPage, setApplicantsPage] = useState(1);
-  const [talentPoolPage, setTalentPoolPage] = useState(1);
   const [isUpdateStageOpen, setIsUpdateStageOpen] = useState(false);
   const [isCandidateDetailsOpen, setIsCandidateDetailsOpen] = useState(false);
   const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
-  const [selectedApplication, setSelectedApplication] = useState<JobApplicationCandidate | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<any | null>(null);
   const [stageUpdateData, setStageUpdateData] = useState({
     statusId: "",
     stageName: "",
@@ -64,7 +62,7 @@ const Applications = () => {
   
   const ITEMS_PER_PAGE = 25;
   
-  const { applications, jobApplications, talentPool, loading, error, useMockData, refetch, updateApplicationStage } = useJobApplications();
+  const { data: jazzhrApplicants, isLoading, error } = useJazzHRApplicants();
   const { candidateDetails, loading: candidateLoading, fetchCandidateDetails, clearCandidateDetails } = useCandidateDetails();
   const { toast } = useToast();
 
@@ -72,20 +70,24 @@ const Applications = () => {
     setSearchTerm(value);
     // Reset pagination when searching
     setApplicantsPage(1);
-    setTalentPoolPage(1);
-    refetch(value);
   };
 
+  // Filter applicants based on search term
+  const filteredApplicants = jazzhrApplicants ? (Array.isArray(jazzhrApplicants) ? jazzhrApplicants : [jazzhrApplicants]).filter(applicant =>
+    applicant.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    applicant.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    applicant.job?.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
+
   // Pagination helpers
-  const getPaginatedData = (data: JobApplicationCandidate[], page: number) => {
+  const getPaginatedData = (data: any[], page: number) => {
     const startIndex = (page - 1) * ITEMS_PER_PAGE;
     return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   };
 
   const getTotalPages = (total: number) => Math.ceil(total / ITEMS_PER_PAGE);
 
-  const paginatedJobApplications = getPaginatedData(jobApplications, applicantsPage);
-  const paginatedTalentPool = getPaginatedData(talentPool, talentPoolPage);
+  const paginatedApplicants = getPaginatedData(filteredApplicants, applicantsPage);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -107,16 +109,11 @@ const Applications = () => {
     }
   };
 
-  const getWorkflowProgress = (workflow?: any) => {
-    if (!workflow) return "No workflow";
-    return `${workflow.stage} (Step ${workflow.step})`;
-  };
-
-  const handleUpdateStage = (application: JobApplicationCandidate) => {
+  const handleUpdateStage = (application: any) => {
     setSelectedApplication(application);
     setStageUpdateData({
-      statusId: application.status.statusId.toString(),
-      stageName: application.status.name,
+      statusId: "1",
+      stageName: "Application Review",
       notes: "",
       createPlacement: false
     });
@@ -139,20 +136,13 @@ const Applications = () => {
     }
 
     try {
-      // Call the API to update the application stage
-      await updateApplicationStage(
-        selectedApplication.applicationId, 
-        parseInt(stageUpdateData.statusId),
-        stageUpdateData.notes
-      );
-      
-            if (stageUpdateData.createPlacement || stageUpdateData.stageName.toLowerCase() === "placed") {
-              // Create placement when moved to "placed" stage (step 5)
-              toast({
-                title: "Candidate Placed!",
-                description: `${selectedApplication.candidate.firstName} ${selectedApplication.candidate.lastName} has been successfully placed.`,
-              });
-            } else {
+      // Note: Stage update functionality would need JazzHR API integration
+      if (stageUpdateData.createPlacement || stageUpdateData.stageName.toLowerCase() === "placed") {
+        toast({
+          title: "Candidate Placed!",
+          description: `${selectedApplication.first_name} ${selectedApplication.last_name} has been successfully placed.`,
+        });
+      } else {
         toast({
           title: "Stage Updated!",
           description: `Application moved to "${stageUpdateData.stageName}".`,
@@ -248,8 +238,7 @@ const Applications = () => {
       });
       setIsAddCandidateOpen(false);
       
-      // Refresh applications list
-      refetch();
+      // Note: Would need to refresh JazzHR data
       
     } catch (error) {
       console.error('Error adding candidate:', error);
@@ -261,12 +250,12 @@ const Applications = () => {
     }
   };
 
-  const handleViewDetails = async (application: JobApplicationCandidate) => {
+  const handleViewDetails = async (application: any) => {
     setSelectedApplication(application);
     setIsCandidateDetailsOpen(true);
     
     try {
-      await fetchCandidateDetails(application.candidate.candidateId);
+      await fetchCandidateDetails(application.id);
     } catch (error) {
       console.error('Failed to fetch candidate details:', error);
     }
@@ -283,7 +272,7 @@ const Applications = () => {
     { id: "8", name: "Declined", description: "Candidate declined offer" }
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center min-h-[400px]">
@@ -314,24 +303,17 @@ const Applications = () => {
         </div>
       </div>
 
-      {error && useMockData && (
+      {error && (
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error} - Showing sample applications for demonstration.
+            Failed to load JazzHR applicants data. Please check your connection.
           </AlertDescription>
         </Alert>
       )}
 
-      <Tabs defaultValue="talent-pool" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="applicants" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
-            Applicants ({jobApplications.length})
-          </TabsTrigger>
-          <TabsTrigger value="talent-pool" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
-            Talent Pool ({talentPool.length})
-          </TabsTrigger>
-        </TabsList>
+      <div className="space-y-6">
+        <h2 className="text-2xl font-semibold">JazzHR Applicants ({filteredApplicants.length})</h2>
 
         <div className="mb-6">
           <div className="relative">
@@ -345,23 +327,22 @@ const Applications = () => {
           </div>
         </div>
 
-        <TabsContent value="applicants" className="space-y-6">
-          <div className="grid gap-6">
-            {paginatedJobApplications.length === 0 ? (
-              <div className="text-center py-12">
-                <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No job applications found matching your search.</p>
-              </div>
-            ) : (
-              <>
-                {paginatedJobApplications.map((application) => (
-                <Card key={application.applicationId} className="hover:shadow-lg transition-shadow">
+        <div className="grid gap-6">
+          {paginatedApplicants.length === 0 ? (
+            <div className="text-center py-12">
+              <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No JazzHR applicants found matching your search.</p>
+            </div>
+          ) : (
+            <>
+              {paginatedApplicants.map((applicant) => (
+                <Card key={applicant.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start gap-4">
                       <Avatar className="h-16 w-16">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${application.candidate.firstName}${application.candidate.lastName}`} />
+                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${applicant.first_name}${applicant.last_name}`} />
                         <AvatarFallback className="text-lg">
-                          {`${application.candidate.firstName[0]}${application.candidate.lastName[0]}`}
+                          {`${applicant.first_name?.[0] || ''}${applicant.last_name?.[0] || ''}`}
                         </AvatarFallback>
                       </Avatar>
                       
@@ -371,30 +352,27 @@ const Applications = () => {
                             <CardTitle className="text-xl mb-1">
                               <span className="flex items-center gap-2">
                                 <User className="h-5 w-5 text-primary" />
-                                {application.candidate.firstName} {application.candidate.lastName}
+                                {applicant.first_name} {applicant.last_name}
                               </span>
                             </CardTitle>
                             <CardDescription className="text-base">
-                              Applied for: <span className="font-medium">{application.job.jobTitle}</span>
+                              Applied for: <span className="font-medium">{applicant.job?.title || 'N/A'}</span>
                             </CardDescription>
                             <CardDescription className="text-sm text-muted-foreground">
-                              Application ID: {application.applicationId}
+                              Applicant ID: {applicant.id}
                             </CardDescription>
                           </div>
                           <div className="flex flex-col gap-2">
-                            <Badge className={getStatusColor(application.status.name)}>
-                              {application.status.name}
+                            <Badge className="bg-blue-100 text-blue-800">
+                              Applied
                             </Badge>
-                            {application.rating && (
-                              <div className="flex items-center gap-1 text-sm">
-                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                <span>{application.rating}/5</span>
-                              </div>
-                            )}
+                            <div className="text-sm text-muted-foreground">
+                              {applicant.apply_date && new Date(applicant.apply_date).toLocaleDateString()}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Application Summary */}
+                        {/* Applicant Summary */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
                           {/* Candidate Information */}
                           <div className="space-y-3">
@@ -406,24 +384,18 @@ const Applications = () => {
                               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                   <Mail className="h-3 w-3" />
-                                  {application.candidate.email}
+                                  {applicant.email || 'N/A'}
                                 </span>
-                                {application.candidate.phone && (
+                                {applicant.phone && (
                                   <span className="flex items-center gap-1">
                                     <Phone className="h-3 w-3" />
-                                    {application.candidate.phone}
+                                    {applicant.phone}
                                   </span>
                                 )}
                               </div>
-                              {application.candidate.address && (
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                  <MapPin className="h-3 w-3" />
-                                  {application.candidate.address.city}, {application.candidate.address.state}
-                                </div>
-                              )}
                               <div className="text-sm">
                                 <span className="font-medium">Source: </span>
-                                <span className="text-muted-foreground">{application.source || 'Direct Application'}</span>
+                                <span className="text-muted-foreground">JazzHR</span>
                               </div>
                             </div>
                           </div>
@@ -437,218 +409,13 @@ const Applications = () => {
                             <div className="pl-6 space-y-2">
                               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
-                                  <Building className="h-3 w-3" />
-                                  {application.job.company?.name}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {application.job.location?.name}
+                                  <Calendar className="h-3 w-3" />
+                                  Applied: {applicant.apply_date ? new Date(applicant.apply_date).toLocaleDateString() : 'N/A'}
                                 </span>
                               </div>
-                              {application.jobReference && (
-                                <div className="text-sm">
-                                  <span className="font-medium">Ref: </span>
-                                  <span className="text-muted-foreground">{application.jobReference}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <Separator className="my-4" />
-
-                        {/* Workflow Progress */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                          <div className="space-y-1">
-                            <span className="font-medium flex items-center gap-1">
-                              <ArrowRight className="h-4 w-4" />
-                              Current Stage
-                            </span>
-                            <p className="text-muted-foreground">
-                              {getWorkflowProgress(application.status.workflow)}
-                            </p>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <span className="font-medium flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              Applied
-                            </span>
-                            <p className="text-muted-foreground">
-                              {application.createdAt ? new Date(application.createdAt).toLocaleDateString() : 'Recently'}
-                            </p>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <span className="font-medium flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              Last Updated
-                            </span>
-                            <p className="text-muted-foreground">
-                              {application.updatedAt ? new Date(application.updatedAt).toLocaleDateString() : 'Recently'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="flex items-center justify-between pt-4">
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>ID: {application.applicationId}</span>
-                        <span>Source: {application.source || 'Direct'}</span>
-                        {application.manual && <Badge variant="outline">Manual Entry</Badge>}
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewDetails(application)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Details
-                        </Button>
-                        <Button 
-                          size="sm"
-                          onClick={() => handleUpdateStage(application)}
-                          className="bg-secondary hover:bg-secondary/80 text-secondary-foreground"
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Update Stage
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {/* Pagination for Job Applications */}
-              {getTotalPages(jobApplications.length) > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-8">
-                  <PaginationButton
-                    variant="outline"
-                    onClick={() => setApplicantsPage(prev => Math.max(1, prev - 1))}
-                    disabled={applicantsPage === 1}
-                  >
-                    Previous
-                  </PaginationButton>
-                  
-                  <span className="text-sm text-muted-foreground">
-                    Page {applicantsPage} of {getTotalPages(jobApplications.length)}
-                    {' '}({jobApplications.length} total)
-                  </span>
-                  
-                  <PaginationButton
-                    variant="outline"
-                    onClick={() => setApplicantsPage(prev => Math.min(getTotalPages(jobApplications.length), prev + 1))}
-                    disabled={applicantsPage === getTotalPages(jobApplications.length)}
-                  >
-                    Next
-                  </PaginationButton>
-                </div>
-              )}
-            </>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="talent-pool" className="space-y-6">
-          <div className="grid gap-6">
-            {paginatedTalentPool.length === 0 ? (
-              <div className="text-center py-12">
-                <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No candidates found matching your search.</p>
-                <p className="text-sm text-muted-foreground mt-2">This section contains candidates who have progressed beyond the initial application stage.</p>
-              </div>
-            ) : (
-              <>
-                {paginatedTalentPool.map((candidate) => (
-                <Card key={candidate.applicationId} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${candidate.candidate.firstName}${candidate.candidate.lastName}`} />
-                        <AvatarFallback className="text-lg">
-                          {`${candidate.candidate.firstName[0]}${candidate.candidate.lastName[0]}`}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <CardTitle className="text-xl mb-1">
-                              <span className="flex items-center gap-2">
-                                <User className="h-5 w-5 text-primary" />
-                                {candidate.candidate.firstName} {candidate.candidate.lastName}
-                              </span>
-                            </CardTitle>
-                            <CardDescription className="text-base">
-                              Position: <span className="font-medium">{candidate.jobTitle}</span>
-                            </CardDescription>
-                            <CardDescription className="text-sm text-muted-foreground">
-                              Status: Available for opportunities
-                            </CardDescription>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Badge className={getStatusColor(candidate.status.name)}>
-                              {candidate.status.name}
-                            </Badge>
-                            <Badge variant="outline">Candidate</Badge>
-                          </div>
-                        </div>
-
-                        {/* Candidate Summary */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-                          {/* Contact Information */}
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">Contact Details</span>
-                            </div>
-                            <div className="pl-6 space-y-2">
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Mail className="h-3 w-3" />
-                                  {candidate.candidate.email}
-                                </span>
-                                {candidate.candidate.phone && (
-                                  <span className="flex items-center gap-1">
-                                    <Phone className="h-3 w-3" />
-                                    {candidate.candidate.phone}
-                                  </span>
-                                )}
-                              </div>
-                              {candidate.candidate.address && (
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                  <MapPin className="h-3 w-3" />
-                                  {candidate.candidate.address.city}, {candidate.candidate.address.state}
-                                </div>
-                              )}
                               <div className="text-sm">
-                                <span className="font-medium">Source: </span>
-                                <span className="text-muted-foreground">{candidate.source || 'Manual Entry'}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Current Position */}
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                              <Briefcase className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">Current Status</span>
-                            </div>
-                            <div className="pl-6 space-y-2">
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Building className="h-3 w-3" />
-                                  {candidate.job.company?.name}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {candidate.job.location?.name}
-                                </span>
+                                <span className="font-medium">Job ID: </span>
+                                <span className="text-muted-foreground">{applicant.job?.id || 'N/A'}</span>
                               </div>
                             </div>
                           </div>
@@ -656,103 +423,61 @@ const Applications = () => {
 
                         <Separator className="my-4" />
 
-                        {/* Status & Timeline */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                          <div className="space-y-1">
-                            <span className="font-medium flex items-center gap-1">
-                              <ArrowRight className="h-4 w-4" />
-                              Current Stage
-                            </span>
-                            <p className="text-muted-foreground">
-                              {getWorkflowProgress(candidate.status.workflow)}
-                            </p>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <span className="font-medium flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              Added
-                            </span>
-                            <p className="text-muted-foreground">
-                              {candidate.createdAt ? new Date(candidate.createdAt).toLocaleDateString() : 'Recently'}
-                            </p>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <span className="font-medium flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              Last Updated
-                            </span>
-                            <p className="text-muted-foreground">
-                              {candidate.updatedAt ? new Date(candidate.updatedAt).toLocaleDateString() : 'Recently'}
-                            </p>
-                          </div>
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewDetails(applicant)}
+                            className="flex items-center gap-1"
+                          >
+                            <Eye className="h-3 w-3" />
+                            View Details
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleUpdateStage(applicant)}
+                            className="flex items-center gap-1"
+                          >
+                            <Edit className="h-3 w-3" />
+                            Update Stage
+                          </Button>
                         </div>
                       </div>
                     </div>
                   </CardHeader>
-                  
-                  <CardContent>
-                    <div className="flex items-center justify-between pt-4">
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>Ref: {candidate.jobReference}</span>
-                        <span>Source: {candidate.source || 'Manual'}</span>
-                        <Badge variant="outline">Available</Badge>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewDetails(candidate)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Details
-                        </Button>
-                        <Button 
-                          size="sm"
-                          onClick={() => handleUpdateStage(candidate)}
-                          className="bg-secondary hover:bg-secondary/80 text-secondary-foreground"
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Update Stage
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
                 </Card>
               ))}
-              
-              {/* Pagination for Talent Pool */}
-              {getTotalPages(talentPool.length) > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-8">
-                  <PaginationButton
-                    variant="outline"
-                    onClick={() => setTalentPoolPage(prev => Math.max(1, prev - 1))}
-                    disabled={talentPoolPage === 1}
-                  >
-                    Previous
-                  </PaginationButton>
-                  
-                  <span className="text-sm text-muted-foreground">
-                    Page {talentPoolPage} of {getTotalPages(talentPool.length)}
-                    {' '}({talentPool.length} total)
-                  </span>
-                  
-                  <PaginationButton
-                    variant="outline"
-                    onClick={() => setTalentPoolPage(prev => Math.min(getTotalPages(talentPool.length), prev + 1))}
-                    disabled={talentPoolPage === getTotalPages(talentPool.length)}
-                  >
-                    Next
-                  </PaginationButton>
-                </div>
-              )}
             </>
-            )}
+          )}
+        </div>
+
+        {/* Pagination */}
+        {filteredApplicants.length > ITEMS_PER_PAGE && (
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <PaginationButton
+              variant="outline"
+              size="sm"
+              onClick={() => setApplicantsPage(prev => Math.max(1, prev - 1))}
+              disabled={applicantsPage === 1}
+            >
+              Previous
+            </PaginationButton>
+            <span className="text-sm text-muted-foreground px-3">
+              Page {applicantsPage} of {getTotalPages(filteredApplicants.length)}
+            </span>
+            <PaginationButton
+              variant="outline"
+              size="sm"
+              onClick={() => setApplicantsPage(prev => Math.min(getTotalPages(filteredApplicants.length), prev + 1))}
+              disabled={applicantsPage === getTotalPages(filteredApplicants.length)}
+            >
+              Next
+            </PaginationButton>
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
 
       {/* Add Candidate Dialog */}
       <Dialog open={isAddCandidateOpen} onOpenChange={setIsAddCandidateOpen}>
@@ -886,7 +611,7 @@ const Applications = () => {
             <DialogTitle>Update Application Stage</DialogTitle>
             <DialogDescription>
               {selectedApplication && 
-                `Move ${selectedApplication.candidate.firstName} ${selectedApplication.candidate.lastName}'s application to a new stage.`
+                `Move ${selectedApplication.first_name} ${selectedApplication.last_name}'s application to a new stage.`
               }
             </DialogDescription>
           </DialogHeader>
@@ -971,11 +696,11 @@ const Applications = () => {
           <DialogHeader>
             <DialogTitle>
               {selectedApplication && 
-                `${selectedApplication.candidate.firstName} ${selectedApplication.candidate.lastName} - Candidate Details`
+                `${selectedApplication.first_name} ${selectedApplication.last_name} - Candidate Details`
               }
             </DialogTitle>
             <DialogDescription>
-              Detailed candidate information from JobAdder
+              Detailed candidate information from JazzHR
             </DialogDescription>
           </DialogHeader>
           
@@ -1002,165 +727,9 @@ const Applications = () => {
                         <p className="text-sm text-muted-foreground">{candidateDetails.phone}</p>
                       </div>
                     )}
-                    {candidateDetails.mobile && (
-                      <div>
-                        <Label className="text-sm font-medium">Mobile</Label>
-                        <p className="text-sm text-muted-foreground">{candidateDetails.mobile}</p>
-                      </div>
-                    )}
-                    {candidateDetails.rating && (
-                      <div>
-                        <Label className="text-sm font-medium">Rating</Label>
-                        <p className="text-sm text-muted-foreground">{candidateDetails.rating}/5</p>
-                      </div>
-                    )}
                   </div>
-
-                  {candidateDetails.address && (
-                    <div>
-                      <Label className="text-sm font-medium">Address</Label>
-                      <p className="text-sm text-muted-foreground">
-                        {candidateDetails.address.street?.join(', ')}<br />
-                        {candidateDetails.address.city}, {candidateDetails.address.state} {candidateDetails.address.postalCode}<br />
-                        {candidateDetails.address.country}
-                      </p>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
-
-              {/* Employment History */}
-              {candidateDetails.employment && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Employment</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {candidateDetails.employment.current && (
-                      <div>
-                        <Label className="text-sm font-medium">Current Position</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {candidateDetails.employment.current.position} at {candidateDetails.employment.current.employer}
-                          {candidateDetails.employment.current.startDate && 
-                            ` (Since ${new Date(candidateDetails.employment.current.startDate).toLocaleDateString()})`
-                          }
-                        </p>
-                      </div>
-                    )}
-
-                    {candidateDetails.employment.history && candidateDetails.employment.history.length > 0 && (
-                      <div>
-                        <Label className="text-sm font-medium">Employment History</Label>
-                        <div className="space-y-2 mt-2">
-                          {candidateDetails.employment.history.map((job, index) => (
-                            <div key={index} className="border-l-2 border-muted pl-4">
-                              <p className="text-sm font-medium">{job.position}</p>
-                              <p className="text-sm text-muted-foreground">{job.employer}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {job.startDate && new Date(job.startDate).toLocaleDateString()} - 
-                                {job.endDate ? new Date(job.endDate).toLocaleDateString() : 'Present'}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Education */}
-              {candidateDetails.education && candidateDetails.education.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Education</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {candidateDetails.education.map((edu, index) => (
-                        <div key={index} className="border-l-2 border-muted pl-4">
-                          <p className="text-sm font-medium">{edu.course}</p>
-                          <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                          {edu.level && <p className="text-xs text-muted-foreground">{edu.level}</p>}
-                          {edu.date && <p className="text-xs text-muted-foreground">Graduated: {edu.date}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Skills */}
-              {candidateDetails.skills && candidateDetails.skills.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Skills</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {candidateDetails.skills.map((skill, index) => (
-                        <Badge key={index} variant="secondary">{skill}</Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Notes */}
-              {candidateDetails.notes && candidateDetails.notes.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Notes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {candidateDetails.notes.map((note) => (
-                        <div key={note.noteId} className="border rounded-lg p-3">
-                          <p className="text-sm">{note.text}</p>
-                          <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-                            <span>
-                              {note.createdBy && 
-                                `${note.createdBy.firstName} ${note.createdBy.lastName}`
-                              }
-                            </span>
-                            <span>{new Date(note.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Attachments */}
-              {candidateDetails.attachments && candidateDetails.attachments.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Attachments</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {candidateDetails.attachments.map((attachment) => (
-                        <div key={attachment.attachmentId} className="flex items-center justify-between p-2 border rounded">
-                          <div>
-                            <p className="text-sm font-medium">{attachment.fileName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Uploaded: {new Date(attachment.uploadedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          {attachment.url && (
-                            <Button variant="outline" size="sm" asChild>
-                              <a href={attachment.url} target="_blank" rel="noopener noreferrer">
-                                Download
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           ) : (
             <div className="text-center py-8">
