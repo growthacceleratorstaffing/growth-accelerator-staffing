@@ -33,7 +33,7 @@ serve(async (req) => {
     
     console.log('Using JazzHR API key from Supabase secrets:', apiKey.substring(0, 8) + '...')
 
-    const baseUrl = 'https://www.resumatorapi.com/v1'
+    const baseUrl = 'https://api.resumatorapi.com/v1'
     
     switch (action) {
       case 'testConnection':
@@ -81,14 +81,14 @@ serve(async (req) => {
 })
 
 async function makeJazzHRRequest(url: string, apiKey: string, method = 'GET', body?: any) {
-  // JazzHR API expects the API key as a query parameter
-  const separator = url.includes('?') ? '&' : '?'
-  const requestUrl = `${url}${separator}apikey=${apiKey}`
-  
+  // JazzHR API now uses Bearer token authentication with api.resumatorapi.com
   const options: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'Accept': 'application/json',
+      'User-Agent': 'Lovable-JazzHR-Integration/1.0'
     }
   }
   
@@ -96,9 +96,9 @@ async function makeJazzHRRequest(url: string, apiKey: string, method = 'GET', bo
     options.body = JSON.stringify(body)
   }
   
-  console.log(`Making JazzHR API call: ${method} ${requestUrl}`)
+  console.log(`Making JazzHR API call: ${method} ${url}`)
   
-  const response = await fetch(requestUrl, options)
+  const response = await fetch(url, options)
   
   if (!response.ok) {
     const errorText = await response.text()
@@ -107,7 +107,7 @@ async function makeJazzHRRequest(url: string, apiKey: string, method = 'GET', bo
   }
   
   const responseText = await response.text()
-  console.log(`JazzHR API response: ${responseText}`)
+  console.log(`JazzHR API response (first 500 chars): ${responseText.substring(0, 500)}`)
   
   try {
     return JSON.parse(responseText)
@@ -123,29 +123,34 @@ async function handleTestConnection(apiKey: string) {
     
     // Try different potential API endpoints and URL structures
     const testEndpoints = [
-      // Original endpoint structure
+      // Current API structure with Bearer token
+      'https://api.resumatorapi.com/v1/jobs',
+      'https://api.resumatorapi.com/v1/applicants',
+      'https://api.resumatorapi.com/v1/users',
+      // Legacy endpoints for fallback
       `https://www.resumatorapi.com/v1/jobs?apikey=${apiKey}`,
-      // Alternative endpoint structures that might work
-      `https://app.jazz.co/api/jobs?apikey=${apiKey}`,
-      `https://api.jazz.co/v1/jobs?apikey=${apiKey}`,
       `https://www.resumatorapi.com/v1/users?apikey=${apiKey}`,
-      // Test with different parameter names
-      `https://www.resumatorapi.com/v1/jobs?api_key=${apiKey}`,
-      `https://www.resumatorapi.com/v1/jobs?key=${apiKey}`,
     ];
     
     for (const requestUrl of testEndpoints) {
       try {
-        const cleanUrl = requestUrl.replace(apiKey, 'API_KEY_HIDDEN');
+        const cleanUrl = requestUrl.includes('apikey=') ? requestUrl.replace(apiKey, 'API_KEY_HIDDEN') : requestUrl;
         console.log(`Testing endpoint: ${cleanUrl}`);
+        
+        const headers: HeadersInit = {
+          'Accept': 'application/json',
+          'User-Agent': 'Lovable-JazzHR-Integration/1.0',
+          'Content-Type': 'application/json'
+        };
+        
+        // Use Bearer token for api.resumatorapi.com endpoints
+        if (requestUrl.includes('api.resumatorapi.com')) {
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
         
         const response = await fetch(requestUrl, {
           method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Lovable-JazzHR-Integration/1.0',
-            'Content-Type': 'application/json'
-          }
+          headers
         });
         
         console.log(`Response status for ${cleanUrl}: ${response.status}`);
@@ -165,7 +170,7 @@ async function handleTestConnection(apiKey: string) {
             JSON.stringify({ 
               success: true, 
               message: `JazzHR API connection successful! Working endpoint found.`,
-              endpoint: requestUrl.replace(apiKey, 'API_KEY_HIDDEN'),
+              endpoint: cleanUrl,
               statusCode: response.status,
               dataType: typeof data,
               jobCount: Array.isArray(data) ? data.length : (data ? Object.keys(data).length : 0)
@@ -226,12 +231,11 @@ async function handleGetJobs(apiKey: string, params: any) {
   try {
     console.log('handleGetJobs called with params:', params);
     
-    // According to JazzHR docs, the correct endpoint is /jobs
-    let url = 'https://www.resumatorapi.com/v1/jobs';
+    // Use the updated API endpoint
+    let url = 'https://api.resumatorapi.com/v1/jobs';
     
     // Add query parameters if provided
     const queryParams = new URLSearchParams();
-    queryParams.append('apikey', apiKey);
     
     if (params?.title) queryParams.append('title', params.title);
     if (params?.department) queryParams.append('department', params.department);
@@ -239,50 +243,13 @@ async function handleGetJobs(apiKey: string, params: any) {
     if (params?.city) queryParams.append('city', params.city);
     if (params?.state) queryParams.append('state', params.state);
     
-    const requestUrl = `${url}?${queryParams.toString()}`;
-    console.log(`Fetching jobs from: ${requestUrl.replace(apiKey, 'API_KEY_HIDDEN')}`);
-    
-    const response = await fetch(requestUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Lovable-JazzHR-Integration/1.0'
-      }
-    });
-    
-    console.log(`Jobs API response status: ${response.status}`);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Jobs API error: ${response.status} - ${errorText}`);
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          message: `Failed to fetch jobs: ${response.status} ${response.statusText}`,
-          error: errorText
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (queryParams.toString()) {
+      url += `?${queryParams.toString()}`;
     }
     
-    const responseText = await response.text();
-    console.log(`Jobs API response (first 300 chars): ${responseText.substring(0, 300)}`);
+    console.log(`Fetching jobs from: ${url}`);
     
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error('Failed to parse jobs response as JSON');
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          message: 'Invalid JSON response from JazzHR jobs API',
-          error: 'Parse error'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const data = await makeJazzHRRequest(url, apiKey);
     
     console.log(`Successfully fetched ${Array.isArray(data) ? data.length : 1} jobs`);
     
@@ -308,7 +275,7 @@ async function handleGetJob(apiKey: string, params: any) {
     throw new Error('job_id is required')
   }
   
-  const url = `https://www.resumatorapi.com/v1/jobs/${params.job_id}`
+  const url = `https://api.resumatorapi.com/v1/jobs/${params.job_id}`
   const data = await makeJazzHRRequest(url, apiKey)
   
   return new Response(
@@ -322,7 +289,7 @@ async function handleCreateJob(apiKey: string, params: any) {
     throw new Error('title, hiring_lead_id, description, and workflow_id are required')
   }
   
-  const url = 'https://www.resumatorapi.com/v1/jobs'
+  const url = 'https://api.resumatorapi.com/v1/jobs'
   const data = await makeJazzHRRequest(url, apiKey, 'POST', params)
   
   return new Response(
@@ -335,11 +302,10 @@ async function handleGetApplicants(apiKey: string, params: any) {
   try {
     console.log('handleGetApplicants called with params:', params);
     
-    const baseUrl = 'https://www.resumatorapi.com/v1/applicants';
+    let url = 'https://api.resumatorapi.com/v1/applicants';
     
     // Add query parameters if provided
     const queryParams = new URLSearchParams();
-    queryParams.append('apikey', apiKey);
     
     if (params?.name) queryParams.append('name', params.name);
     if (params?.job_id) queryParams.append('job_id', params.job_id);
@@ -349,50 +315,13 @@ async function handleGetApplicants(apiKey: string, params: any) {
     if (params?.from_apply_date) queryParams.append('from_apply_date', params.from_apply_date);
     if (params?.to_apply_date) queryParams.append('to_apply_date', params.to_apply_date);
     
-    const requestUrl = `${baseUrl}?${queryParams.toString()}`;
-    console.log(`Fetching applicants from: ${requestUrl.replace(apiKey, 'API_KEY_HIDDEN')}`);
-    
-    const response = await fetch(requestUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Lovable-JazzHR-Integration/1.0'
-      }
-    });
-    
-    console.log(`Applicants API response status: ${response.status}`);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Applicants API error: ${response.status} - ${errorText}`);
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          message: `Failed to fetch applicants: ${response.status} ${response.statusText}`,
-          error: errorText
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (queryParams.toString()) {
+      url += `?${queryParams.toString()}`;
     }
     
-    const responseText = await response.text();
-    console.log(`Applicants API response (first 300 chars): ${responseText.substring(0, 300)}`);
+    console.log(`Fetching applicants from: ${url}`);
     
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error('Failed to parse applicants response as JSON');
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          message: 'Invalid JSON response from JazzHR applicants API',
-          error: 'Parse error'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const data = await makeJazzHRRequest(url, apiKey);
     
     console.log(`Successfully fetched ${Array.isArray(data) ? data.length : 1} applicants`);
     
@@ -418,7 +347,7 @@ async function handleGetApplicant(apiKey: string, params: any) {
     throw new Error('applicant_id is required')
   }
   
-  const url = `https://www.resumatorapi.com/v1/applicants/${params.applicant_id}`
+  const url = `https://api.resumatorapi.com/v1/applicants/${params.applicant_id}`
   const data = await makeJazzHRRequest(url, apiKey)
   
   return new Response(
@@ -432,7 +361,7 @@ async function handleCreateApplicant(apiKey: string, params: any) {
     throw new Error('first_name, last_name, and email are required')
   }
   
-  const url = 'https://www.resumatorapi.com/v1/applicants'
+  const url = 'https://api.resumatorapi.com/v1/applicants'
   const data = await makeJazzHRRequest(url, apiKey, 'POST', params)
   
   return new Response(
@@ -442,7 +371,7 @@ async function handleCreateApplicant(apiKey: string, params: any) {
 }
 
 async function handleGetUsers(apiKey: string, params: any) {
-  const url = 'https://www.resumatorapi.com/v1/users'
+  const url = 'https://api.resumatorapi.com/v1/users'
   const data = await makeJazzHRRequest(url, apiKey)
   
   return new Response(
@@ -452,7 +381,7 @@ async function handleGetUsers(apiKey: string, params: any) {
 }
 
 async function handleGetActivities(apiKey: string, params: any) {
-  const baseUrl = 'https://www.resumatorapi.com/v1/activities'
+  const baseUrl = 'https://api.resumatorapi.com/v1/activities'
   let url = baseUrl
   
   // Add query parameters if provided
@@ -478,7 +407,7 @@ async function handleCreateNote(apiKey: string, params: any) {
     throw new Error('applicant_id and contents are required')
   }
   
-  const url = 'https://www.resumatorapi.com/v1/notes'
+  const url = 'https://api.resumatorapi.com/v1/notes'
   const data = await makeJazzHRRequest(url, apiKey, 'POST', params)
   
   return new Response(
