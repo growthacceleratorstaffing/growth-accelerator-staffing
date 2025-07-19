@@ -119,6 +119,17 @@ const JobPosting = () => {
     return workTypeMap[workType] || "1";
   };
 
+  const getEmploymentType = (workTypeId: string) => {
+    const employmentTypeMap: { [key: string]: string } = {
+      "1": "Full Time",
+      "2": "Part Time", 
+      "3": "Contract",
+      "4": "Freelance",
+      "5": "Internship"
+    };
+    return employmentTypeMap[workTypeId] || "Full Time";
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -176,57 +187,43 @@ const JobPosting = () => {
 
       console.log('Job saved locally:', localJob);
 
-      // Try to sync to JobAdder API in the background (optional)
+      // Try to sync to JazzHR API in the background (optional)
       try {
-        const jobPayload = {
-          endpoint: 'create-job',
-          jobTitle: formData.jobTitle,
-          companyId: parseInt(formData.companyId),
-          contactId: formData.contactId ? parseInt(formData.contactId) : null,
-          jobDescription: formData.jobDescription,
-          location: {
-            locationId: parseInt(formData.locationId),
-            areaId: formData.areaId ? parseInt(formData.areaId) : null
-          },
-          workTypeId: parseInt(formData.workTypeId),
-          category: formData.categoryId ? {
-            categoryId: parseInt(formData.categoryId),
-            subCategoryId: formData.subCategoryId ? parseInt(formData.subCategoryId) : null
-          } : null,
-          salary: (formData.salaryRateLow || formData.salaryRateHigh) ? {
-            ratePer: formData.salaryRatePer,
-            rateLow: formData.salaryRateLow ? parseFloat(formData.salaryRateLow) : null,
-            rateHigh: formData.salaryRateHigh ? parseFloat(formData.salaryRateHigh) : null,
-            currency: formData.salaryCurrency
-          } : null,
-          skillTags: formData.skillTags ? {
-            matchAll: false,
-            tags: formData.skillTags.split(',').map(tag => tag.trim()).filter(Boolean)
-          } : null,
-          source: formData.source || 'Website',
-          numberOfJobs: 1
+        const jazzHRJobData = {
+          title: formData.jobTitle,
+          hiring_lead_id: formData.contactId || '1', // Default to user 1 if no contact specified
+          description: formData.jobDescription,
+          workflow_id: '1', // Default workflow
+          employment_type: getEmploymentType(formData.workTypeId),
+          department: formData.companyId,
+          city: formData.locationId, // This should be mapped to actual city name
+          state: formData.areaId, // This should be mapped to actual state
+          job_status: 'Open'
         };
 
-        const { data: jobAdderResponse, error: jobAdderError } = await supabase.functions.invoke('jobadder-api', {
-          body: jobPayload
+        const { data: jazzHRResponse, error: jazzHRError } = await supabase.functions.invoke('jazzhr-api', {
+          body: { 
+            action: 'createJob',
+            params: jazzHRJobData
+          }
         });
 
-        if (!jobAdderError && jobAdderResponse) {
+        if (!jazzHRError && jazzHRResponse) {
           // Update local job to mark as synced
           await supabase
             .from('jobs')
             .update({ 
-              synced_to_jobadder: true,
-              jobadder_job_id: jobAdderResponse.jobId?.toString() || null
+              synced_to_jobadder: true, // Keep the field name for compatibility
+              jobadder_job_id: jazzHRResponse.id?.toString() || null
             })
             .eq('id', localJob.id);
           
-          console.log('Job successfully synced to JobAdder');
+          console.log('Job successfully synced to JazzHR');
         } else {
-          console.warn('Failed to sync to JobAdder, but job saved locally:', jobAdderError);
+          console.warn('Failed to sync to JazzHR, but job saved locally:', jazzHRError);
         }
       } catch (syncError) {
-        console.warn('JobAdder sync failed, but job saved locally:', syncError);
+        console.warn('JazzHR sync failed, but job saved locally:', syncError);
       }
       
       toast({
@@ -271,7 +268,7 @@ const JobPosting = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Job Posting</h1>
-          <p className="text-muted-foreground mt-2">Create and post new job opportunities - automatically synced to JobAdder</p>
+          <p className="text-muted-foreground mt-2">Create and post new job opportunities - automatically synced to JazzHR</p>
         </div>
         <Button onClick={handleAddJob} className="flex items-center gap-2">
           Add job
@@ -326,7 +323,7 @@ const JobPosting = () => {
               </div>
               
               <div className="text-xs text-muted-foreground bg-primary/5 p-3 rounded-lg border border-primary/20">
-                <strong>✨ Bi-directional Sync:</strong> Jobs created here are automatically posted to JobAdder and will be visible in the Jobs section.
+                <strong>✨ Bi-directional Sync:</strong> Jobs created here are automatically posted to JazzHR and will be visible in the Jobs section.
               </div>
           </CardContent>
         </Card>

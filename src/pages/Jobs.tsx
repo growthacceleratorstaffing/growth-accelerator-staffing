@@ -111,7 +111,17 @@ const Jobs = () => {
                     )}
                     
                     <p className="text-sm text-muted-foreground line-clamp-3">
-                      {job.description}
+                      {job.description ? 
+                        job.description
+                          .replace(/<[^>]*>/g, '') // Remove HTML tags
+                          .replace(/&amp;/g, '&')  // Decode HTML entities
+                          .replace(/&lt;/g, '<')
+                          .replace(/&gt;/g, '>')
+                          .replace(/&quot;/g, '"')
+                          .replace(/&#39;/g, "'")
+                          .replace(/&nbsp;/g, ' ')
+                        : "No description available"
+                      }
                     </p>
                     
                     <div className="flex justify-between items-center pt-4">

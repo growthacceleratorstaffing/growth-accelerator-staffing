@@ -87,17 +87,27 @@ export function useJobApplication() {
 
       if (candidateError) {
         console.error('Failed to store candidate locally:', candidateError);
-        // Continue with JobAdder submission even if local storage fails
+        // Continue with JazzHR submission even if local storage fails
       }
 
-      // Step 2: Submit candidate and application to JobAdder
-      const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+      // Step 2: Submit candidate and application to JazzHR
+      const jazzHRApplicantData = {
+        first_name: applicationData.firstName,
+        last_name: applicationData.lastName,
+        email: applicationData.email,
+        phone: applicationData.phone || applicationData.mobile,
+        city: applicationData.address?.city,
+        state: applicationData.address?.state,
+        job: jobId,
+        coverletter: `Current Employment: ${applicationData.employment?.current?.employer || 'N/A'} - ${applicationData.employment?.current?.position || 'N/A'}`,
+        source: 'Website Application',
+        resumetext: `Education: ${applicationData.education?.[0]?.institution || 'N/A'} - ${applicationData.education?.[0]?.course || 'N/A'}`
+      };
+
+      const { data, error: supabaseError } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
-          endpoint: 'jobApplications',
-          method: 'POST',
-          boardId: 8734,
-          adId: jobId,
-          applicationData: applicationData
+          action: 'createApplicant',
+          params: jazzHRApplicantData
         }
       });
 
@@ -105,9 +115,12 @@ export function useJobApplication() {
         throw new Error(supabaseError.message);
       }
 
-      return data;
+      return {
+        applicationId: parseInt(data.id) || ++mockApplicationId,
+        links: {}
+      };
     } catch (apiError) {
-      console.warn('JobAdder API submission failed, using mock submission:', apiError);
+      console.warn('JazzHR API submission failed, using mock submission:', apiError);
       
       try {
         // Fallback to mock submission
@@ -122,7 +135,7 @@ export function useJobApplication() {
           }
         };
         
-        setError('Demo mode - Application recorded locally and in database');
+        setError('Demo mode - Application recorded locally and in database (JazzHR API not available)');
         return mockResponse;
       } catch (mockError) {
         setError('Failed to submit application');
