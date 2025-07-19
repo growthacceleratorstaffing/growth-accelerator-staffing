@@ -28,109 +28,52 @@ const Index = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch local jobs stats
-      const { data: localJobs, error: jobsError } = await supabase
+      // Fetch jobs (vacancies) data
+      const { data: jobs, error: jobsError } = await supabase
         .from('jobs')
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Fetch JazzHR jobs for complete picture
-      let jazzhrJobs = [];
-      try {
-        const { data: jazzhrData, error: jazzhrError } = await supabase.functions.invoke('jazzhr-api', {
-          body: { action: 'getJobs', params: {} }
-        });
-        
-        if (!jazzhrError && jazzhrData && Array.isArray(jazzhrData)) {
-          jazzhrJobs = jazzhrData;
-        }
-      } catch (jazzhrFetchError) {
-        console.warn('Could not fetch JazzHR jobs:', jazzhrFetchError);
-      }
-
-      // Fetch all candidates from candidates table
-      const { data: allCandidates, error: allCandidatesError } = await supabase
-        .from('candidates')
-        .select('*');
-
-      // Fetch recent candidates for display (limited to 5)
-      const { data: recentCandidatesData, error: recentCandidatesError } = await supabase
+      // Fetch candidates (applicants) data
+      const { data: candidates, error: candidatesError } = await supabase
         .from('candidates')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
+
+      // Fetch placements data
+      const { data: placements, error: placementsError } = await supabase
+        .from('local_placements')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       // Fetch candidate responses for applicant count
-      const { data: candidateResponsesData, error: candidateResponsesError } = await supabase
+      const { data: candidateResponses, error: responsesError } = await supabase
         .from('candidate_responses')
         .select('*');
 
-      // Fetch recent placements for matches
-      const { data: recentPlacementsData, error: placementsError } = await supabase
-        .from('local_placements')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(3);
+      if (!jobsError && jobs) {
+        // Update stats
+        setStats({
+          activeJobs: jobs.length,
+          totalCandidates: candidates?.length || 0,
+          totalApplicants: candidateResponses?.length || 0,
+          syncedJobs: jobs.filter(job => job.synced_to_jobadder).length
+        });
 
-      // Fetch top talent pool candidates (those with high completeness scores or passed interviews)
-      const { data: talentPoolData, error: talentPoolError } = await supabase
-        .from('candidates')
-        .select('*')
-        .or('profile_completeness_score.gte.80,interview_stage.eq.passed')
-        .order('profile_completeness_score', { ascending: false })
-        .limit(5);
-
-      // Combine local and JazzHR jobs for total count
-      const totalJobs = (localJobs?.length || 0) + jazzhrJobs.length;
-      const syncedJobs = localJobs?.filter(job => job.synced_to_jobadder).length || 0;
-
-      if (!jobsError) {
-        setStats(prev => ({
-          ...prev,
-          activeJobs: totalJobs,
-          syncedJobs: syncedJobs
-        }));
-
-        // Set recent jobs - combine local and JazzHR jobs
-        const allJobsForDisplay = [
-          ...(localJobs || []).map(job => ({
-            id: job.id,
-            title: job.title,
-            company: job.company_name || job.company_id || 'Unknown Company',
-            applications: 0, // TODO: Connect to applications table
-            posted: new Date(job.created_at).toLocaleDateString(),
-            synced: job.synced_to_jobadder,
-            source: 'local'
-          })),
-          ...jazzhrJobs.slice(0, 3).map(job => ({
-            id: job.id,
-            title: job.title,
-            company: job.department || 'JazzHR Company',
-            applications: 0, // Would need to fetch applicants for each job
-            posted: new Date(job.original_open_date || job.created_at || Date.now()).toLocaleDateString(),
-            synced: true,
-            source: 'jazzhr'
-          }))
-        ].slice(0, 5);
-
-        setRecentJobs(allJobsForDisplay);
+        // Set recent jobs (limit to 5 for display)
+        setRecentJobs(jobs.slice(0, 5).map(job => ({
+          id: job.id,
+          title: job.title,
+          company: job.company_name || 'Unknown Company',
+          applications: 0, // Could be enhanced to count actual applications
+          posted: new Date(job.created_at).toLocaleDateString(),
+          synced: job.synced_to_jobadder
+        })));
       }
 
-      // Calculate total candidates count from actual data
-      const totalCandidatesCount = allCandidates?.length || 0;
-      
-      // Calculate talent pool count from candidate responses or high-quality candidates
-      const talentPoolCount = candidateResponsesData?.length || talentPoolData?.length || 0;
-
-      setStats(prev => ({
-        ...prev,
-        totalCandidates: totalCandidatesCount,
-        totalApplicants: talentPoolCount
-      }));
-
-      // Set recent candidates for display
-      if (!recentCandidatesError && recentCandidatesData) {
-        setRecentCandidates(recentCandidatesData.map(candidate => ({
+      if (!candidatesError && candidates) {
+        // Set recent candidates (limit to 5 for display)
+        setRecentCandidates(candidates.slice(0, 5).map(candidate => ({
           id: candidate.id,
           name: candidate.name,
           title: candidate.current_position || 'No position specified',
@@ -138,9 +81,9 @@ const Index = () => {
         })));
       }
 
-      // Set recent matches from actual placements data
-      if (!placementsError && recentPlacementsData) {
-        setRecentMatches(recentPlacementsData.map(placement => ({
+      if (!placementsError && placements) {
+        // Set recent matches from placements (limit to 3 for display)
+        setRecentMatches(placements.slice(0, 3).map(placement => ({
           id: placement.id,
           candidate: placement.candidate_name,
           job: placement.job_title,
@@ -149,24 +92,26 @@ const Index = () => {
         })));
       }
 
-      // Set talent pool data
-      if (!talentPoolError && talentPoolData) {
-        setTalentPoolData(talentPoolData.map(candidate => ({
+      // Set talent pool data from candidates with interview stage 'completed' or 'passed'
+      if (!candidatesError && candidates) {
+        const talentPool = candidates
+          .filter(candidate => candidate.interview_stage === 'completed' || candidate.interview_stage === 'passed')
+          .slice(0, 5);
+        
+        setTalentPoolData(talentPool.map(candidate => ({
           id: candidate.id,
           name: candidate.name,
           role: candidate.current_position || 'No position specified',
           experience: candidate.experience_years ? `${candidate.experience_years} years` : 'Not specified',
-          availability: candidate.interview_stage === 'passed' ? 'Available' : 
-                      candidate.interview_stage === 'pending' ? 'In Process' : 'Available'
+          availability: candidate.interview_stage === 'completed' ? 'Available' : 'In Process'
         })));
       }
 
       console.log('Dashboard stats:', {
-        candidates: totalCandidatesCount,
-        talentPool: talentPoolCount,
-        jobs: totalJobs,
-        localJobs: localJobs?.length || 0,
-        jazzhrJobs: jazzhrJobs.length
+        jobs: jobs?.length || 0,
+        candidates: candidates?.length || 0,
+        placements: placements?.length || 0,
+        responses: candidateResponses?.length || 0
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
