@@ -294,14 +294,14 @@ const App = () => {
               </AppLayout>
             </ProtectedRoute>
           } />
-          <Route path="/jobs/:jobId" element={
+          <Route path="/job/:id" element={
             <ProtectedRoute requiredScope="read_job">
               <AppLayout>
                 <JobDetail />
               </AppLayout>
             </ProtectedRoute>
           } />
-          <Route path="/jobs/:jobId/apply" element={
+          <Route path="/job/:id/apply" element={
             <ProtectedRoute requiredScope="read_jobapplication">
               <AppLayout>
                 <ApplyJob />
