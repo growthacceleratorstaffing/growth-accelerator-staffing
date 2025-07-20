@@ -1102,6 +1102,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      user_can_access_job: {
+        Args: { _user_id: string; _job_id: string }
+        Returns: boolean
+      }
       validate_jazzhr_email: {
         Args: { email_to_check: string }
         Returns: boolean
