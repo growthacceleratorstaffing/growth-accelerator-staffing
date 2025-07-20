@@ -132,7 +132,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     try {
-      // First check if the email is allowed (exists in JazzHR users)
+      // First sync JazzHR users to ensure we have the latest data
+      console.log('Syncing JazzHR users before signup validation...');
+      try {
+        await supabase.functions.invoke('jazzhr-api', {
+          body: { action: 'syncUsers', params: {} }
+        });
+      } catch (syncError) {
+        console.warn('Failed to sync JazzHR users, proceeding with existing data:', syncError);
+      }
+
+      // Check if the email is allowed (exists in JazzHR users)
       const { data: emailValidation, error: validationError } = await supabase
         .rpc('validate_jazzhr_email', { email_to_check: email });
 
