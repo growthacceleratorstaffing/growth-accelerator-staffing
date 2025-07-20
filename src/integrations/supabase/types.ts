@@ -248,6 +248,156 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_companies: {
+        Row: {
+          company_data: Json | null
+          company_size: string | null
+          contact_count: number | null
+          created_at: string
+          crm_source: string
+          external_id: string | null
+          id: string
+          industry: string | null
+          last_activity_date: string | null
+          last_synced_at: string | null
+          location: string | null
+          name: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          company_data?: Json | null
+          company_size?: string | null
+          contact_count?: number | null
+          created_at?: string
+          crm_source: string
+          external_id?: string | null
+          id?: string
+          industry?: string | null
+          last_activity_date?: string | null
+          last_synced_at?: string | null
+          location?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          company_data?: Json | null
+          company_size?: string | null
+          contact_count?: number | null
+          created_at?: string
+          crm_source?: string
+          external_id?: string | null
+          id?: string
+          industry?: string | null
+          last_activity_date?: string | null
+          last_synced_at?: string | null
+          location?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      crm_contacts: {
+        Row: {
+          company: string | null
+          contact_data: Json | null
+          created_at: string
+          crm_source: string
+          email: string | null
+          external_id: string | null
+          id: string
+          last_contact_date: string | null
+          last_synced_at: string | null
+          name: string
+          phone: string | null
+          position: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          contact_data?: Json | null
+          created_at?: string
+          crm_source: string
+          email?: string | null
+          external_id?: string | null
+          id?: string
+          last_contact_date?: string | null
+          last_synced_at?: string | null
+          name: string
+          phone?: string | null
+          position?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          contact_data?: Json | null
+          created_at?: string
+          crm_source?: string
+          email?: string | null
+          external_id?: string | null
+          id?: string
+          last_contact_date?: string | null
+          last_synced_at?: string | null
+          name?: string
+          phone?: string | null
+          position?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_integrations: {
+        Row: {
+          api_key_encrypted: string | null
+          created_at: string
+          crm_name: string
+          crm_type: string
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          settings: Json | null
+          sync_frequency_hours: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          created_at?: string
+          crm_name: string
+          crm_type: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          settings?: Json | null
+          sync_frequency_hours?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          created_at?: string
+          crm_name?: string
+          crm_type?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          settings?: Json | null
+          sync_frequency_hours?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_campaigns: {
         Row: {
           created_at: string

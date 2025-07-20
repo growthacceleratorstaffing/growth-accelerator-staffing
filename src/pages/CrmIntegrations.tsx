@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Settings, ExternalLink, Check, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface CrmTool {
   id: string;
@@ -16,12 +18,26 @@ interface CrmTool {
   connected: boolean;
   setupUrl?: string;
   apiKeyField?: string;
+  lastSync?: string;
+}
+
+interface CrmIntegration {
+  id: string;
+  crm_type: string;
+  crm_name: string;
+  is_active: boolean;
+  last_sync_at: string | null;
+  created_at: string;
 }
 
 const CrmIntegrations = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isConnecting, setIsConnecting] = useState<string | null>(null);
-  const [crmTools, setCrmTools] = useState<CrmTool[]>([
+  const [userIntegrations, setUserIntegrations] = useState<CrmIntegration[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [crmTools] = useState<CrmTool[]>([
     {
       id: "hubspot",
       name: "HubSpot",
@@ -72,37 +88,118 @@ const CrmIntegrations = () => {
     }
   ]);
 
-  const handleConnect = async (toolId: string) => {
-    setIsConnecting(toolId);
+  // Fetch user's CRM integrations
+  useEffect(() => {
+    fetchUserIntegrations();
+  }, [user]);
+
+  const fetchUserIntegrations = async () => {
+    if (!user) return;
     
-    // Simulate API connection
-    setTimeout(() => {
-      setCrmTools(prev => prev.map(tool => 
-        tool.id === toolId ? { ...tool, connected: true } : tool
-      ));
-      
+    try {
+      const { data, error } = await supabase
+        .from('crm_integrations')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setUserIntegrations(data || []);
+    } catch (error) {
+      console.error('Error fetching integrations:', error);
       toast({
-        title: "Integration Connected",
-        description: `Successfully connected to ${crmTools.find(t => t.id === toolId)?.name}`,
+        title: "Error",
+        description: "Failed to load your CRM integrations",
+        variant: "destructive"
       });
-      
-      setIsConnecting(null);
-    }, 2000);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDisconnect = (toolId: string) => {
-    setCrmTools(prev => prev.map(tool => 
-      tool.id === toolId ? { ...tool, connected: false } : tool
-    ));
-    
-    toast({
-      title: "Integration Disconnected",
-      description: `Disconnected from ${crmTools.find(t => t.id === toolId)?.name}`,
-      variant: "destructive"
+  // Get combined tool data with connection status
+  const getToolsWithStatus = () => {
+    return crmTools.map(tool => {
+      const integration = userIntegrations.find(int => int.crm_type === tool.id);
+      return {
+        ...tool,
+        connected: integration?.is_active || false,
+        lastSync: integration?.last_sync_at || undefined,
+        integrationId: integration?.id
+      };
     });
   };
 
-  const ConnectDialog = ({ tool }: { tool: CrmTool }) => {
+  const handleConnect = async (toolId: string, apiKey: string) => {
+    if (!user) return;
+    
+    setIsConnecting(toolId);
+    
+    try {
+      const tool = crmTools.find(t => t.id === toolId);
+      if (!tool) throw new Error('Tool not found');
+
+      const { error } = await supabase
+        .from('crm_integrations')
+        .upsert({
+          user_id: user.id,
+          crm_type: toolId,
+          crm_name: tool.name,
+          api_key_encrypted: apiKey, // In production, encrypt this
+          is_active: true,
+          last_sync_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      await fetchUserIntegrations();
+      
+      toast({
+        title: "Integration Connected",
+        description: `Successfully connected to ${tool.name}`,
+      });
+      
+    } catch (error) {
+      console.error('Connection error:', error);
+      toast({
+        title: "Connection Failed",
+        description: "Failed to connect to the CRM. Please check your API key.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsConnecting(null);
+    }
+  };
+
+  const handleDisconnect = async (toolId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('crm_integrations')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('crm_type', toolId);
+
+      if (error) throw error;
+
+      await fetchUserIntegrations();
+      
+      toast({
+        title: "Integration Disconnected",
+        description: `Disconnected from ${crmTools.find(t => t.id === toolId)?.name}`,
+        variant: "destructive"
+      });
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to disconnect integration",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const ConnectDialog = ({ tool }: { tool: CrmTool & { connected: boolean, lastSync?: string } }) => {
     const [apiKey, setApiKey] = useState("");
 
     return (
@@ -133,7 +230,7 @@ const CrmIntegrations = () => {
             </div>
             <div className="flex items-center gap-2">
               <Button 
-                onClick={() => handleConnect(tool.id)}
+                onClick={() => handleConnect(tool.id, apiKey)}
                 disabled={!apiKey || isConnecting === tool.id}
                 className="flex-1"
               >
@@ -160,6 +257,16 @@ const CrmIntegrations = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">Loading your CRM integrations...</div>
+      </div>
+    );
+  }
+
+  const toolsWithStatus = getToolsWithStatus();
+
   return (
     <div className="container mx-auto p-6">
       <div className="space-y-6">
@@ -171,7 +278,7 @@ const CrmIntegrations = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {crmTools.map((tool) => (
+          {toolsWithStatus.map((tool) => (
             <Card key={tool.id} className="relative">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -195,6 +302,11 @@ const CrmIntegrations = () => {
                     </div>
                   </div>
                 </div>
+                {tool.lastSync && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Last synced: {new Date(tool.lastSync).toLocaleDateString()}
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 <CardDescription className="mb-4">

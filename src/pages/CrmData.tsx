@@ -7,136 +7,117 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Download, RefreshCcw, Users, Building, Phone, Mail, Calendar } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Contact {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
-  company: string;
-  position: string;
-  source: string;
-  lastContact: string;
+  company?: string;
+  position?: string;
+  crm_source: string;
+  last_contact_date?: string;
   status: "lead" | "prospect" | "customer" | "inactive";
+  user_id: string;
+  external_id?: string;
+  contact_data?: any;
+  created_at: string;
+  updated_at: string;
+  last_synced_at?: string;
 }
 
 interface Company {
   id: string;
   name: string;
-  industry: string;
-  size: string;
-  location: string;
-  contacts: number;
-  source: string;
-  lastActivity: string;
+  industry?: string;
+  company_size?: string;
+  location?: string;
+  contact_count: number;
+  crm_source: string;
+  last_activity_date?: string;
+  user_id: string;
+  external_id?: string;
+  website?: string;
+  company_data?: any;
+  created_at: string;
+  updated_at: string;
+  last_synced_at?: string;
 }
 
 const CrmData = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Mock data - in real app this would come from your CRM integrations
-  const [contacts] = useState<Contact[]>([
-    {
-      id: "1",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@techcorp.com",
-      phone: "+31 6 1234 5678",
-      company: "TechCorp",
-      position: "CTO",
-      source: "HubSpot",
-      lastContact: "2025-01-15",
-      status: "prospect"
-    },
-    {
-      id: "2",
-      name: "Michael Chen",
-      email: "m.chen@innovate.com",
-      phone: "+31 6 8765 4321",
-      company: "Innovate Solutions",
-      position: "Head of Engineering",
-      source: "Salesforce",
-      lastContact: "2025-01-14",
-      status: "lead"
-    },
-    {
-      id: "3",
-      name: "Emma Rodriguez",
-      email: "emma@startupbv.nl",
-      company: "Startup BV",
-      position: "Founder",
-      source: "Apollo",
-      lastContact: "2025-01-12",
-      status: "customer"
-    },
-    {
-      id: "4",
-      name: "David Thompson",
-      email: "david.t@enterprise.com",
-      phone: "+31 6 2468 1357",
-      company: "Enterprise Corp",
-      position: "VP of Technology",
-      source: "Pipedrive",
-      lastContact: "2025-01-10",
-      status: "inactive"
-    }
-  ]);
+  // Fetch user's CRM data
+  useEffect(() => {
+    fetchCrmData();
+  }, [user]);
 
-  const [companies] = useState<Company[]>([
-    {
-      id: "1",
-      name: "TechCorp",
-      industry: "Technology",
-      size: "500-1000",
-      location: "Amsterdam",
-      contacts: 15,
-      source: "HubSpot",
-      lastActivity: "2025-01-15"
-    },
-    {
-      id: "2",
-      name: "Innovate Solutions",
-      industry: "Software",
-      size: "100-500",
-      location: "Rotterdam",
-      contacts: 8,
-      source: "Salesforce",
-      lastActivity: "2025-01-14"
-    },
-    {
-      id: "3",
-      name: "Startup BV",
-      industry: "FinTech",
-      size: "10-50",
-      location: "Utrecht",
-      contacts: 3,
-      source: "Apollo",
-      lastActivity: "2025-01-12"
+  const fetchCrmData = async () => {
+    if (!user) return;
+    
+    try {
+      // Fetch contacts
+      const { data: contactsData, error: contactsError } = await supabase
+        .from('crm_contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (contactsError) throw contactsError;
+
+      // Fetch companies
+      const { data: companiesData, error: companiesError } = await supabase
+        .from('crm_companies')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (companiesError) throw companiesError;
+
+      setContacts((contactsData || []).map(contact => ({
+        ...contact,
+        status: contact.status as "lead" | "prospect" | "customer" | "inactive"
+      })));
+      setCompanies(companiesData || []);
+    } catch (error) {
+      console.error('Error fetching CRM data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load your CRM data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.company.toLowerCase().includes(searchTerm.toLowerCase())
+    contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.company?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredCompanies = companies.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.industry.toLowerCase().includes(searchTerm.toLowerCase())
+    company.industry?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Simulate API call to refresh data
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast({
-        title: "Data Refreshed",
-        description: "CRM data has been synchronized successfully.",
-      });
-    }, 2000);
+    await fetchCrmData();
+    setIsRefreshing(false);
+    toast({
+      title: "Data Refreshed",
+      description: "CRM data has been synchronized successfully.",
+    });
   };
 
   const handleExport = () => {
@@ -155,6 +136,14 @@ const CrmData = () => {
       default: return "bg-gray-500";
     }
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">Loading your CRM data...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">
@@ -282,20 +271,20 @@ const CrmData = () => {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4 text-muted-foreground" />
-                            {contact.email}
+                            {contact.email || 'N/A'}
                           </div>
                         </TableCell>
-                        <TableCell>{contact.company}</TableCell>
-                        <TableCell>{contact.position}</TableCell>
+                        <TableCell>{contact.company || 'N/A'}</TableCell>
+                        <TableCell>{contact.position || 'N/A'}</TableCell>
                         <TableCell>
                           <Badge className={`${getStatusColor(contact.status)} text-white`}>
                             {contact.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{contact.source}</Badge>
+                          <Badge variant="outline">{contact.crm_source}</Badge>
                         </TableCell>
-                        <TableCell>{contact.lastContact}</TableCell>
+                        <TableCell>{contact.last_contact_date ? new Date(contact.last_contact_date).toLocaleDateString() : 'N/A'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -329,16 +318,16 @@ const CrmData = () => {
                     {filteredCompanies.map((company) => (
                       <TableRow key={company.id}>
                         <TableCell className="font-medium">{company.name}</TableCell>
-                        <TableCell>{company.industry}</TableCell>
-                        <TableCell>{company.size}</TableCell>
-                        <TableCell>{company.location}</TableCell>
+                        <TableCell>{company.industry || 'N/A'}</TableCell>
+                        <TableCell>{company.company_size || 'N/A'}</TableCell>
+                        <TableCell>{company.location || 'N/A'}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{company.contacts}</Badge>
+                          <Badge variant="secondary">{company.contact_count}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{company.source}</Badge>
+                          <Badge variant="outline">{company.crm_source}</Badge>
                         </TableCell>
-                        <TableCell>{company.lastActivity}</TableCell>
+                        <TableCell>{company.last_activity_date ? new Date(company.last_activity_date).toLocaleDateString() : 'N/A'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
