@@ -127,7 +127,10 @@ export function useJobs() {
 
         const { data: localJobsData, error: localError } = await localJobsQuery;
         
+        console.log('Local jobs query result:', { localJobsData, localError });
+        
         if (!localError && localJobsData) {
+          console.log('Processing local jobs:', localJobsData.length);
           localJobs = localJobsData.map(job => ({
             id: job.id,
             title: job.title,
