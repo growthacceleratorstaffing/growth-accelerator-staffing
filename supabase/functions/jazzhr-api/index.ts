@@ -255,6 +255,22 @@ async function handleGetJobs(apiKey: string, params: any, currentUserId?: string
       );
     }
     
+    // Check if user is admin in profiles table first
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', currentUserId)
+      .maybeSingle();
+      
+    // If user is admin in profiles, allow access to all jobs
+    if (profileData?.role === 'admin') {
+      console.log('User is admin in profiles, allowing access to all jobs');
+      return new Response(
+        JSON.stringify(allJobs),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get user's JazzHR permissions
     const { data: jazzhrUser } = await supabase
       .from('jazzhr_users')
@@ -264,7 +280,7 @@ async function handleGetJobs(apiKey: string, params: any, currentUserId?: string
       .maybeSingle();
       
     if (!jazzhrUser) {
-      console.log('User not found in JazzHR users, returning empty job list');
+      console.log('User not found in JazzHR users and not admin, returning empty job list');
       return new Response(
         JSON.stringify([]),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
