@@ -8,7 +8,7 @@ import { SidebarProvider, SidebarInset, Sidebar, SidebarContent, SidebarGroup, S
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, User, LogOut, UserCheck, Settings, ExternalLink, Download } from "lucide-react";
+import { Briefcase, User, LogOut, UserCheck, Settings, ExternalLink, Download, Database, Link2 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformChatbot from "./components/PlatformChatbot";
@@ -27,6 +27,8 @@ import ApplyJob from "./pages/ApplyJob";
 import PreOnboarding from "./pages/PreOnboarding";
 import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
+import CrmIntegrations from "./pages/CrmIntegrations";
+import CrmData from "./pages/CrmData";
 import "./utils/addTestJazzHRUsers"; // Import for browser console access
 
 
@@ -144,6 +146,33 @@ const AppSidebar = () => {
                   <Link to="/pre-onboarding">
                     <Settings className="h-4 w-4" />
                     <span className="text-base">Preboarding</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        {/* CRM Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-pink-500 text-xl font-semibold">CRM</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/crm-data")}>
+                  <Link to="/crm-data">
+                    <Database className="h-4 w-4" />
+                    <span className="text-white text-base">Data</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/crm-integrations")}>
+                  <Link to="/crm-integrations">
+                    <Link2 className="h-4 w-4" />
+                    <span className="text-base">Integrations</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -347,6 +376,20 @@ const App = () => {
             <AppLayout>
               <JobBoard />
             </AppLayout>
+          } />
+          <Route path="/crm-integrations" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <CrmIntegrations />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/crm-data" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <CrmData />
+              </AppLayout>
+            </ProtectedRoute>
           } />
           
           {/* Catch-all route */}
