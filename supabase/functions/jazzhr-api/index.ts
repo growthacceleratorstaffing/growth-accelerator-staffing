@@ -19,6 +19,29 @@ serve(async (req) => {
     const { action, params } = await req.json()
     console.log('JazzHR API request:', { action, params })
 
+    // Get user ID from Authorization header for authenticated requests
+    const authHeader = req.headers.get('authorization');
+    let currentUserId = null;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        // Create a Supabase client to verify the token and get user
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+          global: { headers: { Authorization: authHeader } }
+        });
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        currentUserId = user?.id || null;
+        console.log('Current user ID:', currentUserId);
+      } catch (error) {
+        console.warn('Failed to get user from auth token:', error);
+      }
+    }
+
     // Get API key from Supabase secrets
     const apiKey = Deno.env.get('JAZZHR_API_KEY')
     
@@ -43,7 +66,7 @@ serve(async (req) => {
       case 'testConnection':
         return await handleTestConnection(apiKey)
       case 'getJobs':
-        return await handleGetJobs(apiKey, params)
+        return await handleGetJobs(apiKey, params, currentUserId)
       case 'getJob':
         return await handleGetJob(apiKey, params)
       case 'createJob':
@@ -191,10 +214,18 @@ async function handleTestConnection(apiKey: string) {
   }
 }
 
-async function handleGetJobs(apiKey: string, params: any) {
+async function handleGetJobs(apiKey: string, params: any, currentUserId?: string | null) {
   try {
-    console.log('handleGetJobs called with params:', params);
+    console.log('handleGetJobs called with params:', params, 'user:', currentUserId);
     
+    // Get Supabase client with service role for user permissions lookup
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
     // Use the correct JazzHR API endpoint
     let url = 'https://api.resumatorapi.com/v1/jobs';
     
@@ -213,12 +244,66 @@ async function handleGetJobs(apiKey: string, params: any) {
     
     console.log(`Fetching jobs from: ${url}`);
     
-    const data = await makeJazzHRRequest(url, apiKey);
+    const allJobs = await makeJazzHRRequest(url, apiKey);
     
-    console.log(`Successfully fetched ${Array.isArray(data) ? data.length : 1} jobs`);
+    // If no user ID, return empty array (unauthenticated users can't see jobs)
+    if (!currentUserId) {
+      console.log('No user ID provided, returning empty job list');
+      return new Response(
+        JSON.stringify([]),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Get user's JazzHR permissions
+    const { data: jazzhrUser } = await supabase
+      .from('jazzhr_users')
+      .select('jazzhr_role, assigned_jobs')
+      .eq('user_id', currentUserId)
+      .eq('is_active', true)
+      .maybeSingle();
+      
+    if (!jazzhrUser) {
+      console.log('User not found in JazzHR users, returning empty job list');
+      return new Response(
+        JSON.stringify([]),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log('User JazzHR permissions:', jazzhrUser);
+    
+    // Filter jobs based on user permissions
+    let filteredJobs = allJobs;
+    
+    // Super admins and recruiting admins can see all jobs
+    if (!['super_admin', 'recruiting_admin'].includes(jazzhrUser.jazzhr_role)) {
+      // Other users can only see their assigned jobs
+      const assignedJobIds = jazzhrUser.assigned_jobs || [];
+      console.log('User assigned job IDs:', assignedJobIds);
+      
+      // Create mapping from JazzHR job ID to our local job IDs
+      const { data: localJobs } = await supabase
+        .from('jobs')
+        .select('id, jobadder_job_id')
+        .in('id', assignedJobIds);
+        
+      console.log('Local job mappings:', localJobs);
+      
+      // Filter JazzHR jobs to only include assigned ones
+      filteredJobs = allJobs.filter((job: any) => {
+        // Check if this JazzHR job ID matches any of the assigned local job IDs
+        const isAssigned = assignedJobIds.includes(job.id) || 
+                          localJobs?.some(localJob => localJob.jobadder_job_id === job.id);
+        console.log(`Job ${job.id} (${job.title}) - Assigned: ${isAssigned}`);
+        return isAssigned;
+      });
+    }
+    
+    console.log(`Filtered to ${filteredJobs.length} jobs for user ${currentUserId}`);
     
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(filteredJobs),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
