@@ -57,6 +57,8 @@ const CrmData = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [integrations, setIntegrations] = useState<any[]>([]);
   
   // Fetch user's CRM data
   useEffect(() => {
@@ -67,6 +69,15 @@ const CrmData = () => {
     if (!user) return;
     
     try {
+      // Fetch integrations
+      const { data: integrationsData, error: integrationsError } = await supabase
+        .from('crm_integrations')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (integrationsError) throw integrationsError;
+      setIntegrations(integrationsData || []);
+
       // Fetch contacts
       const { data: contactsData, error: contactsError } = await supabase
         .from('crm_contacts')
@@ -113,13 +124,70 @@ const CrmData = () => {
     company.industry?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleSync = async () => {
+    if (!integrations.length) {
+      toast({
+        title: "No integrations",
+        description: "Please connect a CRM integration first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const integration = integrations[0]; // Use first active integration
+      
+      // Sync contacts
+      const contactsResponse = await supabase.functions.invoke('hubspot-sync', {
+        body: { 
+          action: 'sync_contacts',
+          integrationId: integration.id 
+        }
+      });
+
+      if (contactsResponse.error) {
+        throw new Error(contactsResponse.error.message);
+      }
+
+      // Sync companies
+      const companiesResponse = await supabase.functions.invoke('hubspot-sync', {
+        body: { 
+          action: 'sync_companies',
+          integrationId: integration.id 
+        }
+      });
+
+      if (companiesResponse.error) {
+        throw new Error(companiesResponse.error.message);
+      }
+
+      // Refresh data
+      await fetchCrmData();
+      
+      toast({
+        title: "Sync completed",
+        description: "CRM data has been synchronized successfully",
+      });
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast({
+        title: "Sync failed",
+        description: error instanceof Error ? error.message : "Failed to synchronize CRM data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchCrmData();
     setIsRefreshing(false);
     toast({
       title: "Data Refreshed",
-      description: "CRM data has been synchronized successfully.",
+      description: "Local data has been refreshed successfully.",
     });
   };
 
@@ -293,6 +361,13 @@ const CrmData = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              onClick={handleSync}
+              disabled={isSyncing}
+            >
+              <RefreshCcw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Syncing...' : 'Sync HubSpot'}
+            </Button>
             <Button 
               variant="outline" 
               onClick={handleRefresh}
