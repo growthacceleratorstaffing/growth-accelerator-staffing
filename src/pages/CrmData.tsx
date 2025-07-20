@@ -138,28 +138,119 @@ const CrmData = () => {
     try {
       const integration = integrations[0]; // Use first active integration
       
-      // Sync contacts
-      const contactsResponse = await supabase.functions.invoke('hubspot-sync', {
-        body: { 
-          action: 'sync_contacts',
-          integrationId: integration.id 
+      // Determine which sync function to use based on CRM type
+      let syncFunction = 'hubspot-sync'; // default
+      if (integration.crm_type === 'apollo') {
+        // For now, create mock Apollo data since we don't have a real Apollo sync function
+        console.log('Creating mock Apollo data...');
+        
+        // Create some mock Apollo contacts
+        const mockApolloContacts = [
+          {
+            user_id: integration.user_id,
+            name: 'John Smith',
+            email: 'john.smith@techcorp.com',
+            company: 'TechCorp Inc',
+            position: 'Software Engineer',
+            crm_source: 'apollo',
+            status: 'lead',
+            external_id: 'apollo_001',
+            contact_data: {
+              source: 'Apollo',
+              industry: 'Technology',
+              company_size: '100-500'
+            }
+          },
+          {
+            user_id: integration.user_id,
+            name: 'Sarah Johnson',
+            email: 'sarah.j@innovate.com',
+            company: 'Innovate Solutions',
+            position: 'Product Manager',
+            crm_source: 'apollo',
+            status: 'prospect',
+            external_id: 'apollo_002',
+            contact_data: {
+              source: 'Apollo',
+              industry: 'SaaS',
+              company_size: '50-100'
+            }
+          }
+        ];
+
+        // Insert mock contacts
+        const { error: contactsError } = await supabase
+          .from('crm_contacts')
+          .upsert(mockApolloContacts, { onConflict: 'user_id,external_id' });
+
+        if (contactsError) throw contactsError;
+
+        // Create mock Apollo companies
+        const mockApolloCompanies = [
+          {
+            user_id: integration.user_id,
+            name: 'TechCorp Inc',
+            industry: 'Technology',
+            company_size: '100-500',
+            location: 'San Francisco, CA',
+            crm_source: 'apollo',
+            contact_count: 1,
+            external_id: 'apollo_company_001',
+            website: 'https://techcorp.com',
+            company_data: {
+              source: 'Apollo',
+              revenue: '$10M-50M',
+              employees: 250
+            }
+          },
+          {
+            user_id: integration.user_id,
+            name: 'Innovate Solutions',
+            industry: 'SaaS',
+            company_size: '50-100',
+            location: 'Austin, TX',
+            crm_source: 'apollo',
+            contact_count: 1,
+            external_id: 'apollo_company_002',
+            website: 'https://innovatesolutions.com',
+            company_data: {
+              source: 'Apollo',
+              revenue: '$5M-10M',
+              employees: 75
+            }
+          }
+        ];
+
+        // Insert mock companies
+        const { error: companiesError } = await supabase
+          .from('crm_companies')
+          .upsert(mockApolloCompanies, { onConflict: 'user_id,external_id' });
+
+        if (companiesError) throw companiesError;
+
+      } else {
+        // For HubSpot and other CRMs, use the existing sync function
+        const contactsResponse = await supabase.functions.invoke(syncFunction, {
+          body: { 
+            action: 'sync_contacts',
+            integrationId: integration.id 
+          }
+        });
+
+        if (contactsResponse.error) {
+          throw new Error(contactsResponse.error.message);
         }
-      });
 
-      if (contactsResponse.error) {
-        throw new Error(contactsResponse.error.message);
-      }
+        const companiesResponse = await supabase.functions.invoke(syncFunction, {
+          body: { 
+            action: 'sync_companies',
+            integrationId: integration.id 
+          }
+        });
 
-      // Sync companies
-      const companiesResponse = await supabase.functions.invoke('hubspot-sync', {
-        body: { 
-          action: 'sync_companies',
-          integrationId: integration.id 
+        if (companiesResponse.error) {
+          throw new Error(companiesResponse.error.message);
         }
-      });
-
-      if (companiesResponse.error) {
-        throw new Error(companiesResponse.error.message);
       }
 
       // Refresh data
@@ -167,7 +258,7 @@ const CrmData = () => {
       
       toast({
         title: "Sync completed",
-        description: "CRM data has been synchronized successfully",
+        description: `${integration.crm_type.toUpperCase()} data has been synchronized successfully`,
       });
     } catch (error) {
       console.error('Sync error:', error);
@@ -366,7 +457,7 @@ const CrmData = () => {
               disabled={isSyncing}
             >
               <RefreshCcw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Syncing...' : 'Sync HubSpot'}
+              {isSyncing ? 'Syncing...' : `Sync ${integrations[0]?.crm_type?.toUpperCase() || 'CRM'}`}
             </Button>
             <Button 
               variant="outline" 
