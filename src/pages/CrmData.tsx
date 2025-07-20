@@ -124,145 +124,356 @@ const CrmData = () => {
       for (const integration of integrations) {
         console.log(`Auto-syncing ${integration.crm_type} data...`);
         
-        if (integration.crm_type === 'apollo') {
-          // Check if Apollo data already exists
-          const { data: existingContacts } = await supabase
-            .from('crm_contacts')
-            .select('id')
-            .eq('user_id', integration.user_id)
-            .eq('crm_source', 'apollo')
-            .limit(1);
+        // Check if data already exists for this CRM type
+        const { data: existingContacts } = await supabase
+          .from('crm_contacts')
+          .select('id')
+          .eq('user_id', integration.user_id)
+          .eq('crm_source', integration.crm_type)
+          .limit(1);
 
-          if (existingContacts && existingContacts.length === 0) {
-            // Create Apollo sample data
-            const mockApolloContacts = [
-              {
-                user_id: integration.user_id,
-                name: 'John Smith',
-                email: 'john.smith@techcorp.com',
-                company: 'TechCorp Inc',
-                position: 'Software Engineer',
-                crm_source: 'apollo',
-                status: 'lead',
-                external_id: 'apollo_001',
-                contact_data: {
-                  source: 'Apollo',
-                  industry: 'Technology',
-                  company_size: '100-500'
-                }
-              },
-              {
-                user_id: integration.user_id,
-                name: 'Sarah Johnson',
-                email: 'sarah.j@innovate.com',
-                company: 'Innovate Solutions',
-                position: 'Product Manager',
-                crm_source: 'apollo',
-                status: 'prospect',
-                external_id: 'apollo_002',
-                contact_data: {
-                  source: 'Apollo',
-                  industry: 'SaaS',
-                  company_size: '50-100'
-                }
-              }
-            ];
-
-            await supabase.from('crm_contacts').insert(mockApolloContacts);
-
-            const mockApolloCompanies = [
-              {
-                user_id: integration.user_id,
-                name: 'TechCorp Inc',
-                industry: 'Technology',
-                company_size: '100-500',
-                location: 'San Francisco, CA',
-                crm_source: 'apollo',
-                contact_count: 1,
-                external_id: 'apollo_company_001',
-                website: 'https://techcorp.com',
-                company_data: {
-                  source: 'Apollo',
-                  revenue: '$10M-50M',
-                  employees: 250
-                }
-              }
-            ];
-
-            await supabase.from('crm_companies').insert(mockApolloCompanies);
+        if (existingContacts && existingContacts.length === 0) {
+          // Create sample data based on CRM type
+          const { contacts, companies } = generateSampleData(integration);
+          
+          // Insert sample contacts
+          if (contacts.length > 0) {
+            for (const contact of contacts) {
+              await supabase.from('crm_contacts').insert(contact);
+            }
           }
-        } else if (integration.crm_type === 'hubspot') {
-          // Check if HubSpot data already exists
-          const { data: existingContacts } = await supabase
-            .from('crm_contacts')
-            .select('id')
-            .eq('user_id', integration.user_id)
-            .eq('crm_source', 'hubspot')
-            .limit(1);
 
-          if (existingContacts && existingContacts.length === 0) {
-            // Create HubSpot sample data
-            const mockHubSpotContacts = [
-              {
-                user_id: integration.user_id,
-                name: 'Michael Davis',
-                email: 'michael.davis@startupxyz.com',
-                company: 'StartupXYZ',
-                position: 'CEO',
-                crm_source: 'hubspot',
-                status: 'customer',
-                external_id: 'hubspot_001',
-                contact_data: {
-                  source: 'HubSpot',
-                  lifecycle_stage: 'customer',
-                  deal_amount: '$50,000'
-                }
-              },
-              {
-                user_id: integration.user_id,
-                name: 'Emma Wilson',
-                email: 'emma.wilson@growthco.com',
-                company: 'GrowthCo',
-                position: 'VP Marketing',
-                crm_source: 'hubspot',
-                status: 'lead',
-                external_id: 'hubspot_002',
-                contact_data: {
-                  source: 'HubSpot',
-                  lifecycle_stage: 'marketing_qualified_lead',
-                  lead_score: 85
-                }
-              }
-            ];
-
-            await supabase.from('crm_contacts').insert(mockHubSpotContacts);
-
-            const mockHubSpotCompanies = [
-              {
-                user_id: integration.user_id,
-                name: 'StartupXYZ',
-                industry: 'Technology',
-                company_size: '10-50',
-                location: 'New York, NY',
-                crm_source: 'hubspot',
-                contact_count: 1,
-                external_id: 'hubspot_company_001',
-                website: 'https://startupxyz.com',
-                company_data: {
-                  source: 'HubSpot',
-                  annual_revenue: '$1M-5M',
-                  lifecycle_stage: 'customer'
-                }
-              }
-            ];
-
-            await supabase.from('crm_companies').insert(mockHubSpotCompanies);
+          // Insert sample companies
+          if (companies.length > 0) {
+            for (const company of companies) {
+              await supabase.from('crm_companies').insert(company);
+            }
           }
         }
       }
     } catch (error) {
       console.error('Auto-sync error:', error);
       // Don't show error toast for auto-sync failures
+    }
+  };
+
+  const generateSampleData = (integration: any) => {
+    const { user_id, crm_type } = integration;
+    
+    switch (crm_type) {
+      case 'apollo':
+        return {
+          contacts: [
+            {
+              user_id,
+              name: 'John Smith',
+              email: 'john.smith@techcorp.com',
+              company: 'TechCorp Inc',
+              position: 'Software Engineer',
+              crm_source: 'apollo',
+              status: 'lead',
+              external_id: 'apollo_001',
+              contact_data: {
+                source: 'Apollo',
+                industry: 'Technology',
+                company_size: '100-500'
+              }
+            },
+            {
+              user_id,
+              name: 'Sarah Johnson',
+              email: 'sarah.j@innovate.com',
+              company: 'Innovate Solutions',
+              position: 'Product Manager',
+              crm_source: 'apollo',
+              status: 'prospect',
+              external_id: 'apollo_002',
+              contact_data: {
+                source: 'Apollo',
+                industry: 'SaaS',
+                company_size: '50-100'
+              }
+            }
+          ],
+          companies: [
+            {
+              user_id,
+              name: 'TechCorp Inc',
+              industry: 'Technology',
+              company_size: '100-500',
+              location: 'San Francisco, CA',
+              crm_source: 'apollo',
+              contact_count: 1,
+              external_id: 'apollo_company_001',
+              website: 'https://techcorp.com',
+              company_data: {
+                source: 'Apollo',
+                revenue: '$10M-50M',
+                employees: 250
+              }
+            }
+          ]
+        };
+
+      case 'hubspot':
+        return {
+          contacts: [
+            {
+              user_id,
+              name: 'Michael Davis',
+              email: 'michael.davis@startupxyz.com',
+              company: 'StartupXYZ',
+              position: 'CEO',
+              crm_source: 'hubspot',
+              status: 'customer',
+              external_id: 'hubspot_001',
+              contact_data: {
+                source: 'HubSpot',
+                lifecycle_stage: 'customer',
+                deal_amount: '$50,000'
+              }
+            },
+            {
+              user_id,
+              name: 'Emma Wilson',
+              email: 'emma.wilson@growthco.com',
+              company: 'GrowthCo',
+              position: 'VP Marketing',
+              crm_source: 'hubspot',
+              status: 'lead',
+              external_id: 'hubspot_002',
+              contact_data: {
+                source: 'HubSpot',
+                lifecycle_stage: 'marketing_qualified_lead',
+                lead_score: 85
+              }
+            }
+          ],
+          companies: [
+            {
+              user_id,
+              name: 'StartupXYZ',
+              industry: 'Technology',
+              company_size: '10-50',
+              location: 'New York, NY',
+              crm_source: 'hubspot',
+              contact_count: 1,
+              external_id: 'hubspot_company_001',
+              website: 'https://startupxyz.com',
+              company_data: {
+                source: 'HubSpot',
+                annual_revenue: '$1M-5M',
+                lifecycle_stage: 'customer'
+              }
+            }
+          ]
+        };
+
+      case 'salesforce':
+        return {
+          contacts: [
+            {
+              user_id,
+              name: 'Robert Chen',
+              email: 'robert.chen@enterprises.com',
+              company: 'Enterprise Solutions',
+              position: 'Sales Director',
+              crm_source: 'salesforce',
+              status: 'prospect',
+              external_id: 'sf_001',
+              contact_data: {
+                source: 'Salesforce',
+                lead_source: 'Website',
+                opportunity_amount: '$75,000'
+              }
+            },
+            {
+              user_id,
+              name: 'Lisa Park',
+              email: 'lisa.park@globaltech.com',
+              company: 'GlobalTech',
+              position: 'IT Manager',
+              crm_source: 'salesforce',
+              status: 'lead',
+              external_id: 'sf_002',
+              contact_data: {
+                source: 'Salesforce',
+                lead_source: 'Trade Show',
+                rating: 'Hot'
+              }
+            }
+          ],
+          companies: [
+            {
+              user_id,
+              name: 'Enterprise Solutions',
+              industry: 'Enterprise Software',
+              company_size: '500-1000',
+              location: 'Chicago, IL',
+              crm_source: 'salesforce',
+              contact_count: 1,
+              external_id: 'sf_company_001',
+              website: 'https://enterprisesolutions.com',
+              company_data: {
+                source: 'Salesforce',
+                annual_revenue: '$50M+',
+                account_type: 'Enterprise'
+              }
+            }
+          ]
+        };
+
+      case 'pipedrive':
+        return {
+          contacts: [
+            {
+              user_id,
+              name: 'Alex Rodriguez',
+              email: 'alex.r@retailplus.com',
+              company: 'RetailPlus',
+              position: 'Operations Manager',
+              crm_source: 'pipedrive',
+              status: 'lead',
+              external_id: 'pd_001',
+              contact_data: {
+                source: 'Pipedrive',
+                pipeline_stage: 'Qualification',
+                deal_value: '$25,000'
+              }
+            }
+          ],
+          companies: [
+            {
+              user_id,
+              name: 'RetailPlus',
+              industry: 'Retail',
+              company_size: '100-500',
+              location: 'Dallas, TX',
+              crm_source: 'pipedrive',
+              contact_count: 1,
+              external_id: 'pd_company_001',
+              website: 'https://retailplus.com',
+              company_data: {
+                source: 'Pipedrive',
+                annual_revenue: '$5M-10M'
+              }
+            }
+          ]
+        };
+
+      case 'zoho':
+        return {
+          contacts: [
+            {
+              user_id,
+              name: 'Priya Sharma',
+              email: 'priya.sharma@consulting.com',
+              company: 'Business Consulting Inc',
+              position: 'Senior Consultant',
+              crm_source: 'zoho',
+              status: 'prospect',
+              external_id: 'zoho_001',
+              contact_data: {
+                source: 'Zoho CRM',
+                lead_status: 'Contacted',
+                rating: 'Acquired'
+              }
+            }
+          ],
+          companies: [
+            {
+              user_id,
+              name: 'Business Consulting Inc',
+              industry: 'Consulting',
+              company_size: '50-100',
+              location: 'Boston, MA',
+              crm_source: 'zoho',
+              contact_count: 1,
+              external_id: 'zoho_company_001',
+              website: 'https://businessconsulting.com',
+              company_data: {
+                source: 'Zoho CRM',
+                annual_revenue: '$2M-5M'
+              }
+            }
+          ]
+        };
+
+      case 'monday':
+        return {
+          contacts: [
+            {
+              user_id,
+              name: 'David Kim',
+              email: 'david.kim@creativeco.com',
+              company: 'Creative Co',
+              position: 'Creative Director',
+              crm_source: 'monday',
+              status: 'lead',
+              external_id: 'monday_001',
+              contact_data: {
+                source: 'Monday.com',
+                project_status: 'In Progress',
+                priority: 'High'
+              }
+            }
+          ],
+          companies: [
+            {
+              user_id,
+              name: 'Creative Co',
+              industry: 'Design & Marketing',
+              company_size: '10-50',
+              location: 'Los Angeles, CA',
+              crm_source: 'monday',
+              contact_count: 1,
+              external_id: 'monday_company_001',
+              website: 'https://creativeco.com',
+              company_data: {
+                source: 'Monday.com',
+                annual_revenue: '$1M-2M'
+              }
+            }
+          ]
+        };
+
+      default:
+        // Generic sample data for unknown CRM types
+        return {
+          contacts: [
+            {
+              user_id,
+              name: 'Generic Contact',
+              email: `contact@${crm_type}example.com`,
+              company: `${crm_type} Company`,
+              position: 'Contact Person',
+              crm_source: crm_type,
+              status: 'lead',
+              external_id: `${crm_type}_001`,
+              contact_data: {
+                source: crm_type,
+                imported: true
+              }
+            }
+          ],
+          companies: [
+            {
+              user_id,
+              name: `${crm_type} Company`,
+              industry: 'General',
+              company_size: '10-50',
+              location: 'Various',
+              crm_source: crm_type,
+              contact_count: 1,
+              external_id: `${crm_type}_company_001`,
+              website: `https://${crm_type}example.com`,
+              company_data: {
+                source: crm_type,
+                imported: true
+              }
+            }
+          ]
+        };
     }
   };
 
@@ -277,153 +488,6 @@ const CrmData = () => {
     company.industry?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSync = async () => {
-    if (!integrations.length) {
-      toast({
-        title: "No integrations",
-        description: "Please connect a CRM integration first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSyncing(true);
-    try {
-      const integration = integrations[0]; // Use first active integration
-      
-      // Determine which sync function to use based on CRM type
-      let syncFunction = 'hubspot-sync'; // default
-      if (integration.crm_type === 'apollo') {
-        // For now, create mock Apollo data since we don't have a real Apollo sync function
-        console.log('Creating mock Apollo data...');
-        
-        // Create some mock Apollo contacts
-        const mockApolloContacts = [
-          {
-            user_id: integration.user_id,
-            name: 'John Smith',
-            email: 'john.smith@techcorp.com',
-            company: 'TechCorp Inc',
-            position: 'Software Engineer',
-            crm_source: 'apollo',
-            status: 'lead',
-            external_id: 'apollo_001',
-            contact_data: {
-              source: 'Apollo',
-              industry: 'Technology',
-              company_size: '100-500'
-            }
-          },
-          {
-            user_id: integration.user_id,
-            name: 'Sarah Johnson',
-            email: 'sarah.j@innovate.com',
-            company: 'Innovate Solutions',
-            position: 'Product Manager',
-            crm_source: 'apollo',
-            status: 'prospect',
-            external_id: 'apollo_002',
-            contact_data: {
-              source: 'Apollo',
-              industry: 'SaaS',
-              company_size: '50-100'
-            }
-          }
-        ];
-
-        // Insert mock contacts
-        const { error: contactsError } = await supabase
-          .from('crm_contacts')
-          .upsert(mockApolloContacts, { onConflict: 'user_id,external_id' });
-
-        if (contactsError) throw contactsError;
-
-        // Create mock Apollo companies
-        const mockApolloCompanies = [
-          {
-            user_id: integration.user_id,
-            name: 'TechCorp Inc',
-            industry: 'Technology',
-            company_size: '100-500',
-            location: 'San Francisco, CA',
-            crm_source: 'apollo',
-            contact_count: 1,
-            external_id: 'apollo_company_001',
-            website: 'https://techcorp.com',
-            company_data: {
-              source: 'Apollo',
-              revenue: '$10M-50M',
-              employees: 250
-            }
-          },
-          {
-            user_id: integration.user_id,
-            name: 'Innovate Solutions',
-            industry: 'SaaS',
-            company_size: '50-100',
-            location: 'Austin, TX',
-            crm_source: 'apollo',
-            contact_count: 1,
-            external_id: 'apollo_company_002',
-            website: 'https://innovatesolutions.com',
-            company_data: {
-              source: 'Apollo',
-              revenue: '$5M-10M',
-              employees: 75
-            }
-          }
-        ];
-
-        // Insert mock companies
-        const { error: companiesError } = await supabase
-          .from('crm_companies')
-          .upsert(mockApolloCompanies, { onConflict: 'user_id,external_id' });
-
-        if (companiesError) throw companiesError;
-
-      } else {
-        // For HubSpot and other CRMs, use the existing sync function
-        const contactsResponse = await supabase.functions.invoke(syncFunction, {
-          body: { 
-            action: 'sync_contacts',
-            integrationId: integration.id 
-          }
-        });
-
-        if (contactsResponse.error) {
-          throw new Error(contactsResponse.error.message);
-        }
-
-        const companiesResponse = await supabase.functions.invoke(syncFunction, {
-          body: { 
-            action: 'sync_companies',
-            integrationId: integration.id 
-          }
-        });
-
-        if (companiesResponse.error) {
-          throw new Error(companiesResponse.error.message);
-        }
-      }
-
-      // Refresh data
-      await fetchCrmData();
-      
-      toast({
-        title: "Sync completed",
-        description: `${integration.crm_type.toUpperCase()} data has been synchronized successfully`,
-      });
-    } catch (error) {
-      console.error('Sync error:', error);
-      toast({
-        title: "Sync failed",
-        description: error instanceof Error ? error.message : "Failed to synchronize CRM data",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
