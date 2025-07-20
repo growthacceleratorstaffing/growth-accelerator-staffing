@@ -138,18 +138,33 @@ const CrmIntegrations = () => {
       const tool = crmTools.find(t => t.id === toolId);
       if (!tool) throw new Error('Tool not found');
 
-      // First validate the API key with the CRM service
+      // For HubSpot, do a direct API validation
       if (toolId === 'hubspot') {
-        const validationResponse = await supabase.functions.invoke('hubspot-validate', {
-          body: { apiKey }
-        });
+        console.log('Validating HubSpot API key directly...');
+        
+        try {
+          const testResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=1', {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
 
-        if (validationResponse.error) {
-          throw new Error(validationResponse.error.message || 'Failed to validate API key');
-        }
+          if (!testResponse.ok) {
+            if (testResponse.status === 401) {
+              throw new Error('Invalid API key. Please check your HubSpot private app token.');
+            } else if (testResponse.status === 403) {
+              throw new Error('API key does not have required permissions. Please ensure your private app has contacts read access.');
+            } else {
+              throw new Error(`HubSpot API error: ${testResponse.statusText}`);
+            }
+          }
 
-        if (!validationResponse.data?.success) {
-          throw new Error(validationResponse.data?.error || 'API key validation failed');
+          const testData = await testResponse.json();
+          console.log('API validation successful');
+        } catch (fetchError) {
+          console.error('Direct API validation failed:', fetchError);
+          throw new Error(fetchError instanceof Error ? fetchError.message : 'Failed to validate API key with HubSpot');
         }
       }
 
