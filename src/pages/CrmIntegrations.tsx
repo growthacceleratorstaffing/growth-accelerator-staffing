@@ -163,6 +163,9 @@ const CrmIntegrations = () => {
           console.log('HubSpot API validation successful');
         } catch (fetchError) {
           console.error('HubSpot API validation failed:', fetchError);
+          if (fetchError instanceof TypeError && fetchError.message.includes('Failed to fetch')) {
+            throw new Error('Network error: Unable to connect to HubSpot. Please check your internet connection and try again.');
+          }
           throw new Error(fetchError instanceof Error ? fetchError.message : 'Failed to validate API key with HubSpot');
         }
       } else if (toolId === 'salesforce') {

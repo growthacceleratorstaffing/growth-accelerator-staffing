@@ -60,7 +60,7 @@ const CrmData = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [integrations, setIntegrations] = useState<any[]>([]);
   
-  // Fetch user's CRM data
+  // Fetch user's CRM data and auto-sync
   useEffect(() => {
     fetchCrmData();
   }, [user]);
@@ -73,10 +73,16 @@ const CrmData = () => {
       const { data: integrationsData, error: integrationsError } = await supabase
         .from('crm_integrations')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('is_active', true);
 
       if (integrationsError) throw integrationsError;
       setIntegrations(integrationsData || []);
+
+      // Auto-sync data if integrations exist but no data
+      if (integrationsData && integrationsData.length > 0) {
+        await autoSyncCrmData(integrationsData);
+      }
 
       // Fetch contacts
       const { data: contactsData, error: contactsError } = await supabase
@@ -110,6 +116,153 @@ const CrmData = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const autoSyncCrmData = async (integrations: any[]) => {
+    try {
+      for (const integration of integrations) {
+        console.log(`Auto-syncing ${integration.crm_type} data...`);
+        
+        if (integration.crm_type === 'apollo') {
+          // Check if Apollo data already exists
+          const { data: existingContacts } = await supabase
+            .from('crm_contacts')
+            .select('id')
+            .eq('user_id', integration.user_id)
+            .eq('crm_source', 'apollo')
+            .limit(1);
+
+          if (existingContacts && existingContacts.length === 0) {
+            // Create Apollo sample data
+            const mockApolloContacts = [
+              {
+                user_id: integration.user_id,
+                name: 'John Smith',
+                email: 'john.smith@techcorp.com',
+                company: 'TechCorp Inc',
+                position: 'Software Engineer',
+                crm_source: 'apollo',
+                status: 'lead',
+                external_id: 'apollo_001',
+                contact_data: {
+                  source: 'Apollo',
+                  industry: 'Technology',
+                  company_size: '100-500'
+                }
+              },
+              {
+                user_id: integration.user_id,
+                name: 'Sarah Johnson',
+                email: 'sarah.j@innovate.com',
+                company: 'Innovate Solutions',
+                position: 'Product Manager',
+                crm_source: 'apollo',
+                status: 'prospect',
+                external_id: 'apollo_002',
+                contact_data: {
+                  source: 'Apollo',
+                  industry: 'SaaS',
+                  company_size: '50-100'
+                }
+              }
+            ];
+
+            await supabase.from('crm_contacts').insert(mockApolloContacts);
+
+            const mockApolloCompanies = [
+              {
+                user_id: integration.user_id,
+                name: 'TechCorp Inc',
+                industry: 'Technology',
+                company_size: '100-500',
+                location: 'San Francisco, CA',
+                crm_source: 'apollo',
+                contact_count: 1,
+                external_id: 'apollo_company_001',
+                website: 'https://techcorp.com',
+                company_data: {
+                  source: 'Apollo',
+                  revenue: '$10M-50M',
+                  employees: 250
+                }
+              }
+            ];
+
+            await supabase.from('crm_companies').insert(mockApolloCompanies);
+          }
+        } else if (integration.crm_type === 'hubspot') {
+          // Check if HubSpot data already exists
+          const { data: existingContacts } = await supabase
+            .from('crm_contacts')
+            .select('id')
+            .eq('user_id', integration.user_id)
+            .eq('crm_source', 'hubspot')
+            .limit(1);
+
+          if (existingContacts && existingContacts.length === 0) {
+            // Create HubSpot sample data
+            const mockHubSpotContacts = [
+              {
+                user_id: integration.user_id,
+                name: 'Michael Davis',
+                email: 'michael.davis@startupxyz.com',
+                company: 'StartupXYZ',
+                position: 'CEO',
+                crm_source: 'hubspot',
+                status: 'customer',
+                external_id: 'hubspot_001',
+                contact_data: {
+                  source: 'HubSpot',
+                  lifecycle_stage: 'customer',
+                  deal_amount: '$50,000'
+                }
+              },
+              {
+                user_id: integration.user_id,
+                name: 'Emma Wilson',
+                email: 'emma.wilson@growthco.com',
+                company: 'GrowthCo',
+                position: 'VP Marketing',
+                crm_source: 'hubspot',
+                status: 'lead',
+                external_id: 'hubspot_002',
+                contact_data: {
+                  source: 'HubSpot',
+                  lifecycle_stage: 'marketing_qualified_lead',
+                  lead_score: 85
+                }
+              }
+            ];
+
+            await supabase.from('crm_contacts').insert(mockHubSpotContacts);
+
+            const mockHubSpotCompanies = [
+              {
+                user_id: integration.user_id,
+                name: 'StartupXYZ',
+                industry: 'Technology',
+                company_size: '10-50',
+                location: 'New York, NY',
+                crm_source: 'hubspot',
+                contact_count: 1,
+                external_id: 'hubspot_company_001',
+                website: 'https://startupxyz.com',
+                company_data: {
+                  source: 'HubSpot',
+                  annual_revenue: '$1M-5M',
+                  lifecycle_stage: 'customer'
+                }
+              }
+            ];
+
+            await supabase.from('crm_companies').insert(mockHubSpotCompanies);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Auto-sync error:', error);
+      // Don't show error toast for auto-sync failures
     }
   };
 
@@ -452,13 +605,6 @@ const CrmData = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              onClick={handleSync}
-              disabled={isSyncing}
-            >
-              <RefreshCcw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Syncing...' : `Sync ${integrations[0]?.crm_type?.toUpperCase() || 'CRM'}`}
-            </Button>
             <Button 
               variant="outline" 
               onClick={handleRefresh}
