@@ -161,18 +161,18 @@ const AppSidebar = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/crm-data")}>
-                  <Link to="/crm-data">
-                    <Database className="h-4 w-4" />
-                    <span className="text-white text-base">Data</span>
+                <SidebarMenuButton asChild isActive={isActive("/crm-integrations")}>
+                  <Link to="/crm-integrations">
+                    <Link2 className="h-4 w-4" />
+                    <span className="text-white text-base">Integrations</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/crm-integrations")}>
-                  <Link to="/crm-integrations">
-                    <Link2 className="h-4 w-4" />
-                    <span className="text-base">Integrations</span>
+                <SidebarMenuButton asChild isActive={isActive("/crm-data")}>
+                  <Link to="/crm-data">
+                    <Database className="h-4 w-4" />
+                    <span className="text-base">Data</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

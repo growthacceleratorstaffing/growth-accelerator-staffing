@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Download, RefreshCcw, Users, Building, Phone, Mail, Calendar } from "lucide-react";
+import { Search, Download, RefreshCcw, Users, Building, Phone, Mail, Calendar, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Contact {
   id: string;
@@ -125,6 +128,140 @@ const CrmData = () => {
       title: "Export Started",
       description: "Your CRM data export will be ready shortly.",
     });
+  };
+
+  const handleAddAsApplicant = async (contact: Contact) => {
+    if (!user) return;
+
+    try {
+      // Create a new candidate record from the contact
+      const { error } = await supabase
+        .from('candidates')
+        .insert({
+          user_id: user.id,
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          company: contact.company,
+          current_position: contact.position,
+          source_platform: contact.crm_source,
+          profile_completeness_score: 60, // Default score for CRM imports
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Applicant Added",
+        description: `${contact.name} has been added as an applicant successfully.`,
+      });
+    } catch (error) {
+      console.error('Error adding applicant:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add contact as applicant. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const AddApplicantDialog = ({ contact }: { contact: Contact }) => {
+    const [notes, setNotes] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+      if (!user) return;
+      
+      setIsSubmitting(true);
+      try {
+        const { error } = await supabase
+          .from('candidates')
+          .insert({
+            user_id: user.id,
+            name: contact.name,
+            email: contact.email,
+            phone: contact.phone,
+            company: contact.company,
+            current_position: contact.position,
+            source_platform: contact.crm_source,
+            profile_completeness_score: 60,
+            skills: notes ? [notes] : [],
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Applicant Added",
+          description: `${contact.name} has been successfully added as an applicant.`,
+        });
+        
+        setNotes("");
+      } catch (error) {
+        console.error('Error adding applicant:', error);
+        toast({
+          title: "Error",
+          description: "Failed to add contact as applicant. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <UserPlus className="h-4 w-4 mr-1" />
+            Add as Applicant
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add {contact.name} as Applicant</DialogTitle>
+            <DialogDescription>
+              This will create a new applicant record from this CRM contact.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <Label className="font-medium">Name</Label>
+                <p>{contact.name}</p>
+              </div>
+              <div>
+                <Label className="font-medium">Email</Label>
+                <p>{contact.email || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="font-medium">Company</Label>
+                <p>{contact.company || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="font-medium">Position</Label>
+                <p>{contact.position || 'N/A'}</p>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="notes">Additional Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add any additional information about this applicant..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Adding..." : "Add as Applicant"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -262,6 +399,7 @@ const CrmData = () => {
                       <TableHead>Status</TableHead>
                       <TableHead>Source</TableHead>
                       <TableHead>Last Contact</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -285,6 +423,9 @@ const CrmData = () => {
                           <Badge variant="outline">{contact.crm_source}</Badge>
                         </TableCell>
                         <TableCell>{contact.last_contact_date ? new Date(contact.last_contact_date).toLocaleDateString() : 'N/A'}</TableCell>
+                        <TableCell>
+                          <AddApplicantDialog contact={contact} />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
