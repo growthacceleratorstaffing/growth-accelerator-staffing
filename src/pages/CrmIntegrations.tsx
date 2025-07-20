@@ -138,9 +138,9 @@ const CrmIntegrations = () => {
       const tool = crmTools.find(t => t.id === toolId);
       if (!tool) throw new Error('Tool not found');
 
-      // For HubSpot, do a direct API validation
+      // Validate API key for different CRM types
       if (toolId === 'hubspot') {
-        console.log('Validating HubSpot API key directly...');
+        console.log('Validating HubSpot API key...');
         
         try {
           const testResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=1', {
@@ -160,11 +160,45 @@ const CrmIntegrations = () => {
             }
           }
 
-          const testData = await testResponse.json();
-          console.log('API validation successful');
+          console.log('HubSpot API validation successful');
         } catch (fetchError) {
-          console.error('Direct API validation failed:', fetchError);
+          console.error('HubSpot API validation failed:', fetchError);
           throw new Error(fetchError instanceof Error ? fetchError.message : 'Failed to validate API key with HubSpot');
+        }
+      } else if (toolId === 'salesforce') {
+        // For Salesforce, we'll do basic validation (API key format check for now)
+        if (!apiKey || apiKey.length < 10) {
+          throw new Error('Please provide a valid Salesforce API token.');
+        }
+        console.log('Salesforce API key format accepted');
+      } else if (toolId === 'apollo') {
+        // For Apollo, basic validation
+        if (!apiKey || apiKey.length < 10) {
+          throw new Error('Please provide a valid Apollo API key.');
+        }
+        console.log('Apollo API key format accepted');
+      } else if (toolId === 'pipedrive') {
+        // For Pipedrive, basic validation
+        if (!apiKey || apiKey.length < 10) {
+          throw new Error('Please provide a valid Pipedrive API token.');
+        }
+        console.log('Pipedrive API key format accepted');
+      } else if (toolId === 'zoho') {
+        // For Zoho, basic validation
+        if (!apiKey || apiKey.length < 10) {
+          throw new Error('Please provide a valid Zoho CRM API token.');
+        }
+        console.log('Zoho API key format accepted');
+      } else if (toolId === 'monday') {
+        // For Monday.com, basic validation
+        if (!apiKey || apiKey.length < 10) {
+          throw new Error('Please provide a valid Monday.com API token.');
+        }
+        console.log('Monday.com API key format accepted');
+      } else {
+        // Generic validation for any other CRM
+        if (!apiKey || apiKey.trim().length === 0) {
+          throw new Error('Please provide a valid API key.');
         }
       }
 
