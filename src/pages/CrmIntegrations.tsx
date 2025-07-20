@@ -138,13 +138,29 @@ const CrmIntegrations = () => {
       const tool = crmTools.find(t => t.id === toolId);
       if (!tool) throw new Error('Tool not found');
 
+      // First validate the API key with the CRM service
+      if (toolId === 'hubspot') {
+        const validationResponse = await supabase.functions.invoke('hubspot-validate', {
+          body: { apiKey }
+        });
+
+        if (validationResponse.error) {
+          throw new Error(validationResponse.error.message || 'Failed to validate API key');
+        }
+
+        if (!validationResponse.data?.success) {
+          throw new Error(validationResponse.data?.error || 'API key validation failed');
+        }
+      }
+
+      // If validation passes, save the integration
       const { error } = await supabase
         .from('crm_integrations')
         .upsert({
           user_id: user.id,
           crm_type: toolId,
           crm_name: tool.name,
-          api_key_encrypted: apiKey, // In production, encrypt this
+          api_key_encrypted: apiKey,
           is_active: true,
           last_sync_at: new Date().toISOString()
         });
@@ -162,7 +178,7 @@ const CrmIntegrations = () => {
       console.error('Connection error:', error);
       toast({
         title: "Connection Failed",
-        description: "Failed to connect to the CRM. Please check your API key.",
+        description: error instanceof Error ? error.message : "Failed to connect to the CRM. Please check your API key.",
         variant: "destructive"
       });
     } finally {
