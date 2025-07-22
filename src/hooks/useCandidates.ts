@@ -40,124 +40,18 @@ export interface JobAdderCandidate {
   updated?: string;
 }
 
-// Mock data for fallback
-const mockCandidates: JobAdderCandidate[] = [
-  {
-    candidateId: 5001,
-    firstName: "Sarah",
-    lastName: "Johnson",
-    email: "sarah.johnson@email.com",
-    phone: "+1 (555) 123-4567",
-    mobile: "+1 (555) 123-4567",
-    contactMethod: "Email",
-    salutation: "Ms.",
-    unsubscribed: false,
-    address: {
-      street: ["123 Tech Street"],
-      city: "San Francisco",
-      state: "CA",
-      postalCode: "94105",
-      country: "United States",
-      countryCode: "US"
-    },
-    status: {
-      statusId: 1,
-      name: "Active",
-      active: true,
-      default: true
-    },
-    rating: "4.8",
-    source: "LinkedIn",
-    seeking: "Yes",
-    summary: "Experienced frontend developer with 8+ years in React and TypeScript",
-    skills: ["React", "TypeScript", "JavaScript", "CSS", "Node.js"],
-    experienceYears: 8,
-    currentRole: "Senior Frontend Developer",
-    currentCompany: "Previous Tech Co",
-    availability: "2 weeks notice"
-  },
-  {
-    candidateId: 5002,
-    firstName: "Michael",
-    lastName: "Chen",
-    email: "michael.chen@email.com",
-    phone: "+1 (555) 987-6543",
-    mobile: "+1 (555) 987-6543",
-    contactMethod: "Phone",
-    salutation: "Mr.",
-    unsubscribed: false,
-    address: {
-      street: ["456 Business Ave"],
-      city: "New York",
-      state: "NY",
-      postalCode: "10001",
-      country: "United States",
-      countryCode: "US"
-    },
-    status: {
-      statusId: 1,
-      name: "Active",
-      active: true,
-      default: true
-    },
-    rating: "4.9",
-    source: "Company Website",
-    seeking: "Yes",
-    summary: "Product management expert with experience scaling B2B products",
-    skills: ["Product Strategy", "Analytics", "Scrum", "SQL", "Roadmapping"],
-    experienceYears: 6,
-    currentRole: "Product Manager",
-    currentCompany: "Growth Startup",
-    availability: "Immediate"
-  },
-  {
-    candidateId: 5003,
-    firstName: "Emily",
-    lastName: "Rodriguez",
-    email: "emily.rodriguez@email.com",
-    phone: "+1 (555) 456-7890",
-    mobile: "+1 (555) 456-7890",
-    contactMethod: "Email",
-    salutation: "Ms.",
-    unsubscribed: false,
-    address: {
-      street: ["789 Design Lane"],
-      city: "Austin",
-      state: "TX",
-      postalCode: "73301",
-      country: "United States",
-      countryCode: "US"
-    },
-    status: {
-      statusId: 1,
-      name: "Active",
-      active: true,
-      default: true
-    },
-    rating: "4.7",
-    source: "Dribbble",
-    seeking: "Yes",
-    summary: "Creative UX designer focused on user-centered design principles",
-    skills: ["UX Design", "Figma", "User Research", "Prototyping", "Design Systems"],
-    experienceYears: 5,
-    currentRole: "UX Designer",
-    currentCompany: "Design Agency",
-    availability: "1 month notice"
-  }
-];
 
 export function useCandidates() {
   const [candidates, setCandidates] = useState<JobAdderCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [useMockData, setUseMockData] = useState(false);
 
   const fetchCandidates = async (searchTerm?: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Try to fetch from edge function
+      // Try to fetch from edge function first
       const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
         body: { 
           endpoint: 'candidates',
@@ -170,23 +64,49 @@ export function useCandidates() {
         throw new Error(supabaseError.message);
       }
 
-      setCandidates(data.items || data);
-      setUseMockData(false);
+      setCandidates(data.items || data || []);
     } catch (err) {
-      console.warn('API unavailable, using mock data:', err);
-      // Fallback to mock data
-      let filteredCandidates = mockCandidates;
-      if (searchTerm) {
-        filteredCandidates = mockCandidates.filter(candidate => 
-          `${candidate.firstName} ${candidate.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          candidate.currentRole?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          candidate.currentCompany?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+      console.warn('JobAdder API unavailable, trying local candidates:', err);
+      
+      // Try to fetch from local candidates table as fallback
+      try {
+        let query = supabase
+          .from('candidates')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (searchTerm) {
+          query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,current_position.ilike.%${searchTerm}%`);
+        }
+
+        const { data: localCandidates, error: localError } = await query;
+
+        if (localError) {
+          throw localError;
+        }
+
+        // Transform local candidates to match JobAdder format
+        const transformedCandidates: JobAdderCandidate[] = (localCandidates || []).map(candidate => ({
+          candidateId: parseInt(candidate.id) || 0,
+          firstName: candidate.name?.split(' ')[0] || '',
+          lastName: candidate.name?.split(' ').slice(1).join(' ') || '',
+          email: candidate.email || '',
+          phone: candidate.phone || undefined,
+          source: candidate.source_platform || 'Local',
+          currentRole: candidate.current_position || undefined,
+          currentCompany: candidate.company || undefined,
+          created: candidate.created_at || undefined,
+          updated: candidate.updated_at || undefined,
+          skills: Array.isArray(candidate.skills) ? candidate.skills as string[] : [],
+          experienceYears: candidate.experience_years || undefined
+        }));
+
+        setCandidates(transformedCandidates);
+      } catch (localErr) {
+        console.error('Failed to fetch local candidates:', localErr);
+        setCandidates([]);
+        setError('Unable to load candidates data');
       }
-      setCandidates(filteredCandidates);
-      setUseMockData(true);
-      setError('Using demo data - API unavailable');
     } finally {
       setLoading(false);
     }
@@ -200,7 +120,6 @@ export function useCandidates() {
     candidates,
     loading,
     error,
-    useMockData,
     refetch: fetchCandidates
   };
 }
