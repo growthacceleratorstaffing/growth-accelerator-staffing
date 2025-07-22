@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   MapPin, 
   Mail, 
@@ -27,7 +28,9 @@ import {
   Briefcase,
   ArrowRight,
   Eye,
-  Edit
+  Edit,
+  LayoutGrid,
+  List
 } from "lucide-react";
 import { Button as PaginationButton } from "@/components/ui/button";
 import { useJazzHRApplicants } from "@/hooks/useJazzHRApplicants";
@@ -35,6 +38,7 @@ import { useCandidateDetails } from "@/hooks/useCandidateDetails";
 import { useCandidates } from "@/hooks/useCandidates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CandidateKanbanBoard } from "@/components/candidates/CandidateKanbanBoard";
 
 const Applications = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -288,16 +292,39 @@ const Applications = () => {
     }
   };
 
+  // Updated stages to match your attachment
   const applicationStages = [
-    { id: "1", name: "Application Review", description: "Initial review of application" },
-    { id: "2", name: "Phone Interview", description: "Phone screening with candidate" },
-    { id: "3", name: "Technical Interview", description: "Technical assessment and interview" },
-    { id: "4", name: "Final Interview", description: "Final interview with hiring manager" },
-    { id: "5", name: "Placed", description: "Candidate has been successfully placed" },
-    { id: "6", name: "Offer Extended", description: "Job offer has been extended" },
-    { id: "7", name: "Rejected", description: "Application rejected" },
-    { id: "8", name: "Declined", description: "Candidate declined offer" }
+    { id: "new", name: "NEW", description: "Initial application submitted" },
+    { id: "interview", name: "INTERVIEW", description: "Interview stage" },
+    { id: "client_introduction", name: "CLIENT INTRODUCTION", description: "Introduction to client" },
+    { id: "hired", name: "HIRED", description: "Successfully hired" },
+    { id: "disqualified", name: "DISQUALIFIED", description: "Application disqualified" },
   ];
+
+  // Handle stage changes from drag and drop
+  const handleStageChange = async (candidateId: string, newStage: string) => {
+    try {
+      // Update the candidate stage in the local state
+      setAllCandidates(prev => 
+        prev.map(candidate => 
+          candidate.id === candidateId 
+            ? { ...candidate, stage: newStage }
+            : candidate
+        )
+      );
+
+      // Here you would also update the backend if needed
+      // For now, we'll just show a success message
+      console.log(`Updated candidate ${candidateId} to stage ${newStage}`);
+    } catch (error) {
+      console.error('Failed to update candidate stage:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update candidate stage.",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -340,7 +367,9 @@ const Applications = () => {
       )}
 
       <div className="space-y-6">
-        <h2 className="text-2xl font-semibold">Candidates ({filteredApplicants.length})</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-semibold">Candidates ({filteredApplicants.length})</h2>
+        </div>
 
         <div className="mb-6">
           <div className="relative">
@@ -354,156 +383,187 @@ const Applications = () => {
           </div>
         </div>
 
-        <div className="grid gap-6">
-          {paginatedApplicants.length === 0 ? (
-            <div className="text-center py-12">
-              <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No candidates found matching your search.</p>
-            </div>
-          ) : (
-            <>
-              {paginatedApplicants.map((applicant) => (
-                <Card key={applicant.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${applicant.first_name}${applicant.last_name}`} />
-                        <AvatarFallback className="text-lg">
-                          {`${applicant.first_name?.[0] || ''}${applicant.last_name?.[0] || ''}`}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <CardTitle className="text-xl mb-1">
-                              <span className="flex items-center gap-2">
-                                <User className="h-5 w-5 text-primary" />
-                                {applicant.first_name} {applicant.last_name}
-                              </span>
-                            </CardTitle>
-                            <CardDescription className="text-base">
-                              Applied for: <span className="font-medium">{applicant.job?.title || 'N/A'}</span>
-                            </CardDescription>
-                            <CardDescription className="text-sm text-muted-foreground">
-                              Applicant ID: {applicant.id}
-                            </CardDescription>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Badge className="bg-blue-100 text-blue-800">
-                              Applied
-                            </Badge>
-                            <div className="text-sm text-muted-foreground">
-                              {applicant.apply_date && new Date(applicant.apply_date).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
+        <Tabs defaultValue="kanban" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="kanban" className="flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4" />
+              Kanban Board
+            </TabsTrigger>
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <List className="h-4 w-4" />
+              List View
+            </TabsTrigger>
+          </TabsList>
 
-                        {/* Applicant Summary */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
-                          {/* Candidate Information */}
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">Candidate Details</span>
-                            </div>
-                            <div className="pl-6 space-y-2">
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Mail className="h-3 w-3" />
-                                  {applicant.email || 'N/A'}
-                                </span>
-                                {applicant.phone && (
-                                  <span className="flex items-center gap-1">
-                                    <Phone className="h-3 w-3" />
-                                    {applicant.phone}
+          <TabsContent value="kanban" className="mt-6">
+            {filteredApplicants.length === 0 ? (
+              <div className="text-center py-12">
+                <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No candidates found matching your search.</p>
+              </div>
+            ) : (
+              <CandidateKanbanBoard
+                candidates={filteredApplicants}
+                onStageChange={handleStageChange}
+                onViewDetails={handleViewDetails}
+                onUpdateStage={handleUpdateStage}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="list" className="mt-6">
+            <div className="grid gap-6">
+              {paginatedApplicants.length === 0 ? (
+                <div className="text-center py-12">
+                  <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No candidates found matching your search.</p>
+                </div>
+              ) : (
+                <>
+                  {paginatedApplicants.map((applicant) => (
+                    <Card key={applicant.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start gap-4">
+                          <Avatar className="h-16 w-16">
+                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${applicant.first_name}${applicant.last_name}`} />
+                            <AvatarFallback className="text-lg">
+                              {`${applicant.first_name?.[0] || ''}${applicant.last_name?.[0] || ''}`}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start mb-4">
+                              <div>
+                                <CardTitle className="text-xl mb-1">
+                                  <span className="flex items-center gap-2">
+                                    <User className="h-5 w-5 text-primary" />
+                                    {applicant.first_name} {applicant.last_name}
                                   </span>
-                                )}
+                                </CardTitle>
+                                <CardDescription className="text-base">
+                                  Applied for: <span className="font-medium">{applicant.job?.title || 'N/A'}</span>
+                                </CardDescription>
+                                <CardDescription className="text-sm text-muted-foreground">
+                                  Applicant ID: {applicant.id}
+                                </CardDescription>
                               </div>
-                              <div className="text-sm">
-                                <span className="font-medium">Source: </span>
-                                <span className="text-muted-foreground">JazzHR</span>
+                              <div className="flex flex-col gap-2">
+                                <Badge className="bg-blue-100 text-blue-800">
+                                  {applicant.stage || 'Applied'}
+                                </Badge>
+                                <div className="text-sm text-muted-foreground">
+                                  {applicant.apply_date && new Date(applicant.apply_date).toLocaleDateString()}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Job Information */}
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                              <Briefcase className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">Position Details</span>
+                            {/* Applicant Summary */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+                              {/* Candidate Information */}
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium">Candidate Details</span>
+                                </div>
+                                <div className="pl-6 space-y-2">
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Mail className="h-3 w-3" />
+                                      {applicant.email || 'N/A'}
+                                    </span>
+                                    {applicant.phone && (
+                                      <span className="flex items-center gap-1">
+                                        <Phone className="h-3 w-3" />
+                                        {applicant.phone}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-sm">
+                                    <span className="font-medium">Source: </span>
+                                    <span className="text-muted-foreground">{applicant.source || 'JazzHR'}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Job Information */}
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium">Position Details</span>
+                                </div>
+                                <div className="pl-6 space-y-2">
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      Applied: {applicant.apply_date ? new Date(applicant.apply_date).toLocaleDateString() : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div className="text-sm">
+                                    <span className="font-medium">Job ID: </span>
+                                    <span className="text-muted-foreground">{applicant.job?.id || 'N/A'}</span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="pl-6 space-y-2">
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  Applied: {applicant.apply_date ? new Date(applicant.apply_date).toLocaleDateString() : 'N/A'}
-                                </span>
-                              </div>
-                              <div className="text-sm">
-                                <span className="font-medium">Job ID: </span>
-                                <span className="text-muted-foreground">{applicant.job?.id || 'N/A'}</span>
-                              </div>
+
+                            <Separator className="my-4" />
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-wrap gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewDetails(applicant)}
+                                className="flex items-center gap-1"
+                              >
+                                <Eye className="h-3 w-3" />
+                                View Details
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleUpdateStage(applicant)}
+                                className="flex items-center gap-1"
+                              >
+                                <Edit className="h-3 w-3" />
+                                Update Stage
+                              </Button>
                             </div>
                           </div>
                         </div>
+                      </CardHeader>
+                    </Card>
+                  ))}
+                </>
+              )}
+            </div>
 
-                        <Separator className="my-4" />
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleViewDetails(applicant)}
-                            className="flex items-center gap-1"
-                          >
-                            <Eye className="h-3 w-3" />
-                            View Details
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleUpdateStage(applicant)}
-                            className="flex items-center gap-1"
-                          >
-                            <Edit className="h-3 w-3" />
-                            Update Stage
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              ))}
-            </>
-          )}
-        </div>
-
-        {/* Pagination */}
-        {filteredApplicants.length > ITEMS_PER_PAGE && (
-          <div className="flex justify-center items-center gap-2 mt-6">
-            <PaginationButton
-              variant="outline"
-              size="sm"
-              onClick={() => setApplicantsPage(prev => Math.max(1, prev - 1))}
-              disabled={applicantsPage === 1}
-            >
-              Previous
-            </PaginationButton>
-            <span className="text-sm text-muted-foreground px-3">
-              Page {applicantsPage} of {getTotalPages(filteredApplicants.length)}
-            </span>
-            <PaginationButton
-              variant="outline"
-              size="sm"
-              onClick={() => setApplicantsPage(prev => Math.min(getTotalPages(filteredApplicants.length), prev + 1))}
-              disabled={applicantsPage === getTotalPages(filteredApplicants.length)}
-            >
-              Next
-            </PaginationButton>
-          </div>
-        )}
+            {/* Pagination */}
+            {filteredApplicants.length > ITEMS_PER_PAGE && (
+              <div className="flex justify-center items-center gap-2 mt-6">
+                <PaginationButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setApplicantsPage(prev => Math.max(1, prev - 1))}
+                  disabled={applicantsPage === 1}
+                >
+                  Previous
+                </PaginationButton>
+                <span className="text-sm text-muted-foreground px-3">
+                  Page {applicantsPage} of {getTotalPages(filteredApplicants.length)}
+                </span>
+                <PaginationButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setApplicantsPage(prev => Math.min(getTotalPages(filteredApplicants.length), prev + 1))}
+                  disabled={applicantsPage === getTotalPages(filteredApplicants.length)}
+                >
+                  Next
+                </PaginationButton>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Add Candidate Dialog */}
