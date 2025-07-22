@@ -46,10 +46,10 @@ export const JobSyncStatus = () => {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
-              JobAdder Sync Status
+              JazzHR Sync Status
             </CardTitle>
             <CardDescription>
-              Bi-directional synchronization with JobAdder platform
+              Bi-directional synchronization with JazzHR platform
             </CardDescription>
           </div>
           
@@ -146,7 +146,7 @@ export const JobSyncStatus = () => {
           
           <Button
             variant="secondary"
-            onClick={() => window.open('/jobadder-auth', '_blank')}
+            onClick={() => window.open('/jazzhr-auth', '_blank')}
             size="sm"
           >
             Setup OAuth
@@ -156,9 +156,9 @@ export const JobSyncStatus = () => {
         <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
           <strong>Bi-directional Sync:</strong>
           <ul className="mt-1 space-y-1">
-            <li>• Jobs created in this app are automatically posted to JobAdder</li>
-            <li>• Jobs from JobAdder are displayed in the Jobs section</li>
-            <li>• Candidates from JobAdder are shown in the Candidates section</li>
+            <li>• Jobs created in this app are automatically posted to JazzHR</li>
+            <li>• Jobs from JazzHR are displayed in the Jobs section</li>
+            <li>• Candidates from JazzHR are shown in the Candidates section</li>
             <li>• Job applications are synchronized both ways</li>
           </ul>
         </div>

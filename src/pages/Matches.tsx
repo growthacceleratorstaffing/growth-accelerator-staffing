@@ -97,7 +97,7 @@ const Matches = () => {
     
     // Find candidate from available candidates
     selectedCandidate = availableCandidates.find(c => 
-      c.candidateId?.toString() === placementData.candidateId
+      c.id?.toString() === placementData.candidateId
     );
     
     // Find job from jobs list
@@ -168,37 +168,37 @@ const Matches = () => {
           notes: placementData.notes
         };
 
-        const { data: jobAdderData, error: jobAdderError } = await supabase.functions.invoke('jobadder-api', {
+        const { data: jazzHRData, error: jazzHRError } = await supabase.functions.invoke('jazzhr-api', {
           body: { 
             endpoint: 'create-placement',
             ...placementPayload
           }
         });
 
-        if (!jobAdderError && jobAdderData) {
-          console.log('JobAdder placement created:', jobAdderData);
+        if (!jazzHRError && jazzHRData) {
+          console.log('JazzHR placement created:', jazzHRData);
           
           // Update local record to mark as synced
           await supabase
             .from('local_placements')
             .update({
               synced_to_jobadder: true,
-              jobadder_placement_id: jobAdderData.placementId
+              jobadder_placement_id: jazzHRData.placementId
             })
             .eq('id', localPlacement.id);
 
           toast({
             title: "Placement Created!",
-            description: "Placement created in JobAdder and saved locally.",
+            description: "Placement created in JazzHR and saved locally.",
           });
         } else {
           throw new Error('JobAdder API failed');
         }
-      } catch (jobAdderError) {
-        console.warn('JobAdder API unavailable:', jobAdderError);
+      } catch (jazzHRError) {
+        console.warn('JazzHR API unavailable:', jazzHRError);
         toast({
           title: "Placement Saved Locally",
-          description: "Placement saved locally. JobAdder API unavailable.",
+          description: "Placement saved locally. JazzHR API unavailable.",
         });
       }
       
@@ -346,9 +346,9 @@ const Matches = () => {
                       </div>
                     ) : (
                       availableCandidates.map((candidate) => (
-                        <SelectItem key={candidate.candidateId} value={candidate.candidateId.toString()}>
+                        <SelectItem key={candidate.id} value={candidate.id.toString()}>
                           <div className="flex flex-col">
-                            <span>{candidate.firstName} {candidate.lastName}</span>
+                            <span>{candidate.first_name} {candidate.last_name}</span>
                             <span className="text-xs text-muted-foreground">
                               {candidate.email}
                             </span>

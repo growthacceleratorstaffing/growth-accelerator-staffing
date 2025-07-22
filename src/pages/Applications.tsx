@@ -97,12 +97,12 @@ const Applications = () => {
     
     // Transform local candidates to match the structure with unique IDs
     const transformedLocalCandidates = (localCandidates || []).map(candidate => ({
-      id: `local_${candidate.candidateId}`, // Prefix to avoid ID conflicts
-      first_name: candidate.firstName || '',
-      last_name: candidate.lastName || '',
+      id: `local_${candidate.id}`, // Prefix to avoid ID conflicts
+      first_name: candidate.first_name || '',
+      last_name: candidate.last_name || '',
       email: candidate.email,
       phone: candidate.phone,
-      apply_date: candidate.created,
+      apply_date: candidate.apply_date,
       job: {
         id: 'local',
         title: 'Added directly to talent pool'
@@ -289,7 +289,7 @@ const Applications = () => {
 
       toast({
         title: "Candidate Added Successfully!",
-        description: `${newCandidateData.firstName} ${newCandidateData.lastName} has been added to the talent pool and synced to JobAdder and Workable.`,
+        description: `${newCandidateData.firstName} ${newCandidateData.lastName} has been added to the talent pool and synced to JazzHR and Workable.`,
       });
 
       // Reset form and close dialog
@@ -619,7 +619,7 @@ const Applications = () => {
           <DialogHeader>
             <DialogTitle>Add New Candidate</DialogTitle>
             <DialogDescription>
-              Add a new candidate to the talent pool. This will sync to both JobAdder and Workable.
+              Add a new candidate to the talent pool. This will sync to both JazzHR and Workable.
             </DialogDescription>
           </DialogHeader>
           
