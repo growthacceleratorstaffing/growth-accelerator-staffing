@@ -149,23 +149,30 @@ export function useJobs() {
       }
 
       // Combine JazzHR and local jobs with deduplication
-      const combinedJobs = [...jazzHRJobs, ...localJobs];
+      // Prioritize JazzHR jobs over local jobs to avoid duplicates
+      const combinedJobs = [...jazzHRJobs];
       
-      // Remove duplicates by title and company, and filter out sample/test jobs
-      const uniqueJobs = combinedJobs.filter((job, index, array) => {
-        // Filter out sample/test jobs
+      // Add local jobs only if they don't match any JazzHR job
+      localJobs.forEach(localJob => {
+        const isDuplicate = jazzHRJobs.some(jazzJob => 
+          jazzJob.title?.toLowerCase().trim() === localJob.title?.toLowerCase().trim() &&
+          (jazzJob.city?.toLowerCase().trim() === localJob.city?.toLowerCase().trim() ||
+           jazzJob.department?.toLowerCase().trim() === localJob.department?.toLowerCase().trim())
+        );
+        
+        if (!isDuplicate) {
+          combinedJobs.push(localJob);
+        }
+      });
+      
+      // Filter out sample/test jobs
+      const uniqueJobs = combinedJobs.filter(job => {
         if (job.title?.toLowerCase().includes('sample') || 
             job.title?.toLowerCase().includes('test') ||
             job.id?.toLowerCase().includes('sample')) {
           return false;
         }
-        
-        // Remove duplicates by checking if this is the first occurrence of this job
-        return array.findIndex(j => 
-          j.title?.toLowerCase() === job.title?.toLowerCase() && 
-          (j.department?.toLowerCase() === job.department?.toLowerCase() || 
-           j.company_name?.toLowerCase() === job.company_name?.toLowerCase())
-        ) === index;
+        return true;
       });
       
       setJobs(uniqueJobs);
