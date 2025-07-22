@@ -102,6 +102,27 @@ export function useJobs() {
             })
           );
 
+          // Remove duplicate applicants across all jobs
+          const allApplicants = jazzHRJobs.flatMap(job => job.applicants || []);
+          const uniqueApplicants = allApplicants.filter((applicant, index, self) => {
+            return index === self.findIndex(a => 
+              (a.email && applicant.email && a.email.toLowerCase() === applicant.email.toLowerCase()) ||
+              (a.first_name === applicant.first_name && a.last_name === applicant.last_name && a.id === applicant.id)
+            );
+          });
+          
+          // Update job applicant counts to reflect only unique applicants
+          jazzHRJobs.forEach(job => {
+            if (job.applicants) {
+              job.applicants = job.applicants.filter((applicant, index, jobApplicants) => {
+                return index === jobApplicants.findIndex(a => 
+                  (a.email && applicant.email && a.email.toLowerCase() === applicant.email.toLowerCase()) ||
+                  (a.first_name === applicant.first_name && a.last_name === applicant.last_name && a.id === applicant.id)
+                );
+              });
+            }
+          });
+
           jazzHRJobs = jobsWithApplicants;
         } else {
           console.warn('JazzHR API call failed:', jobsError || 'No data returned');
