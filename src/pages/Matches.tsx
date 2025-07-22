@@ -538,9 +538,9 @@ const Matches = () => {
               <CardHeader>
                 <div className="flex items-start gap-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${placement.candidate.firstName}${placement.candidate.lastName}`} />
+                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${placement.candidate?.firstName || 'U'}${placement.candidate?.lastName || 'U'}`} />
                     <AvatarFallback className="text-lg">
-                      {`${placement.candidate.firstName[0]}${placement.candidate.lastName[0]}`}
+                      {`${placement.candidate?.firstName?.[0] || 'U'}${placement.candidate?.lastName?.[0] || 'U'}`}
                     </AvatarFallback>
                   </Avatar>
                   
@@ -579,28 +579,28 @@ const Matches = () => {
                         </div>
                         <div className="pl-6 space-y-2">
                           <h3 className="font-semibold text-lg">
-                            {placement.candidate.salutation ? `${placement.candidate.salutation} ` : ''}
-                            {placement.candidate.firstName} {placement.candidate.lastName}
+                            {placement.candidate?.salutation ? `${placement.candidate.salutation} ` : ''}
+                            {placement.candidate?.firstName || 'Unknown'} {placement.candidate?.lastName || 'Candidate'}
                           </h3>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Mail className="h-3 w-3" />
-                              {placement.candidate.email}
+                              {placement.candidate?.email || 'No email'}
                             </span>
                             <span className="flex items-center gap-1">
                               <Phone className="h-3 w-3" />
-                              {placement.candidate.phone || placement.candidate.mobile}
+                              {placement.candidate?.phone || placement.candidate?.mobile || 'No phone'}
                             </span>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <MapPin className="h-3 w-3" />
-                              {placement.candidate.address ? 
+                              {placement.candidate?.address ? 
                                 `${placement.candidate.address.city}, ${placement.candidate.address.state}` : 
                                 'Location not specified'
                               }
                             </span>
-                            {placement.candidate.rating && (
+                            {placement.candidate?.rating && (
                               <span className="flex items-center gap-1">
                                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                                 {placement.candidate.rating}
