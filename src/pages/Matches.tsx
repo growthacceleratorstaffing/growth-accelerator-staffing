@@ -61,8 +61,8 @@ const Matches = () => {
   const { talentPool, loading: talentPoolLoading } = useJobApplications();
   const { toast } = useToast();
 
-  // Include all candidates from talent pool regardless of placement status
-  const availableCandidates = talentPool;
+  // Use all candidates from the candidates hook instead of just talent pool
+  const availableCandidates = candidates;
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -95,9 +95,9 @@ const Matches = () => {
     let selectedCandidate;
     let selectedJob;
     
-    // Find candidate from available candidates (talent pool)
+    // Find candidate from available candidates
     selectedCandidate = availableCandidates.find(c => 
-      c.candidate.candidateId.toString() === placementData.candidateId
+      c.candidateId?.toString() === placementData.candidateId
     );
     
     // Find job from jobs list
@@ -110,10 +110,10 @@ const Matches = () => {
 
     // If we can't find the specific candidate/job, create a basic record
     const candidateName = selectedCandidate 
-      ? `${selectedCandidate.candidate.firstName} ${selectedCandidate.candidate.lastName}`
+      ? `${selectedCandidate.firstName || selectedCandidate.name?.split(' ')[0] || 'Unknown'} ${selectedCandidate.lastName || selectedCandidate.name?.split(' ')[1] || 'Candidate'}`
       : `Candidate ${placementData.candidateId}`;
     
-    const candidateEmail = selectedCandidate?.candidate.email || `candidate${placementData.candidateId}@unknown.com`;
+    const candidateEmail = selectedCandidate?.email || `candidate${placementData.candidateId}@unknown.com`;
     const jobTitle = selectedJob?.title || `Job ${placementData.jobId}`;
     const companyName = selectedJob?.company?.name || 'Unknown Company';
 
@@ -337,20 +337,20 @@ const Matches = () => {
                 <Label htmlFor="candidateId">Candidate *</Label>
                 <Select value={placementData.candidateId} onValueChange={(value) => handleInputChange("candidateId", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder={talentPoolLoading ? "Loading talent pool..." : "Select from talent pool"} />
+                    <SelectValue placeholder={candidatesLoading ? "Loading candidates..." : "Select from all applicants"} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableCandidates.length === 0 ? (
                       <div className="p-2 text-sm text-muted-foreground">
-                        No available candidates in talent pool
+                        No available candidates
                       </div>
                     ) : (
                       availableCandidates.map((candidate) => (
-                        <SelectItem key={candidate.candidate.candidateId} value={candidate.candidate.candidateId.toString()}>
+                        <SelectItem key={candidate.candidateId} value={candidate.candidateId.toString()}>
                           <div className="flex flex-col">
-                            <span>{candidate.candidate.firstName} {candidate.candidate.lastName}</span>
+                            <span>{candidate.firstName} {candidate.lastName}</span>
                             <span className="text-xs text-muted-foreground">
-                              {candidate.candidate.email} • {candidate.status.name}
+                              {candidate.email}
                             </span>
                           </div>
                         </SelectItem>
@@ -359,7 +359,7 @@ const Matches = () => {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  All candidates including already matched/placed ones
+                  All applicants from the system
                 </p>
               </div>
               
