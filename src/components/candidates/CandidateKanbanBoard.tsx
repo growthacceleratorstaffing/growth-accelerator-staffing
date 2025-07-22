@@ -147,7 +147,7 @@ const DroppableColumn: React.FC<{
     <div className={`rounded-lg border-2 border-dashed p-4 min-h-[600px] ${stage.color}`}>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-semibold text-sm">{stage.name}</h3>
+          <h3 className="font-semibold text-sm text-pink-600">{stage.name}</h3>
           <p className="text-xs text-muted-foreground">
             {candidates.length} candidate{candidates.length !== 1 ? 's' : ''}
           </p>
