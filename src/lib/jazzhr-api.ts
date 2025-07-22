@@ -20,11 +20,14 @@ export interface JazzHRApplicant {
   id: string;
   first_name: string;
   last_name: string;
-  email: string;
+  email?: string;
   phone?: string;
+  prospect_phone?: string; // From API logs
   city?: string;
   state?: string;
   apply_date?: string;
+  job_id?: string; // From API logs
+  job_title?: string; // From API logs
   status?: {
     id: string;
     name: string;
@@ -35,6 +38,7 @@ export interface JazzHRApplicant {
     id: string;
     title: string;
   };
+  stage?: string; // Add stage for Kanban
 }
 
 export interface JazzHRUser {

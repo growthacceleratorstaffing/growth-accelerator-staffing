@@ -76,11 +76,28 @@ const Applications = () => {
   const [allCandidates, setAllCandidates] = useState<any[]>([]);
 
   useEffect(() => {
+    // Process JazzHR applicants - these are the real candidates from JazzHR API
     const jazzhrCandidates = jazzhrApplicants ? (Array.isArray(jazzhrApplicants) ? jazzhrApplicants : [jazzhrApplicants]) : [];
     
-    // Transform local candidates to match the structure
+    // Transform JazzHR candidates to ensure proper structure
+    const transformedJazzHRCandidates = jazzhrCandidates.map(candidate => ({
+      id: candidate.id, // Use JazzHR's unique ID
+      first_name: candidate.first_name || '',
+      last_name: candidate.last_name || '',
+      email: candidate.email || '',
+      phone: candidate.prospect_phone || candidate.phone || '',
+      apply_date: candidate.apply_date,
+      job: {
+        id: candidate.job_id || 'unknown',
+        title: candidate.job_title || 'N/A'
+      },
+      source: 'JazzHR',
+      stage: candidate.stage || 'new' // Default to 'new' stage
+    }));
+    
+    // Transform local candidates to match the structure with unique IDs
     const transformedLocalCandidates = (localCandidates || []).map(candidate => ({
-      id: candidate.candidateId,
+      id: `local_${candidate.candidateId}`, // Prefix to avoid ID conflicts
       first_name: candidate.firstName || '',
       last_name: candidate.lastName || '',
       email: candidate.email,
@@ -90,10 +107,12 @@ const Applications = () => {
         id: 'local',
         title: 'Added directly to talent pool'
       },
-      source: 'Local'
+      source: 'Local',
+      stage: candidate.stage || 'new' // Default to 'new' stage
     }));
 
-    setAllCandidates([...transformedLocalCandidates, ...jazzhrCandidates]);
+    // Combine JazzHR and local candidates
+    setAllCandidates([...transformedJazzHRCandidates, ...transformedLocalCandidates]);
   }, [jazzhrApplicants, localCandidates]);
 
   const handleSearch = (value: string) => {
@@ -322,19 +341,28 @@ const Applications = () => {
 
   // Handle stage changes from drag and drop
   const handleStageChange = async (candidateId: string, newStage: string) => {
+    console.log(`Attempting to move candidate ${candidateId} to stage ${newStage}`);
+    
     try {
-      // Update the candidate stage in the local state
-      setAllCandidates(prev => 
-        prev.map(candidate => 
-          candidate.id === candidateId 
-            ? { ...candidate, stage: newStage }
-            : candidate
-        )
-      );
+      // Update ONLY the specific candidate with the matching ID
+      setAllCandidates(prev => {
+        const updatedCandidates = prev.map(candidate => {
+          if (candidate.id === candidateId) {
+            console.log(`Updating candidate ${candidate.first_name} ${candidate.last_name} (ID: ${candidate.id}) to stage ${newStage}`);
+            return { ...candidate, stage: newStage };
+          }
+          return candidate;
+        });
+        
+        // Log to verify only one candidate was updated
+        const updatedCount = updatedCandidates.filter(c => c.stage === newStage && c.id === candidateId).length;
+        console.log(`Updated ${updatedCount} candidate(s) to stage ${newStage}`);
+        
+        return updatedCandidates;
+      });
 
-      // Here you would also update the backend if needed
-      // For now, we'll just show a success message
-      console.log(`Updated candidate ${candidateId} to stage ${newStage}`);
+      // Log success
+      console.log(`Successfully updated candidate ${candidateId} to stage ${newStage}`);
     } catch (error) {
       console.error('Failed to update candidate stage:', error);
       toast({

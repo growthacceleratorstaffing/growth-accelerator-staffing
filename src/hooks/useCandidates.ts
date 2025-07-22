@@ -38,6 +38,7 @@ export interface JobAdderCandidate {
   availability?: string;
   created?: string;
   updated?: string;
+  stage?: string; // Add stage for Kanban
 }
 
 
