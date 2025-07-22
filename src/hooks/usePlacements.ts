@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 
 // Placement interfaces based on API specification
-export interface JobAdderPlacement {
+export interface JazzHRPlacement {
   placementId: number;
   status: {
     statusId: number;
@@ -143,7 +143,7 @@ export interface JobAdderPlacement {
 }
 
 interface PlacementsResponse {
-  items: JobAdderPlacement[];
+  items: JazzHRPlacement[];
   totalCount: number;
   links?: {
     first?: string;
@@ -154,7 +154,7 @@ interface PlacementsResponse {
 }
 
 // Mock data for fallback
-const mockPlacements: JobAdderPlacement[] = [
+const mockPlacements: JazzHRPlacement[] = [
   {
     placementId: 2001,
     status: {
@@ -398,7 +398,7 @@ const mockPlacements: JobAdderPlacement[] = [
 ];
 
 export function usePlacements() {
-  const [placements, setPlacements] = useState<JobAdderPlacement[]>([]);
+  const [placements, setPlacements] = useState<JazzHRPlacement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [useMockData, setUseMockData] = useState(false);
@@ -408,12 +408,12 @@ export function usePlacements() {
     setError(null);
 
     try {
-      let jobAdderPlacements: JobAdderPlacement[] = [];
-      let useJobAdderMock = false;
+      let jazzHRPlacements: JazzHRPlacement[] = [];
+      let useJazzHRMock = false;
 
-      // Try to fetch from JobAdder API first
+      // Try to fetch from JazzHR API first
       try {
-        const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+        const { data, error: supabaseError } = await supabase.functions.invoke('jazzhr-api', {
           body: { 
             endpoint: 'placements',
             limit: 100
@@ -424,15 +424,15 @@ export function usePlacements() {
           throw new Error(supabaseError.message);
         }
 
-        jobAdderPlacements = data.items || data || [];
+        jazzHRPlacements = data.items || data || [];
       } catch (apiError) {
-        console.warn('JobAdder API unavailable, using mock data for JobAdder placements:', apiError);
-        jobAdderPlacements = mockPlacements;
-        useJobAdderMock = true;
+        console.warn('JazzHR API unavailable, using mock data for JazzHR placements:', apiError);
+        jazzHRPlacements = mockPlacements;
+        useJazzHRMock = true;
       }
 
       // Always fetch local placements - this is the key part
-      let localPlacements: JobAdderPlacement[] = [];
+      let localPlacements: JazzHRPlacement[] = [];
       try {
         console.log('Fetching local placements from database...');
         const { data: localData, error: localError } = await supabase
@@ -444,7 +444,7 @@ export function usePlacements() {
           console.error('Error fetching local placements:', localError);
         } else {
           console.log(`Successfully fetched ${localData?.length || 0} local placements:`, localData);
-          // Convert local placements to JobAdderPlacement format
+          // Convert local placements to JazzHRPlacement format
           localPlacements = (localData || []).map((local, index) => ({
             placementId: -2000 - index, // Unique negative IDs for local placements
             status: {
@@ -496,9 +496,9 @@ export function usePlacements() {
         console.error('Error fetching local placements:', localFetchError);
       }
 
-      // Combine JobAdder and local placements - prioritize local placements
-      let allPlacements = [...localPlacements, ...jobAdderPlacements];
-      console.log(`Total placements: ${allPlacements.length} (${localPlacements.length} local + ${jobAdderPlacements.length} JobAdder)`);
+      // Combine JazzHR and local placements - prioritize local placements
+      let allPlacements = [...localPlacements, ...jazzHRPlacements];
+      console.log(`Total placements: ${allPlacements.length} (${localPlacements.length} local + ${jazzHRPlacements.length} JazzHR)`);
 
       // Apply search filter
       if (searchTerm) {
@@ -511,8 +511,8 @@ export function usePlacements() {
       }
       
       setPlacements(allPlacements);
-      setUseMockData(useJobAdderMock && localPlacements.length === 0);
-      setError(useJobAdderMock && localPlacements.length === 0 ? 'Using demo data for JobAdder - API unavailable' : null);
+      setUseMockData(useJazzHRMock && localPlacements.length === 0);
+      setError(useJazzHRMock && localPlacements.length === 0 ? 'Using demo data for JazzHR - API unavailable' : null);
     } catch (err) {
       console.error('Error fetching placements:', err);
       setError('Error loading placements data');

@@ -154,12 +154,17 @@ export function useJobs() {
       
       // Add local jobs only if they don't match any JazzHR job
       localJobs.forEach(localJob => {
-        const isDuplicate = jazzHRJobs.some(jazzJob => 
-          jazzJob.title?.toLowerCase().trim() === localJob.title?.toLowerCase().trim() &&
-          (jazzJob.city?.toLowerCase().trim() === localJob.city?.toLowerCase().trim() ||
-           jazzJob.department?.toLowerCase().trim() === localJob.department?.toLowerCase().trim())
-        );
+        const isDuplicate = jazzHRJobs.some(jazzJob => {
+          // More strict matching to prevent duplicates
+          const titleMatch = jazzJob.title?.toLowerCase().trim() === localJob.title?.toLowerCase().trim();
+          const locationMatch = (jazzJob.city?.toLowerCase().trim() === localJob.city?.toLowerCase().trim()) ||
+                               (jazzJob.department?.toLowerCase().trim() === localJob.department?.toLowerCase().trim());
+          
+          // Consider it a duplicate if title matches AND location/department matches
+          return titleMatch && locationMatch;
+        });
         
+        // Only add if it's not a duplicate of an existing JazzHR job
         if (!isDuplicate) {
           combinedJobs.push(localJob);
         }

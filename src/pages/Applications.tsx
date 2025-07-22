@@ -430,7 +430,7 @@ const Applications = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="kanban" className="w-full">
+        <Tabs defaultValue="list" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="kanban" className="flex items-center gap-2">
               <LayoutGrid className="h-4 w-4" />

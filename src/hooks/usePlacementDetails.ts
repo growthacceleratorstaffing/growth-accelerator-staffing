@@ -90,8 +90,8 @@ export function usePlacementDetails() {
     setError(null);
 
     try {
-      // Use Supabase edge function to get placement details from JobAdder
-      const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+      // Use Supabase edge function to get placement details from JazzHR
+      const { data, error: supabaseError } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
           endpoint: 'placements',
           method: 'GET',
@@ -106,7 +106,7 @@ export function usePlacementDetails() {
       setPlacementDetails(data);
       return data;
     } catch (apiError) {
-      console.warn('JobAdder API unavailable, using mock data:', apiError);
+      console.warn('JazzHR API unavailable, using mock data:', apiError);
       
       // Fallback to mock data
       const mockPlacement: PlacementDetails = {
@@ -205,7 +205,7 @@ export function usePlacementDetails() {
     setError(null);
 
     try {
-      const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+      const { data, error: supabaseError } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
           endpoint: 'placements',
           method: 'PUT',

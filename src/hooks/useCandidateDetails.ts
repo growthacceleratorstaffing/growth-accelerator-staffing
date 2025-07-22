@@ -75,12 +75,11 @@ export function useCandidateDetails() {
     setError(null);
 
     try {
-      // Use Supabase edge function to get candidate details from JobAdder
-      const { data, error: supabaseError } = await supabase.functions.invoke('jobadder-api', {
+      // Use Supabase edge function to get candidate details from JazzHR
+      const { data, error: supabaseError } = await supabase.functions.invoke('jazzhr-api', {
         body: { 
-          endpoint: 'candidates',
-          method: 'GET',
-          candidateId: candidateId
+          action: 'getApplicant',
+          params: { applicant_id: candidateId }
         }
       });
 
@@ -91,7 +90,7 @@ export function useCandidateDetails() {
       setCandidateDetails(data);
       return data;
     } catch (apiError) {
-      console.warn('JobAdder API unavailable:', apiError);
+      console.warn('JazzHR API unavailable:', apiError);
       setError('Unable to load candidate details');
       setCandidateDetails(null);
       return null;
