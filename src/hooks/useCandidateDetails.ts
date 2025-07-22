@@ -70,7 +70,7 @@ export function useCandidateDetails() {
   const [error, setError] = useState<string | null>(null);
   const [candidateDetails, setCandidateDetails] = useState<CandidateDetails | null>(null);
 
-  const fetchCandidateDetails = async (candidateId: number): Promise<CandidateDetails> => {
+  const fetchCandidateDetails = async (candidateId: number | string): Promise<CandidateDetails | null> => {
     setLoading(true);
     setError(null);
 
@@ -91,82 +91,10 @@ export function useCandidateDetails() {
       setCandidateDetails(data);
       return data;
     } catch (apiError) {
-      console.warn('JobAdder API unavailable, using mock data:', apiError);
-      
-      // Fallback to mock data
-      const mockCandidate: CandidateDetails = {
-        candidateId: candidateId,
-        firstName: "John",
-        lastName: "Doe",
-        email: "john.doe@email.com",
-        phone: "+1 (555) 123-4567",
-        mobile: "+1 (555) 123-4567",
-        address: {
-          street: ["123 Main Street"],
-          city: "San Francisco",
-          state: "CA",
-          postalCode: "94105",
-          country: "United States",
-          countryCode: "US"
-        },
-        status: {
-          statusId: 1,
-          name: "Available",
-          active: true,
-          default: true
-        },
-        rating: "4.5",
-        source: "LinkedIn",
-        seeking: "Yes",
-        employment: {
-          current: {
-            employer: "Tech Company Inc.",
-            position: "Senior Developer",
-            startDate: "2022-01-15"
-          },
-          history: [
-            {
-              employer: "Previous Corp",
-              position: "Junior Developer",
-              startDate: "2020-06-01",
-              endDate: "2021-12-31"
-            }
-          ]
-        },
-        education: [
-          {
-            institution: "University of Technology",
-            course: "Computer Science",
-            date: "2020",
-            level: "Bachelor's Degree"
-          }
-        ],
-        skills: ["JavaScript", "React", "TypeScript", "Node.js", "Python"],
-        notes: [
-          {
-            noteId: 1,
-            text: "Strong technical background, excellent communication skills.",
-            createdAt: "2024-01-20T10:30:00Z",
-            createdBy: {
-              userId: 100,
-              firstName: "Recruiter",
-              lastName: "Name"
-            }
-          }
-        ],
-        attachments: [
-          {
-            attachmentId: 1,
-            fileName: "resume.pdf",
-            fileType: "application/pdf",
-            uploadedAt: "2024-01-15T09:00:00Z"
-          }
-        ]
-      };
-      
-      setCandidateDetails(mockCandidate);
-      setError('Demo mode - Using sample candidate data');
-      return mockCandidate;
+      console.warn('JobAdder API unavailable:', apiError);
+      setError('Unable to load candidate details');
+      setCandidateDetails(null);
+      return null;
     } finally {
       setLoading(false);
     }

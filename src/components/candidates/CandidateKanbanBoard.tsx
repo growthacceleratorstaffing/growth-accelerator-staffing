@@ -7,11 +7,15 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDraggable,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   verticalListSortingStrategy,
+  useSortable,
 } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -58,82 +62,99 @@ interface CandidateKanbanBoardProps {
   onUpdateStage: (candidate: Candidate) => void;
 }
 
-const CandidateCard: React.FC<{
+const DraggableCandidateCard: React.FC<{
   candidate: Candidate;
   onViewDetails: (candidate: Candidate) => void;
   onUpdateStage: (candidate: Candidate) => void;
 }> = ({ candidate, onViewDetails, onUpdateStage }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: candidate.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-move mb-3">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3 mb-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${candidate.first_name}${candidate.last_name}`} />
-            <AvatarFallback className="text-sm">
-              {`${candidate.first_name?.[0] || ''}${candidate.last_name?.[0] || ''}`}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-sm truncate">
-              {candidate.first_name} {candidate.last_name}
-            </h4>
-            <p className="text-xs text-muted-foreground truncate">
-              {candidate.job?.title || 'N/A'}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-1 mb-3">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Mail className="h-3 w-3" />
-            <span className="truncate">{candidate.email}</span>
-          </div>
-          {candidate.phone && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Phone className="h-3 w-3" />
-              <span>{candidate.phone}</span>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <Card className="hover:shadow-md transition-shadow cursor-move mb-3">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${candidate.first_name}${candidate.last_name}`} />
+              <AvatarFallback className="text-sm">
+                {`${candidate.first_name?.[0] || ''}${candidate.last_name?.[0] || ''}`}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-sm truncate">
+                {candidate.first_name} {candidate.last_name}
+              </h4>
+              <p className="text-xs text-muted-foreground truncate">
+                {candidate.job?.title || 'N/A'}
+              </p>
             </div>
-          )}
-          {candidate.apply_date && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              <span>{new Date(candidate.apply_date).toLocaleDateString()}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center">
-          <Badge variant="outline" className="text-xs">
-            {candidate.source || 'Local'}
-          </Badge>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewDetails(candidate);
-              }}
-              className="h-7 w-7 p-0"
-            >
-              <Eye className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onUpdateStage(candidate);
-              }}
-              className="h-7 w-7 p-0"
-            >
-              <Edit className="h-3 w-3" />
-            </Button>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+
+          <div className="space-y-1 mb-3">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Mail className="h-3 w-3" />
+              <span className="truncate">{candidate.email}</span>
+            </div>
+            {candidate.phone && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Phone className="h-3 w-3" />
+                <span>{candidate.phone}</span>
+              </div>
+            )}
+            {candidate.apply_date && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span>{new Date(candidate.apply_date).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-between items-center">
+            <Badge variant="outline" className="text-xs">
+              {candidate.source || 'Local'}
+            </Badge>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewDetails(candidate);
+                }}
+                className="h-7 w-7 p-0"
+              >
+                <Eye className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateStage(candidate);
+                }}
+                className="h-7 w-7 p-0"
+              >
+                <Edit className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
@@ -143,8 +164,17 @@ const DroppableColumn: React.FC<{
   onViewDetails: (candidate: Candidate) => void;
   onUpdateStage: (candidate: Candidate) => void;
 }> = ({ stage, candidates, onViewDetails, onUpdateStage }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: stage.id,
+  });
+
   return (
-    <div className={`rounded-lg border-2 border-dashed p-4 min-h-[600px] ${stage.color}`}>
+    <div 
+      ref={setNodeRef}
+      className={`rounded-lg border-2 border-dashed p-4 min-h-[600px] transition-colors ${stage.color} ${
+        isOver ? 'border-pink-400 bg-pink-50' : ''
+      }`}
+    >
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-semibold text-sm text-pink-600">{stage.name}</h3>
@@ -157,13 +187,12 @@ const DroppableColumn: React.FC<{
       <SortableContext items={candidates.map(c => c.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">
           {candidates.map((candidate) => (
-            <div key={candidate.id}>
-              <CandidateCard
-                candidate={candidate}
-                onViewDetails={onViewDetails}
-                onUpdateStage={onUpdateStage}
-              />
-            </div>
+            <DraggableCandidateCard
+              key={candidate.id}
+              candidate={candidate}
+              onViewDetails={onViewDetails}
+              onUpdateStage={onUpdateStage}
+            />
           ))}
         </div>
       </SortableContext>
@@ -268,7 +297,7 @@ export const CandidateKanbanBoard: React.FC<CandidateKanbanBoardProps> = ({
       <DragOverlay>
         {activeDragCandidate && (
           <div className="opacity-90">
-            <CandidateCard
+            <DraggableCandidateCard
               candidate={activeDragCandidate}
               onViewDetails={onViewDetails}
               onUpdateStage={onUpdateStage}

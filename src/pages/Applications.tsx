@@ -166,8 +166,27 @@ const Applications = () => {
     }
 
     try {
-      // Note: Stage update functionality would need JazzHR API integration
-      if (stageUpdateData.createPlacement || stageUpdateData.stageName.toLowerCase() === "placed") {
+      // Find the stage ID that matches the stage name
+      const stageMapping: Record<string, string> = {
+        "NEW": "new",
+        "INTERVIEW": "interview", 
+        "CLIENT INTRODUCTION": "client_introduction",
+        "HIRED": "hired",
+        "DISQUALIFIED": "disqualified"
+      };
+
+      const newStageId = stageMapping[stageUpdateData.stageName] || stageUpdateData.stageName.toLowerCase().replace(/\s+/g, '_');
+
+      // Update the candidate stage in the local state
+      setAllCandidates(prev => 
+        prev.map(candidate => 
+          candidate.id === selectedApplication.id 
+            ? { ...candidate, stage: newStageId }
+            : candidate
+        )
+      );
+
+      if (stageUpdateData.createPlacement || stageUpdateData.stageName.toLowerCase() === "hired") {
         toast({
           title: "Candidate Placed!",
           description: `${selectedApplication.first_name} ${selectedApplication.last_name} has been successfully placed.`,
@@ -175,7 +194,7 @@ const Applications = () => {
       } else {
         toast({
           title: "Stage Updated!",
-          description: `Application moved to "${stageUpdateData.stageName}".`,
+          description: `${selectedApplication.first_name} ${selectedApplication.last_name} moved to "${stageUpdateData.stageName}".`,
         });
       }
       
