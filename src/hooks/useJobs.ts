@@ -148,23 +148,39 @@ export function useJobs() {
         console.warn('Error fetching local jobs:', localErr);
       }
 
-      // Combine JazzHR and local jobs with deduplication
-      // Prioritize JazzHR jobs over local jobs to avoid duplicates
+      // Combine JazzHR and local jobs with better deduplication
       const combinedJobs = [...jazzHRJobs];
       
-      // Add local jobs only if they don't match any JazzHR job
+      // Add local jobs only if they don't match any JazzHR job based on title similarity
       localJobs.forEach(localJob => {
         const isDuplicate = jazzHRJobs.some(jazzJob => {
-          // More strict matching to prevent duplicates
-          const titleMatch = jazzJob.title?.toLowerCase().trim() === localJob.title?.toLowerCase().trim();
-          const locationMatch = (jazzJob.city?.toLowerCase().trim() === localJob.city?.toLowerCase().trim()) ||
-                               (jazzJob.department?.toLowerCase().trim() === localJob.department?.toLowerCase().trim());
+          // Normalize titles for comparison - remove common words and special characters
+          const normalizeTitle = (title: string) => {
+            return title?.toLowerCase()
+              .replace(/[^\w\s]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .split(' ')
+              .filter(word => !['the', 'a', 'an', 'and', 'or', 'but', 'your', 'next', 'project', '-'].includes(word))
+              .sort()
+              .join(' ');
+          };
           
-          // Consider it a duplicate if title matches AND location/department matches
-          return titleMatch && locationMatch;
+          const jazzTitle = normalizeTitle(jazzJob.title || '');
+          const localTitle = normalizeTitle(localJob.title || '');
+          
+          // Check if titles are similar (at least 70% of words match)
+          const jazzWords = jazzTitle.split(' ');
+          const localWords = localTitle.split(' ');
+          
+          if (jazzWords.length === 0 || localWords.length === 0) return false;
+          
+          const commonWords = jazzWords.filter(word => localWords.includes(word));
+          const similarity = commonWords.length / Math.max(jazzWords.length, localWords.length);
+          
+          return similarity >= 0.7;
         });
         
-        // Only add if it's not a duplicate of an existing JazzHR job
         if (!isDuplicate) {
           combinedJobs.push(localJob);
         }
