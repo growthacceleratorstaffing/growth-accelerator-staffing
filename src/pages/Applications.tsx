@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ import {
 import { Button as PaginationButton } from "@/components/ui/button";
 import { useJazzHRApplicants } from "@/hooks/useJazzHRApplicants";
 import { useCandidateDetails } from "@/hooks/useCandidateDetails";
+import { useCandidates } from "@/hooks/useCandidates";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -63,8 +64,33 @@ const Applications = () => {
   const ITEMS_PER_PAGE = 25;
   
   const { data: jazzhrApplicants, isLoading, error } = useJazzHRApplicants();
+  const { candidates: localCandidates, loading: localLoading } = useCandidates();
   const { candidateDetails, loading: candidateLoading, fetchCandidateDetails, clearCandidateDetails } = useCandidateDetails();
   const { toast } = useToast();
+
+  // Combine JazzHR applicants and local candidates
+  const [allCandidates, setAllCandidates] = useState<any[]>([]);
+
+  useEffect(() => {
+    const jazzhrCandidates = jazzhrApplicants ? (Array.isArray(jazzhrApplicants) ? jazzhrApplicants : [jazzhrApplicants]) : [];
+    
+    // Transform local candidates to match the structure
+    const transformedLocalCandidates = (localCandidates || []).map(candidate => ({
+      id: candidate.candidateId,
+      first_name: candidate.firstName || '',
+      last_name: candidate.lastName || '',
+      email: candidate.email,
+      phone: candidate.phone,
+      apply_date: candidate.created,
+      job: {
+        id: 'local',
+        title: 'Added directly to talent pool'
+      },
+      source: 'Local'
+    }));
+
+    setAllCandidates([...transformedLocalCandidates, ...jazzhrCandidates]);
+  }, [jazzhrApplicants, localCandidates]);
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -72,12 +98,12 @@ const Applications = () => {
     setApplicantsPage(1);
   };
 
-  // Filter applicants based on search term
-  const filteredApplicants = jazzhrApplicants ? (Array.isArray(jazzhrApplicants) ? jazzhrApplicants : [jazzhrApplicants]).filter(applicant =>
+  // Filter candidates based on search term
+  const filteredApplicants = allCandidates.filter(applicant =>
     applicant.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     applicant.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     applicant.job?.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
+  );
 
   // Pagination helpers
   const getPaginatedData = (data: any[], page: number) => {
@@ -238,7 +264,8 @@ const Applications = () => {
       });
       setIsAddCandidateOpen(false);
       
-      // Note: Would need to refresh JazzHR data
+      // Refresh local candidates data by triggering a re-fetch
+      window.location.reload(); // Simple but effective way to refresh the data
       
     } catch (error) {
       console.error('Error adding candidate:', error);
@@ -307,13 +334,13 @@ const Applications = () => {
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Failed to load JazzHR applicants data. Please check your connection.
+            Failed to load candidates data. Please check your connection.
           </AlertDescription>
         </Alert>
       )}
 
       <div className="space-y-6">
-        <h2 className="text-2xl font-semibold">JazzHR Applicants ({filteredApplicants.length})</h2>
+        <h2 className="text-2xl font-semibold">Candidates ({filteredApplicants.length})</h2>
 
         <div className="mb-6">
           <div className="relative">
@@ -331,7 +358,7 @@ const Applications = () => {
           {paginatedApplicants.length === 0 ? (
             <div className="text-center py-12">
               <UserCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No JazzHR applicants found matching your search.</p>
+              <p className="text-muted-foreground">No candidates found matching your search.</p>
             </div>
           ) : (
             <>
