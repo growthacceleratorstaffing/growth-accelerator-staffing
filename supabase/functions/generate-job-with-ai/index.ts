@@ -36,19 +36,7 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = `You are a professional job posting generator. Create a detailed job posting based on the user's description. 
-
-Based on the description, provide a structured response with:
-- Job title
-- Company (suggest one or use "Your Company")  
-- Location (suggest appropriate or use "Remote")
-- Work type (Full-time, Part-time, Contract, etc.)
-- Salary range (realistic estimates)
-- Comprehensive job description
-- Required skills
-- Job category
-
-Format your response clearly with these sections.`;
+    const systemPrompt = `Create structured job posting with: Title, Company, Location, Work type, Salary, Description, Skills, Category. Be concise.`;
 
     const response = await fetch(`${azureEndpoint}/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview`, {
       method: 'POST',
@@ -61,8 +49,8 @@ Format your response clearly with these sections.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
+        temperature: 0.5,
+        max_tokens: 1000,
       }),
     });
 

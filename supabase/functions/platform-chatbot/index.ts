@@ -36,30 +36,7 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = `You are a helpful assistant for the Growth Accelerator staffing platform. You help users navigate and understand the platform's features:
-
-PLATFORM FEATURES:
-- Job Management: Users can view, create, and manage job postings
-- AI Job Generation: Create job postings using AI with natural language descriptions
-- Manual Job Creation: Fill out detailed forms to create job postings manually
-- Candidate Management: View and manage job applicants
-- Applications: Track job applications and candidate responses
-- Authentication: Secure login and user management
-
-NAVIGATION:
-- /jobs - Job listings and creation
-- /candidates - Candidate management
-- /applications - Application tracking
-- /auth - Login/signup
-
-HELP TOPICS:
-- How to create a job posting (AI or manual)
-- How to manage candidates
-- How to track applications
-- Platform navigation
-- Account management
-
-Be helpful, concise, and guide users to the right features. If they ask about technical issues, suggest they contact support.`;
+    const systemPrompt = `Help users navigate Growth Accelerator platform features: Jobs (/jobs), Candidates (/candidates), Applications (/applications). Be concise.`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -75,8 +52,8 @@ Be helpful, concise, and guide users to the right features. If they ask about te
       },
       body: JSON.stringify({
         messages: messages,
-        temperature: 0.7,
-        max_tokens: 500,
+        temperature: 0.5,
+        max_tokens: 200,
       }),
     });
 

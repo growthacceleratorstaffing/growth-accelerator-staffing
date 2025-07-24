@@ -11,9 +11,9 @@ export const useJazzHRJobs = (filters?: {
   return useQuery({
     queryKey: ['jazzhr-jobs', filters],
     queryFn: () => jazzhrAPI.getJobs(filters),
-    refetchInterval: 20 * 60 * 1000, // 20 minutes
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    gcTime: 60 * 60 * 1000, // 1 hour
+    refetchInterval: 60 * 60 * 1000, // 1 hour
+    staleTime: 45 * 60 * 1000, // 45 minutes
+    gcTime: 4 * 60 * 60 * 1000, // 4 hours
     retry: 1,
     retryDelay: 120000, // 2 minutes
   });
