@@ -43,6 +43,8 @@ const LinkedInIntegration = () => {
     loadStoredCredentials();
   }, []);
 
+  // Load credentials and automatically test connection
+
   const loadStoredCredentials = async () => {
     try {
       console.log('Loading LinkedIn credentials...');
