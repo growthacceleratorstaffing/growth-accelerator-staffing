@@ -302,7 +302,8 @@ async function getCampaigns(accessToken: string, accountId?: string) {
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-RestLi-Protocol-Version': '2.0.0'
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202401'
       }
     });
 
