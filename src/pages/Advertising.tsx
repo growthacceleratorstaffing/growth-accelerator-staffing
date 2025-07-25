@@ -58,23 +58,38 @@ const Advertising = () => {
   }, [user]);
 
   const checkLinkedInConnection = async () => {
+    console.log('Starting LinkedIn connection check...');
     try {
-      const { data } = await supabase.functions.invoke('linkedin-advertising-api', {
+      const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
         body: { action: 'testConnection' }
       });
       
+      console.log('LinkedIn connection response:', { data, error });
+      
       if (data?.success) {
         setIsConnected(true);
+        console.log('LinkedIn connection successful');
         toast({
           title: "LinkedIn Connected",
           description: "LinkedIn Advertising API is connected and ready."
         });
       } else {
         setIsConnected(false);
+        console.log('LinkedIn connection failed:', data);
+        toast({
+          title: "Connection Failed",
+          description: data?.message || "LinkedIn Advertising API connection failed",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Error checking LinkedIn connection:', error);
       setIsConnected(false);
+      toast({
+        title: "Connection Error",
+        description: "Failed to check LinkedIn connection",
+        variant: "destructive"
+      });
     }
   };
 
