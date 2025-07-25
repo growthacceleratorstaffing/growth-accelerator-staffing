@@ -291,10 +291,11 @@ async function getCampaigns(accessToken: string, accountId?: string) {
   try {
     console.log('Fetching LinkedIn campaigns...', { accountId });
     
-    // Build the URL for campaigns - if no accountId provided, get all campaigns
+    // Build the URL for campaigns - LinkedIn API format
     let url = 'https://api.linkedin.com/rest/campaigns?q=search&pageSize=100';
     if (accountId) {
-      url += `&search=(account:(values:List(urn:li:sponsoredAccount:${accountId})))`;
+      // Proper LinkedIn query format for campaigns by account
+      url += `&search=(account:(values:List(${accountId})))`;
     }
 
     console.log('Campaigns API URL:', url);

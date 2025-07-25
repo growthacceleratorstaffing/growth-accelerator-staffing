@@ -86,6 +86,7 @@ const Advertising = () => {
         // Fetch campaigns from each ad account
         const allCampaigns: Campaign[] = [];
         
+        // First try to get campaigns for each account individually
         for (const account of accounts) {
           try {
             const { data: campaignsData } = await supabase.functions.invoke('linkedin-advertising-api', {
@@ -107,6 +108,30 @@ const Advertising = () => {
             }
           } catch (error) {
             console.error(`Error fetching campaigns for account ${account.name}:`, error);
+          }
+        }
+        
+        // If no campaigns were found with account-specific queries, try fetching all campaigns
+        if (allCampaigns.length === 0) {
+          console.log('No campaigns found with account-specific queries, trying to fetch all campaigns...');
+          try {
+            const { data: allCampaignsData } = await supabase.functions.invoke('linkedin-advertising-api', {
+              body: { action: 'getCampaigns' } // No accountId parameter
+            });
+            
+            if (allCampaignsData?.success && allCampaignsData.data) {
+              // Since we don't have account-specific info, we'll try to match campaigns to accounts
+              // or just add them without specific account association
+              const campaignsWithoutAccount = allCampaignsData.data.map((campaign: Campaign) => ({
+                ...campaign,
+                account_id: 'unknown',
+                account_name: 'Multiple Accounts',
+                account_currency: 'USD'
+              }));
+              allCampaigns.push(...campaignsWithoutAccount);
+            }
+          } catch (error) {
+            console.error('Error fetching all campaigns:', error);
           }
         }
         
