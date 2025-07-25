@@ -143,7 +143,7 @@ async function testLinkedInConnection(accessToken: string) {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202311'
+        'LinkedIn-Version': '202401'
       }
     });
 
@@ -184,7 +184,7 @@ async function getAdAccounts(accessToken: string) {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202311'
+        'LinkedIn-Version': '202401'
       }
     });
 
@@ -248,7 +248,7 @@ async function getCampaigns(accessToken: string, accountId?: string) {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202311'
+        'LinkedIn-Version': '202401'
       }
     });
 
@@ -377,7 +377,7 @@ async function updateCampaign(accessToken: string, campaignId: string, updateDat
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202311',
+        'LinkedIn-Version': '202401',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
@@ -426,7 +426,7 @@ async function getCampaignStats(accessToken: string, campaignId: string, dateRan
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202311'
+        'LinkedIn-Version': '202401'
       }
     });
 
@@ -475,7 +475,7 @@ async function getCreatives(accessToken: string, campaignId: string) {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202311'
+        'LinkedIn-Version': '202401'
       }
     });
 
