@@ -61,7 +61,8 @@ const LinkedInIntegration = () => {
         console.log('Setting credentials:', data.data);
         setCredentials(data.data);
         if (data.data.has_access_token) {
-          await testConnection();
+          // Automatically test connection when credentials are loaded
+          await testConnectionAutomatically();
         }
       } else {
         console.warn('No credential data received:', data);
@@ -76,7 +77,7 @@ const LinkedInIntegration = () => {
     }
   };
 
-  const testConnection = async () => {
+  const testConnectionAutomatically = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('linkedin-api', {
@@ -88,25 +89,12 @@ const LinkedInIntegration = () => {
       if (data?.success) {
         setIsConnected(true);
         await fetchProfile();
-        toast({
-          title: "Connection successful",
-          description: "Successfully connected to LinkedIn API"
-        });
       } else {
         setIsConnected(false);
-        toast({
-          title: "Connection failed",
-          description: data?.message || "Failed to connect to LinkedIn API",
-          variant: "destructive"
-        });
       }
     } catch (error: any) {
       setIsConnected(false);
-      toast({
-        title: "Connection failed",
-        description: error.message,
-        variant: "destructive"
-      });
+      console.error('Connection test failed:', error);
     } finally {
       setLoading(false);
     }
@@ -167,13 +155,16 @@ const LinkedInIntegration = () => {
       <div className="flex items-center gap-3 mb-6">
         <Linkedin className="h-8 w-8 text-blue-600" />
         <h1 className="text-3xl font-bold">LinkedIn Integration</h1>
+        {loading && (
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+        )}
         {isConnected && (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <CheckCircle className="h-3 w-3 mr-1" />
             Connected
           </Badge>
         )}
-        {!isConnected && credentials.has_access_token && (
+        {!isConnected && credentials.has_access_token && !loading && (
           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
             <XCircle className="h-3 w-3 mr-1" />
             Disconnected
@@ -223,13 +214,8 @@ const LinkedInIntegration = () => {
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <Button onClick={testConnection} disabled={loading || !credentials.has_access_token}>
-                Test Connection
-              </Button>
-            </div>
 
-            <Separator />
+            
 
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
@@ -294,7 +280,7 @@ const LinkedInIntegration = () => {
                 </div>
                 <p className="text-muted-foreground">Not connected to LinkedIn</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Configure your credentials and test the connection
+                  Configure your credentials and generate a new OAuth URL
                 </p>
               </div>
             )}
@@ -302,43 +288,6 @@ const LinkedInIntegration = () => {
         </Card>
       </div>
 
-      {/* Documentation Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Getting Started</CardTitle>
-          <CardDescription>
-            How to set up your LinkedIn Developer API integration
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h4 className="font-medium">1. Create LinkedIn App</h4>
-              <p className="text-sm text-muted-foreground">
-                Visit the LinkedIn Developer Portal and create a new application to get your Client ID and Secret.
-              </p>
-              <Button variant="outline" size="sm" asChild>
-                <a href="https://developer.linkedin.com/apps" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  LinkedIn Developer Portal
-                </a>
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-medium">2. Configure Permissions</h4>
-              <p className="text-sm text-muted-foreground">
-                Request the necessary permissions: r_liteprofile, r_emailaddress, w_member_social, and rw_ads.
-              </p>
-              <Button variant="outline" size="sm" asChild>
-                <a href="https://learn.microsoft.com/en-us/linkedin/marketing/versioning?view=li-lms-2025-07" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  API Documentation
-                </a>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
