@@ -496,10 +496,10 @@ const Advertising = () => {
         </div>
 
         {/* Data Tables */}
-        <Tabs defaultValue="campaigns" className="space-y-4">
+        <Tabs defaultValue="accounts" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
             <TabsTrigger value="accounts">Ad Accounts</TabsTrigger>
+            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
           </TabsList>
           
           <TabsContent value="campaigns">
