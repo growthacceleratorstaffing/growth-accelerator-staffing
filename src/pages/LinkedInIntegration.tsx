@@ -80,21 +80,43 @@ const LinkedInIntegration = () => {
   const testConnectionAutomatically = async () => {
     setLoading(true);
     try {
+      console.log('Testing LinkedIn connection automatically...');
       const { data, error } = await supabase.functions.invoke('linkedin-api', {
         body: { action: 'testConnection' }
       });
 
-      if (error) throw error;
+      console.log('Connection test response:', { data, error });
+
+      if (error) {
+        console.error('Supabase function error during connection test:', error);
+        throw error;
+      }
 
       if (data?.success) {
+        console.log('Connection successful, fetching profile...');
         setIsConnected(true);
         await fetchProfile();
+        toast({
+          title: "Connected",
+          description: "LinkedIn API connection successful"
+        });
       } else {
+        console.error('Connection failed:', data);
         setIsConnected(false);
+        toast({
+          title: "Connection Failed",
+          description: data?.message || "Failed to connect to LinkedIn API",
+          variant: "destructive"
+        });
       }
     } catch (error: any) {
+      console.error('Connection test error:', error);
       setIsConnected(false);
-      console.error('Connection test failed:', error);
+      toast({
+        title: "Connection Error",
+        description: error.message || "Failed to test LinkedIn connection",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -102,16 +124,26 @@ const LinkedInIntegration = () => {
 
   const fetchProfile = async () => {
     try {
+      console.log('Fetching LinkedIn profile...');
       const { data, error } = await supabase.functions.invoke('linkedin-api', {
         body: { action: 'getProfile' }
       });
 
-      if (error) throw error;
+      console.log('Profile fetch response:', { data, error });
+
+      if (error) {
+        console.error('Profile fetch error:', error);
+        throw error;
+      }
 
       if (data?.success && data.data) {
+        console.log('Profile data received:', data.data);
         setProfile(data.data);
+      } else {
+        console.warn('No profile data received:', data);
       }
     } catch (error: any) {
+      console.error('Failed to fetch LinkedIn profile:', error);
       throw new Error(`Failed to fetch LinkedIn profile: ${error.message}`);
     }
   };
