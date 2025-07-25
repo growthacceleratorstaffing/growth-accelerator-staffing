@@ -29,6 +29,7 @@ import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
 import CrmIntegrations from "./pages/CrmIntegrations";
 import CrmData from "./pages/CrmData";
+import LinkedInIntegration from "./pages/LinkedInIntegration";
 import "./utils/addTestJazzHRUsers"; // Import for browser console access
 
 
@@ -165,6 +166,14 @@ const AppSidebar = () => {
                   <Link to="/crm-integrations">
                     <Link2 className="h-4 w-4" />
                     <span className="text-white text-base">Integrations</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/linkedin-integration")}>
+                  <Link to="/linkedin-integration">
+                    <Link2 className="h-4 w-4" />
+                    <span className="text-base">LinkedIn</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -388,6 +397,13 @@ const App = () => {
             <ProtectedRoute>
               <AppLayout>
                 <CrmData />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/linkedin-integration" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <LinkedInIntegration />
               </AppLayout>
             </ProtectedRoute>
           } />
