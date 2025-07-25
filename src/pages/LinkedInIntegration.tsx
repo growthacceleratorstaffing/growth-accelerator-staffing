@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Linkedin, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
+import { Linkedin, ExternalLink, CheckCircle, XCircle, Settings } from 'lucide-react';
 
 interface LinkedInCredentials {
   client_id: string;
-  client_secret: string;
-  access_token: string;
+  has_client_secret: boolean;
+  has_access_token: boolean;
 }
 
 interface LinkedInProfile {
@@ -33,8 +31,8 @@ interface LinkedInProfile {
 const LinkedInIntegration = () => {
   const [credentials, setCredentials] = useState<LinkedInCredentials>({
     client_id: '',
-    client_secret: '',
-    access_token: ''
+    has_client_secret: false,
+    has_access_token: false
   });
   const [isConnected, setIsConnected] = useState(false);
   const [profile, setProfile] = useState<LinkedInProfile | null>(null);
@@ -47,84 +45,52 @@ const LinkedInIntegration = () => {
 
   const loadStoredCredentials = async () => {
     try {
-      const { data, error } = await supabase
-        .from('integration_settings')
-        .select('settings')
-        .eq('integration_type', 'linkedin')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+      const { data, error } = await supabase.functions.invoke('linkedin-api', {
+        body: { action: 'getCredentials' }
+      });
 
-      if (data?.settings) {
-        const settings = data.settings as any;
-        setCredentials({
-          client_id: settings.client_id || '',
-          client_secret: settings.client_secret || '',
-          access_token: settings.access_token || ''
-        });
-        if (settings.access_token) {
-          setIsConnected(true);
-          await fetchProfile(settings.access_token);
+      if (error) throw error;
+
+      if (data?.success && data.data) {
+        setCredentials(data.data);
+        if (data.data.has_access_token) {
+          await testConnection();
         }
       }
     } catch (error) {
       console.error('Error loading credentials:', error);
-    }
-  };
-
-  const saveCredentials = async () => {
-    setLoading(true);
-    try {
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) throw new Error('Not authenticated');
-
-      const { error } = await supabase
-        .from('integration_settings')
-        .upsert({
-          user_id: user.data.user.id,
-          integration_type: 'linkedin',
-          settings: credentials as any,
-          is_enabled: true
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Credentials saved",
-        description: "LinkedIn credentials have been saved successfully."
-      });
-
-      if (credentials.access_token) {
-        await testConnection();
-      }
-    } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to load LinkedIn credentials",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const testConnection = async () => {
-    if (!credentials.access_token) {
-      toast({
-        title: "Error",
-        description: "Access token is required to test connection",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      await fetchProfile(credentials.access_token);
-      setIsConnected(true);
-      toast({
-        title: "Connection successful",
-        description: "Successfully connected to LinkedIn API"
+      const { data, error } = await supabase.functions.invoke('linkedin-api', {
+        body: { action: 'testConnection' }
       });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setIsConnected(true);
+        await fetchProfile();
+        toast({
+          title: "Connection successful",
+          description: "Successfully connected to LinkedIn API"
+        });
+      } else {
+        setIsConnected(false);
+        toast({
+          title: "Connection failed",
+          description: data?.message || "Failed to connect to LinkedIn API",
+          variant: "destructive"
+        });
+      }
     } catch (error: any) {
       setIsConnected(false);
       toast({
@@ -137,27 +103,27 @@ const LinkedInIntegration = () => {
     }
   };
 
-  const fetchProfile = async (accessToken: string) => {
-    const response = await fetch('https://api.linkedin.com/v2/people/~?projection=(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+  const fetchProfile = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('linkedin-api', {
+        body: { action: 'getProfile' }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data.data) {
+        setProfile(data.data);
       }
-    });
-
-    if (!response.ok) {
-      throw new Error(`LinkedIn API error: ${response.status} ${response.statusText}`);
+    } catch (error: any) {
+      throw new Error(`Failed to fetch LinkedIn profile: ${error.message}`);
     }
-
-    const profileData = await response.json();
-    setProfile(profileData);
   };
 
   const generateAuthUrl = () => {
     if (!credentials.client_id) {
       toast({
         title: "Error",
-        description: "Client ID is required to generate authorization URL",
+        description: "Client ID not found. Please check your Supabase secrets configuration.",
         variant: "destructive"
       });
       return;
@@ -183,7 +149,7 @@ const LinkedInIntegration = () => {
             Connected
           </Badge>
         )}
-        {!isConnected && credentials.access_token && (
+        {!isConnected && credentials.has_access_token && (
           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
             <XCircle className="h-3 w-3 mr-1" />
             Disconnected
@@ -197,48 +163,44 @@ const LinkedInIntegration = () => {
           <CardHeader>
             <CardTitle>API Configuration</CardTitle>
             <CardDescription>
-              Configure your LinkedIn Developer API credentials
+              Your LinkedIn API credentials are securely stored in Supabase secrets
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="client_id">Client ID</Label>
-              <Input
-                id="client_id"
-                type="text"
-                value={credentials.client_id}
-                onChange={(e) => setCredentials(prev => ({ ...prev, client_id: e.target.value }))}
-                placeholder="Your LinkedIn App Client ID"
-              />
-            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span className="font-medium">Client ID</span>
+                </div>
+                <Badge variant={credentials.client_id ? "outline" : "destructive"}>
+                  {credentials.client_id ? "Configured" : "Not Set"}
+                </Badge>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="client_secret">Client Secret</Label>
-              <Input
-                id="client_secret"
-                type="password"
-                value={credentials.client_secret}
-                onChange={(e) => setCredentials(prev => ({ ...prev, client_secret: e.target.value }))}
-                placeholder="Your LinkedIn App Client Secret"
-              />
-            </div>
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span className="font-medium">Client Secret</span>
+                </div>
+                <Badge variant={credentials.has_client_secret ? "outline" : "destructive"}>
+                  {credentials.has_client_secret ? "Configured" : "Not Set"}
+                </Badge>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="access_token">Access Token</Label>
-              <Input
-                id="access_token"
-                type="password"
-                value={credentials.access_token}
-                onChange={(e) => setCredentials(prev => ({ ...prev, access_token: e.target.value }))}
-                placeholder="Your LinkedIn Access Token"
-              />
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span className="font-medium">Access Token</span>
+                </div>
+                <Badge variant={credentials.has_access_token ? "outline" : "destructive"}>
+                  {credentials.has_access_token ? "Configured" : "Not Set"}
+                </Badge>
+              </div>
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={saveCredentials} disabled={loading}>
-                Save Credentials
-              </Button>
-              <Button variant="outline" onClick={testConnection} disabled={loading || !credentials.access_token}>
+              <Button onClick={testConnection} disabled={loading || !credentials.has_access_token}>
                 Test Connection
               </Button>
             </div>
@@ -246,7 +208,6 @@ const LinkedInIntegration = () => {
             <Separator />
 
             <div className="space-y-2">
-              <Label>OAuth Authorization</Label>
               <p className="text-sm text-muted-foreground">
                 Generate an authorization URL to get an access token
               </p>
