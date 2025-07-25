@@ -200,8 +200,11 @@ const CrmData = () => {
             }
           }
         } else if (integration.crm_type === 'linkedin') {
-          // If LinkedIn data exists but might be outdated, refresh it
-          await refreshLinkedInData(integration.user_id);
+          // If LinkedIn data exists but might be outdated, refresh it using Lead Sync API
+          const { data: syncResult } = await supabase.functions.invoke('linkedin-lead-sync', {
+            body: { action: 'syncProfile' }
+          });
+          console.log('LinkedIn Lead Sync result:', syncResult);
         }
       }
     } catch (error) {

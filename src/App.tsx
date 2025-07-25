@@ -8,7 +8,7 @@ import { SidebarProvider, SidebarInset, Sidebar, SidebarContent, SidebarGroup, S
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, User, LogOut, UserCheck, Settings, ExternalLink, Download, Database, Link2 } from "lucide-react";
+import { Briefcase, User, LogOut, UserCheck, Settings, ExternalLink, Download, Database, Link2, TrendingUp } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PlatformChatbot from "./components/PlatformChatbot";
@@ -29,6 +29,7 @@ import Onboarding from "./pages/Onboarding";
 import JobBoard from "./pages/JobBoard";
 import CrmIntegrations from "./pages/CrmIntegrations";
 import CrmData from "./pages/CrmData";
+import Advertising from "./pages/Advertising";
 import LinkedInIntegration from "./pages/LinkedInIntegration";
 import LinkedInCallback from "./pages/LinkedInCallback";
 import "./utils/addTestJazzHRUsers"; // Import for browser console access
@@ -183,6 +184,14 @@ const AppSidebar = () => {
                   <Link to="/crm-data">
                     <Database className="h-4 w-4" />
                     <span className="text-base">Data</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/advertising")}>
+                  <Link to="/advertising">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-base">Advertising</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -398,6 +407,13 @@ const App = () => {
             <ProtectedRoute>
               <AppLayout>
                 <CrmData />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/advertising" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Advertising />
               </AppLayout>
             </ProtectedRoute>
           } />
