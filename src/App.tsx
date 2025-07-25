@@ -117,6 +117,14 @@ const AppSidebar = () => {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/advertising")}>
+                  <Link to="/advertising">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-base">Advertising</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -184,14 +192,6 @@ const AppSidebar = () => {
                   <Link to="/crm-data">
                     <Database className="h-4 w-4" />
                     <span className="text-base">Data</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/advertising")}>
-                  <Link to="/advertising">
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-base">Advertising</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

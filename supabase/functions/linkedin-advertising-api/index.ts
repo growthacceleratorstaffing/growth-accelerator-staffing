@@ -291,13 +291,11 @@ async function getCampaigns(accessToken: string, accountId?: string) {
   try {
     console.log('Fetching LinkedIn campaigns...', { accountId });
     
-    // Build the URL for campaigns - LinkedIn API format
+    // For now, try to get all campaigns without account filtering since account-specific queries are failing
     let url = 'https://api.linkedin.com/rest/campaigns?q=search&pageSize=100';
-    if (accountId) {
-      // Proper LinkedIn query format for campaigns by account
-      url += `&search=(account:(values:List(${accountId})))`;
-    }
-
+    
+    // Only try account filtering if we have a specific account ID and want to test it
+    // The LinkedIn API query format seems to be problematic, so we'll fetch all campaigns
     console.log('Campaigns API URL:', url);
 
     const response = await fetch(url, {

@@ -83,56 +83,42 @@ const Advertising = () => {
         const accounts = accountsData.data || [];
         setAdAccounts(accounts);
 
-        // Fetch campaigns from each ad account
-        const allCampaigns: Campaign[] = [];
+        // Since account-specific campaign queries are having issues with LinkedIn API,
+        // let's try fetching all campaigns first and then see if we can get any data
+        let allCampaigns: Campaign[] = [];
         
-        // First try to get campaigns for each account individually
-        for (const account of accounts) {
-          try {
-            const { data: campaignsData } = await supabase.functions.invoke('linkedin-advertising-api', {
-              body: { 
-                action: 'getCampaigns',
-                accountId: account.id.toString()
-              }
-            });
+        console.log('Trying to fetch all campaigns without account filtering first...');
+        try {
+          const { data: allCampaignsData } = await supabase.functions.invoke('linkedin-advertising-api', {
+            body: { action: 'getCampaigns' } // No accountId parameter
+          });
+          
+          if (allCampaignsData?.success && allCampaignsData.data) {
+            console.log(`Found ${allCampaignsData.data.length} campaigns from general query`);
             
-            if (campaignsData?.success && campaignsData.data) {
-              // Add account info to each campaign for reference
-              const campaignsWithAccount = campaignsData.data.map((campaign: Campaign) => ({
+            // Add account info to campaigns if we can match them
+            const campaignsWithAccount = allCampaignsData.data.map((campaign: Campaign) => {
+              // Try to match campaign to account if possible
+              // For now, just add general account info since account-specific queries don't work
+              return {
                 ...campaign,
-                account_id: account.id,
-                account_name: account.name,
-                account_currency: account.currency
-              }));
-              allCampaigns.push(...campaignsWithAccount);
-            }
-          } catch (error) {
-            console.error(`Error fetching campaigns for account ${account.name}:`, error);
+                account_id: 'general',
+                account_name: 'LinkedIn Campaigns',
+                account_currency: 'USD'
+              };
+            });
+            allCampaigns.push(...campaignsWithAccount);
           }
+        } catch (error) {
+          console.error('Error fetching all campaigns:', error);
         }
         
-        // If no campaigns were found with account-specific queries, try fetching all campaigns
+        // If we still have no campaigns, show this in the UI
         if (allCampaigns.length === 0) {
-          console.log('No campaigns found with account-specific queries, trying to fetch all campaigns...');
-          try {
-            const { data: allCampaignsData } = await supabase.functions.invoke('linkedin-advertising-api', {
-              body: { action: 'getCampaigns' } // No accountId parameter
-            });
-            
-            if (allCampaignsData?.success && allCampaignsData.data) {
-              // Since we don't have account-specific info, we'll try to match campaigns to accounts
-              // or just add them without specific account association
-              const campaignsWithoutAccount = allCampaignsData.data.map((campaign: Campaign) => ({
-                ...campaign,
-                account_id: 'unknown',
-                account_name: 'Multiple Accounts',
-                account_currency: 'USD'
-              }));
-              allCampaigns.push(...campaignsWithoutAccount);
-            }
-          } catch (error) {
-            console.error('Error fetching all campaigns:', error);
-          }
+          console.log('No campaigns found. This could mean:');
+          console.log('1. No campaigns exist in your LinkedIn accounts');
+          console.log('2. The access token doesn\'t have campaign access permissions');
+          console.log('3. LinkedIn API is having issues');
         }
         
         setCampaigns(allCampaigns);
