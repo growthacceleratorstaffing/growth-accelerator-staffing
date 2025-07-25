@@ -408,7 +408,7 @@ const App = () => {
               </AppLayout>
             </ProtectedRoute>
           } />
-          <Route path="/auth/linkedin-callback" element={
+          <Route path="/linkedin-callback" element={
             <ProtectedRoute>
               <AppLayout>
                 <LinkedInCallback />
