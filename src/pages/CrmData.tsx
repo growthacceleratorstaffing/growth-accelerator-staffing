@@ -251,8 +251,25 @@ const CrmData = () => {
           console.error('Error updating LinkedIn contact:', updateError);
         } else {
           console.log('LinkedIn profile updated successfully');
-          // Refresh the data to show updated profile
-          await fetchCrmData();
+          // Update local state instead of refetching everything
+          setContacts(prevContacts => 
+            prevContacts.map(contact => 
+              contact.id === contactId 
+                ? {
+                    ...contact,
+                    name: `${data.data.localizedFirstName} ${data.data.localizedLastName}`,
+                    contact_data: {
+                      source: 'LinkedIn',
+                      profile_type: 'self',
+                      linkedin_profile: data.data,
+                      synced_at: new Date().toISOString(),
+                      loading: false
+                    },
+                    last_synced_at: new Date().toISOString()
+                  }
+                : contact
+            )
+          );
         }
       }
     } catch (error) {
