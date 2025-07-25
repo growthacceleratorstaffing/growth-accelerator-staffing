@@ -139,8 +139,8 @@ Deno.serve(async (req) => {
 async function testLinkedInConnection(accessToken: string) {
   try {
     console.log('Testing LinkedIn connection with access token...');
-    // Test the connection by making a simple API call without version header first
-    const response = await fetch('https://api.linkedin.com/rest/adAccounts?q=search&search=(status:(values:List(ACTIVE,DRAFT)))', {
+    // Use the same API endpoint as the working LinkedIn Lead Sync API
+    const response = await fetch('https://api.linkedin.com/v2/me', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-RestLi-Protocol-Version': '2.0.0'
@@ -148,31 +148,6 @@ async function testLinkedInConnection(accessToken: string) {
     });
 
     console.log('LinkedIn connection test response status:', response.status);
-    
-    if (response.status === 426) {
-      console.log('API version error, trying without version header...');
-      // Try without the LinkedIn-Version header
-      const retryResponse = await fetch('https://api.linkedin.com/rest/adAccounts?q=search&search=(status:(values:List(ACTIVE,DRAFT)))', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'X-RestLi-Protocol-Version': '2.0.0'
-        }
-      });
-      
-      console.log('Retry response status:', retryResponse.status);
-      const isValid = retryResponse.ok;
-      return new Response(
-        JSON.stringify({ 
-          success: isValid,
-          status: retryResponse.status,
-          message: isValid ? 'LinkedIn Advertising API connection is valid' : 'LinkedIn connection failed'
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
 
     const isValid = response.ok;
     return new Response(
