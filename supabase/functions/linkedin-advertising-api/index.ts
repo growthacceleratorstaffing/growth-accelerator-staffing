@@ -180,11 +180,11 @@ async function testLinkedInConnection(accessToken: string) {
 
 async function getAdAccounts(accessToken: string) {
   try {
-    const response = await fetch('https://api.linkedin.com/rest/adAccounts?q=search&search=(status:(values:List(ACTIVE,DRAFT)))', {
+    // Use the correct LinkedIn Marketing API endpoint
+    const response = await fetch('https://api.linkedin.com/rest/adAccounts?q=search&search=(status:(values:List(ACTIVE,DRAFT)))&pageSize=100', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202401'
+        'X-RestLi-Protocol-Version': '2.0.0'
       }
     });
 
@@ -205,7 +205,7 @@ async function getAdAccounts(accessToken: string) {
     const data = await response.json();
     console.log('Ad Accounts data received:', data);
 
-    // Transform the data to our expected format
+    // Transform the data to our expected format using the new API structure
     const accounts = data.elements?.map((account: any) => ({
       id: account.id,
       name: account.name,
@@ -238,8 +238,8 @@ async function getAdAccounts(accessToken: string) {
 
 async function getCampaigns(accessToken: string, accountId?: string) {
   try {
-    // If no specific account ID is provided, get campaigns from all accounts
-    let url = 'https://api.linkedin.com/rest/campaigns?q=search';
+    // Use the correct LinkedIn Marketing API endpoint for campaigns
+    let url = 'https://api.linkedin.com/rest/campaigns?q=search&pageSize=100';
     if (accountId) {
       url += `&search=(account:(values:List(urn:li:sponsoredAccount:${accountId})))`;
     }
@@ -247,8 +247,7 @@ async function getCampaigns(accessToken: string, accountId?: string) {
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202401'
+        'X-RestLi-Protocol-Version': '2.0.0'
       }
     });
 
