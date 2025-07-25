@@ -129,14 +129,21 @@ const Advertising = () => {
   const CreateCampaignDialog = () => {
     const [campaignName, setCampaignName] = useState("");
     const [campaignType, setCampaignType] = useState("");
+    const [selectedAccount, setSelectedAccount] = useState("");
     const [budget, setBudget] = useState("");
+    const [bidAmount, setBidAmount] = useState("");
+    const [costType, setCostType] = useState("CPC");
+    const [objective, setObjective] = useState("BRAND_AWARENESS");
+    const [currency, setCurrency] = useState("USD");
+    const [endDate, setEndDate] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [open, setOpen] = useState(false);
 
     const handleSubmit = async () => {
-      if (!campaignName || !campaignType || !budget) {
+      if (!campaignName || !campaignType || !budget || !selectedAccount) {
         toast({
           title: "Error",
-          description: "Please fill in all required fields",
+          description: "Please fill in all required fields (Campaign Name, Type, Account, and Budget)",
           variant: "destructive"
         });
         return;
@@ -144,30 +151,49 @@ const Advertising = () => {
       
       setIsSubmitting(true);
       try {
-        const { data } = await supabase.functions.invoke('linkedin-advertising-api', {
+        const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
           body: { 
             action: 'createCampaign',
             name: campaignName,
             type: campaignType,
-            budget: parseFloat(budget)
+            account: selectedAccount,
+            budget: parseFloat(budget),
+            bidAmount: parseFloat(bidAmount) || 5.00,
+            costType,
+            objective,
+            currency,
+            endDate: endDate || null
           }
         });
+        
+        if (error) throw error;
         
         if (data?.success) {
           toast({
             title: "Campaign Created",
-            description: "New campaign has been created successfully.",
+            description: data.message || "New campaign has been created successfully.",
           });
+          // Reset form
           setCampaignName("");
           setCampaignType("");
+          setSelectedAccount("");
           setBudget("");
+          setBidAmount("");
+          setCostType("CPC");
+          setObjective("BRAND_AWARENESS");
+          setCurrency("USD");
+          setEndDate("");
+          setOpen(false);
+          // Refresh data to show new campaign
           await fetchAdvertisingData();
+        } else {
+          throw new Error(data?.message || 'Failed to create campaign');
         }
       } catch (error) {
         console.error('Error creating campaign:', error);
         toast({
           title: "Error",
-          description: "Failed to create campaign",
+          description: error.message || "Failed to create campaign",
           variant: "destructive"
         });
       } finally {
@@ -176,52 +202,159 @@ const Advertising = () => {
     };
 
     return (
-      <Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button>Create Campaign</Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New LinkedIn Campaign</DialogTitle>
             <DialogDescription>
-              Set up a new advertising campaign on LinkedIn.
+              Set up a new advertising campaign on LinkedIn with proper targeting and budget settings.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="campaignName">Campaign Name</Label>
-              <Input
-                id="campaignName"
-                placeholder="Enter campaign name..."
-                value={campaignName}
-                onChange={(e) => setCampaignName(e.target.value)}
-              />
+            {/* Required Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="campaignName">Campaign Name *</Label>
+                <Input
+                  id="campaignName"
+                  placeholder="e.g. Software Engineer Recruitment Q1"
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="selectedAccount">Ad Account *</Label>
+                <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select ad account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {adAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id.toString()}>
+                        {account.name} ({account.currency})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="campaignType">Campaign Type</Label>
-              <Select value={campaignType} onValueChange={setCampaignType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select campaign type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SPONSORED_CONTENT">Sponsored Content</SelectItem>
-                  <SelectItem value="SPONSORED_MESSAGING">Sponsored Messaging</SelectItem>
-                  <SelectItem value="TEXT_ADS">Text Ads</SelectItem>
-                  <SelectItem value="DYNAMIC_ADS">Dynamic Ads</SelectItem>
-                </SelectContent>
-              </Select>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="campaignType">Campaign Type *</Label>
+                <Select value={campaignType} onValueChange={setCampaignType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select campaign type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SPONSORED_CONTENT">Sponsored Content</SelectItem>
+                    <SelectItem value="SPONSORED_MESSAGING">Sponsored Messaging</SelectItem>
+                    <SelectItem value="TEXT_ADS">Text Ads</SelectItem>
+                    <SelectItem value="DYNAMIC_ADS">Dynamic Ads</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="objective">Campaign Objective</Label>
+                <Select value={objective} onValueChange={setObjective}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select objective" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BRAND_AWARENESS">Brand Awareness</SelectItem>
+                    <SelectItem value="WEBSITE_VISITS">Website Visits</SelectItem>
+                    <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
+                    <SelectItem value="VIDEO_VIEWS">Video Views</SelectItem>
+                    <SelectItem value="LEAD_GENERATION">Lead Generation</SelectItem>
+                    <SelectItem value="WEBSITE_CONVERSIONS">Website Conversions</SelectItem>
+                    <SelectItem value="JOB_APPLICANTS">Job Applicants</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="budget">Daily Budget (USD)</Label>
-              <Input
-                id="budget"
-                type="number"
-                placeholder="Enter daily budget..."
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-              />
+
+            {/* Budget Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="budget">Daily Budget *</Label>
+                <Input
+                  id="budget"
+                  type="number"
+                  step="0.01"
+                  min="10"
+                  placeholder="e.g. 100.00"
+                  value={budget}
+                  onChange={(e) => setBudget(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Minimum $10 USD</p>
+              </div>
+              <div>
+                <Label htmlFor="bidAmount">Bid Amount</Label>
+                <Input
+                  id="bidAmount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="e.g. 5.00"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Per click/impression</p>
+              </div>
+              <div>
+                <Label htmlFor="currency">Currency</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="CAD">CAD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="costType">Cost Type</Label>
+                <Select value={costType} onValueChange={setCostType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CPC">Cost Per Click (CPC)</SelectItem>
+                    <SelectItem value="CPM">Cost Per Thousand Impressions (CPM)</SelectItem>
+                    <SelectItem value="CPS">Cost Per Send (CPS)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="endDate">End Date (Optional)</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Leave empty for no end date</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setOpen(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
               <Button 
                 onClick={handleSubmit}
                 disabled={isSubmitting}

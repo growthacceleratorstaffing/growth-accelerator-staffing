@@ -414,32 +414,90 @@ async function getCampaigns(accessToken: string, accountId?: string) {
 
 async function createCampaign(accessToken: string, campaignData: any) {
   try {
-    // Note: Creating campaigns requires additional setup and specific account permissions
-    // This is a simplified example structure
+    console.log('Creating LinkedIn campaign with data:', campaignData);
+    
+    // Validate required fields for LinkedIn campaign creation
+    if (!campaignData.account || !campaignData.name || !campaignData.type) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields', 
+          details: 'Account, name, and type are required for campaign creation' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // LinkedIn campaign creation payload according to their API specs
     const payload = {
       name: campaignData.name,
       type: campaignData.type || 'SPONSORED_CONTENT',
-      status: 'DRAFT',
+      status: 'DRAFT', // Always start as draft
+      account: `urn:li:sponsoredAccount:${campaignData.account}`,
       dailyBudget: {
         amount: campaignData.budget?.toString() || '100',
-        currencyCode: 'USD'
+        currencyCode: campaignData.currency || 'USD'
       },
       runSchedule: {
-        start: Date.now()
-      }
+        start: Date.now(),
+        end: campaignData.endDate ? new Date(campaignData.endDate).getTime() : Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days default
+      },
+      unitCost: {
+        amount: campaignData.bidAmount || '5.00',
+        currencyCode: campaignData.currency || 'USD'
+      },
+      costType: campaignData.costType || 'CPC',
+      objective: campaignData.objective || 'BRAND_AWARENESS'
     };
 
-    console.log('Creating campaign with payload:', payload);
+    console.log('Campaign creation payload:', payload);
 
-    // For now, return a mock successful response as actual campaign creation 
-    // requires complex setup with targeting, creatives, etc.
+    const response = await fetch('https://api.linkedin.com/rest/campaigns', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202401',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('LinkedIn Campaign Creation API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Campaign Creation API error:', errorText);
+      
+      // Return a structured error response
+      return new Response(
+        JSON.stringify({ 
+          error: 'LinkedIn API error', 
+          details: errorText,
+          message: 'Failed to create campaign in LinkedIn. Please check your account permissions and try again.'
+        }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Campaign created successfully:', data);
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Campaign creation initiated (mock response)',
+        message: 'Campaign created successfully in LinkedIn',
         data: {
-          id: `mock_campaign_${Date.now()}`,
-          ...payload
+          id: data.id,
+          name: data.name,
+          status: data.status,
+          account: data.account,
+          ...data
         }
       }),
       { 
@@ -451,7 +509,11 @@ async function createCampaign(accessToken: string, campaignData: any) {
   } catch (error) {
     console.error('Error creating campaign:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to create campaign', details: error.message }),
+      JSON.stringify({ 
+        error: 'Failed to create campaign', 
+        details: error.message,
+        message: 'An unexpected error occurred while creating the campaign.'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
