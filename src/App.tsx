@@ -30,6 +30,7 @@ import JobBoard from "./pages/JobBoard";
 import CrmIntegrations from "./pages/CrmIntegrations";
 import CrmData from "./pages/CrmData";
 import LinkedInIntegration from "./pages/LinkedInIntegration";
+import LinkedInCallback from "./pages/LinkedInCallback";
 import "./utils/addTestJazzHRUsers"; // Import for browser console access
 
 
@@ -404,6 +405,13 @@ const App = () => {
             <ProtectedRoute>
               <AppLayout>
                 <LinkedInIntegration />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/auth/linkedin-callback" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <LinkedInCallback />
               </AppLayout>
             </ProtectedRoute>
           } />

@@ -56,8 +56,8 @@ Deno.serve(async (req) => {
           throw new Error('Authorization code is required');
         }
 
-        // Exchange authorization code for access token
-        const redirectUri = 'https://webapp.growthaccelerator.nl/auth/linkedin/callback';
+        // Exchange authorization code for access token - use dynamic redirect URI
+        const redirectUri = params.redirect_uri || 'https://webapp.growthaccelerator.nl/auth/linkedin/callback';
         
         const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
           method: 'POST',

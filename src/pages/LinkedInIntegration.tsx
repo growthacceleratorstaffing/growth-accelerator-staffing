@@ -138,8 +138,9 @@ const LinkedInIntegration = () => {
       return;
     }
 
-    // Use one of the approved redirect URIs from your LinkedIn app
-    const redirectUri = 'https://webapp.growthaccelerator.nl/auth/linkedin/callback';
+    // Use the Lovable preview URL for testing, or production URL for deployed version
+    const currentOrigin = window.location.origin;
+    const redirectUri = `${currentOrigin}/auth/linkedin-callback`;
     
     // Updated scopes based on LinkedIn Marketing API documentation
     const scope = 'r_liteprofile r_emailaddress w_member_social rw_ads r_organization_social rw_organization_admin';
