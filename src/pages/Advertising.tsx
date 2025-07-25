@@ -28,6 +28,9 @@ interface Campaign {
   created_at: string;
   updated_at: string;
   campaign_data?: any;
+  account_id?: string;
+  account_name?: string;
+  account_currency?: string;
 }
 
 interface AdAccount {
@@ -71,22 +74,44 @@ const Advertising = () => {
     if (!user) return;
     
     try {
-      // Fetch ad accounts
+      // Fetch ad accounts first
       const { data: accountsData } = await supabase.functions.invoke('linkedin-advertising-api', {
         body: { action: 'getAdAccounts' }
       });
       
       if (accountsData?.success) {
-        setAdAccounts(accountsData.data || []);
-      }
+        const accounts = accountsData.data || [];
+        setAdAccounts(accounts);
 
-      // Fetch campaigns
-      const { data: campaignsData } = await supabase.functions.invoke('linkedin-advertising-api', {
-        body: { action: 'getCampaigns' }
-      });
-      
-      if (campaignsData?.success) {
-        setCampaigns(campaignsData.data || []);
+        // Fetch campaigns from each ad account
+        const allCampaigns: Campaign[] = [];
+        
+        for (const account of accounts) {
+          try {
+            const { data: campaignsData } = await supabase.functions.invoke('linkedin-advertising-api', {
+              body: { 
+                action: 'getCampaigns',
+                accountId: account.id.toString()
+              }
+            });
+            
+            if (campaignsData?.success && campaignsData.data) {
+              // Add account info to each campaign for reference
+              const campaignsWithAccount = campaignsData.data.map((campaign: Campaign) => ({
+                ...campaign,
+                account_id: account.id,
+                account_name: account.name,
+                account_currency: account.currency
+              }));
+              allCampaigns.push(...campaignsWithAccount);
+            }
+          } catch (error) {
+            console.error(`Error fetching campaigns for account ${account.name}:`, error);
+          }
+        }
+        
+        setCampaigns(allCampaigns);
+        console.log(`Loaded ${allCampaigns.length} campaigns from ${accounts.length} ad accounts`);
       }
 
     } catch (error) {
@@ -490,6 +515,7 @@ const Advertising = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Campaign</TableHead>
+                      <TableHead>Account</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Budget</TableHead>
                       <TableHead>Spent</TableHead>
@@ -504,6 +530,12 @@ const Advertising = () => {
                     {filteredCampaigns.map((campaign) => (
                       <TableRow key={campaign.id}>
                         <TableCell className="font-medium">{campaign.name}</TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">{campaign.account_name}</div>
+                            <div className="text-muted-foreground">{campaign.account_currency}</div>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge className={`${getStatusColor(campaign.status)} text-white`}>
                             {campaign.status}
