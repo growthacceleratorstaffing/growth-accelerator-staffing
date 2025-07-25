@@ -45,23 +45,32 @@ const LinkedInIntegration = () => {
 
   const loadStoredCredentials = async () => {
     try {
+      console.log('Loading LinkedIn credentials...');
       const { data, error } = await supabase.functions.invoke('linkedin-api', {
         body: { action: 'getCredentials' }
       });
 
-      if (error) throw error;
+      console.log('Credentials response:', { data, error });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
       if (data?.success && data.data) {
+        console.log('Setting credentials:', data.data);
         setCredentials(data.data);
         if (data.data.has_access_token) {
           await testConnection();
         }
+      } else {
+        console.warn('No credential data received:', data);
       }
     } catch (error) {
       console.error('Error loading credentials:', error);
       toast({
         title: "Error",
-        description: "Failed to load LinkedIn credentials",
+        description: "Failed to load LinkedIn credentials from Supabase",
         variant: "destructive"
       });
     }

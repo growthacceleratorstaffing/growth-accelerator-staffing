@@ -35,33 +35,47 @@ Deno.serve(async (req) => {
     const { action, ...params } = await req.json();
 
     // Get LinkedIn credentials from secrets
-    const clientId = Deno.env.get('LINKEDIN_CLIENT_ID');
-    const clientSecret = Deno.env.get('LINKEDIN_CLIENT_SECRET');
-    const accessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
+    const clientId = Deno.env.get('LINKEDIN_CLIENT_ID')?.trim();
+    const clientSecret = Deno.env.get('LINKEDIN_CLIENT_SECRET')?.trim();
+    const accessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN')?.trim();
 
-    if (!clientId || !clientSecret || !accessToken) {
-      throw new Error('LinkedIn credentials not configured');
-    }
-
-    console.log('Action:', action);
+    console.log('LinkedIn credentials check:', {
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      hasAccessToken: !!accessToken,
+      clientIdLength: clientId?.length || 0,
+      action
+    });
 
     switch (action) {
       case 'getProfile': {
+        if (!accessToken) {
+          throw new Error('LinkedIn access token not configured');
+        }
+
+        // Updated to use LinkedIn API v2 according to documentation
         const response = await fetch(
           'https://api.linkedin.com/v2/people/~?projection=(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))',
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'LinkedIn-Version': '202301'
             }
           }
         );
 
+        console.log('LinkedIn API response status:', response.status);
+
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('LinkedIn API error:', errorText);
           throw new Error(`LinkedIn API error: ${response.status} ${response.statusText}`);
         }
 
         const profileData = await response.json();
+        console.log('Profile data received:', !!profileData.id);
+        
         return new Response(
           JSON.stringify({ success: true, data: profileData }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -69,37 +83,59 @@ Deno.serve(async (req) => {
       }
 
       case 'testConnection': {
+        if (!accessToken) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              status: 401,
+              message: 'Access token not configured'
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Test connection with basic profile endpoint
         const response = await fetch(
           'https://api.linkedin.com/v2/people/~',
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'LinkedIn-Version': '202301'
             }
           }
         );
 
+        console.log('Test connection response status:', response.status);
+
+        const isSuccess = response.ok;
+        const message = isSuccess ? 'Connection successful' : `Connection failed: ${response.status} ${response.statusText}`;
+
         return new Response(
           JSON.stringify({ 
-            success: response.ok, 
+            success: isSuccess, 
             status: response.status,
-            message: response.ok ? 'Connection successful' : 'Connection failed'
+            message: message
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       case 'getCredentials': {
-        // Return credentials (without the actual secret values for security)
+        // Return credentials status (without exposing actual secret values)
+        const result = {
+          success: true,
+          data: {
+            client_id: clientId || '',
+            has_client_secret: !!clientSecret,
+            has_access_token: !!accessToken
+          }
+        };
+        
+        console.log('Returning credentials status:', result.data);
+        
         return new Response(
-          JSON.stringify({
-            success: true,
-            data: {
-              client_id: clientId,
-              has_client_secret: !!clientSecret,
-              has_access_token: !!accessToken
-            }
-          }),
+          JSON.stringify(result),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -109,7 +145,7 @@ Deno.serve(async (req) => {
     }
 
   } catch (error: any) {
-    console.error('LinkedIn API Error:', error);
+    console.error('LinkedIn API Error:', error.message);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { 
