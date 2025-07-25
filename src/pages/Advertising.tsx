@@ -49,6 +49,18 @@ const Advertising = () => {
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Campaign creation form state
+  const [campaignName, setCampaignName] = useState("");
+  const [campaignType, setCampaignType] = useState("");
+  const [selectedAccount, setSelectedAccount] = useState("");
+  const [budget, setBudget] = useState("");
+  const [bidAmount, setBidAmount] = useState("");
+  const [costType, setCostType] = useState("CPC");
+  const [objective, setObjective] = useState("BRAND_AWARENESS");
+  const [currency, setCurrency] = useState("USD");
+  const [endDate, setEndDate] = useState("");
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+
   useEffect(() => {
     if (user) {
       fetchAdvertisingData();
@@ -126,94 +138,120 @@ const Advertising = () => {
     }
   };
 
-  const CreateCampaignDialog = () => {
-    const [campaignName, setCampaignName] = useState("");
-    const [campaignType, setCampaignType] = useState("");
-    const [selectedAccount, setSelectedAccount] = useState("");
-    const [budget, setBudget] = useState("");
-    const [bidAmount, setBidAmount] = useState("");
-    const [costType, setCostType] = useState("CPC");
-    const [objective, setObjective] = useState("BRAND_AWARENESS");
-    const [currency, setCurrency] = useState("USD");
-    const [endDate, setEndDate] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [open, setOpen] = useState(false);
-
-    const handleSubmit = async () => {
-      if (!campaignName || !campaignType || !budget || !selectedAccount) {
-        toast({
-          title: "Error",
-          description: "Please fill in all required fields (Campaign Name, Type, Account, and Budget)",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      setIsSubmitting(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
-          body: { 
-            action: 'createCampaign',
-            name: campaignName,
-            type: campaignType,
-            account: selectedAccount,
-            budget: parseFloat(budget),
-            bidAmount: parseFloat(bidAmount) || 5.00,
-            costType,
-            objective,
-            currency,
-            endDate: endDate || null
-          }
-        });
-        
-        if (error) throw error;
-        
-        if (data?.success) {
-          toast({
-            title: "Campaign Created",
-            description: data.message || "New campaign has been created successfully.",
-          });
-          // Reset form
-          setCampaignName("");
-          setCampaignType("");
-          setSelectedAccount("");
-          setBudget("");
-          setBidAmount("");
-          setCostType("CPC");
-          setObjective("BRAND_AWARENESS");
-          setCurrency("USD");
-          setEndDate("");
-          setOpen(false);
-          // Refresh data to show new campaign
-          await fetchAdvertisingData();
-        } else {
-          throw new Error(data?.message || 'Failed to create campaign');
+  const handleCreateCampaign = async () => {
+    if (!campaignName || !campaignType || !budget || !selectedAccount) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields (Campaign Name, Type, Account, and Budget)",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsCreatingCampaign(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
+        body: { 
+          action: 'createCampaign',
+          name: campaignName,
+          type: campaignType,
+          account: selectedAccount,
+          budget: parseFloat(budget),
+          bidAmount: parseFloat(bidAmount) || 5.00,
+          costType,
+          objective,
+          currency,
+          endDate: endDate || null
         }
-      } catch (error) {
-        console.error('Error creating campaign:', error);
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success) {
         toast({
-          title: "Error",
-          description: error.message || "Failed to create campaign",
-          variant: "destructive"
+          title: "Campaign Created",
+          description: data.message || "New campaign has been created successfully.",
         });
-      } finally {
-        setIsSubmitting(false);
+        // Reset form
+        setCampaignName("");
+        setCampaignType("");
+        setSelectedAccount("");
+        setBudget("");
+        setBidAmount("");
+        setCostType("CPC");
+        setObjective("BRAND_AWARENESS");
+        setCurrency("USD");
+        setEndDate("");
+        // Refresh data to show new campaign
+        await fetchAdvertisingData();
+      } else {
+        throw new Error(data?.message || 'Failed to create campaign');
       }
-    };
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create campaign",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingCampaign(false);
+    }
+  };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "ACTIVE": return "bg-green-500";
+      case "PAUSED": return "bg-yellow-500";
+      case "ARCHIVED": return "bg-gray-500";
+      case "DRAFT": return "bg-blue-500";
+      default: return "bg-gray-500";
+    }
+  };
+
+  const filteredCampaigns = campaigns.filter(campaign =>
+    campaign.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button>Create Campaign</Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New LinkedIn Campaign</DialogTitle>
-            <DialogDescription>
+      <div className="container mx-auto p-6">
+        <div className="text-center">Loading advertising data...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">LinkedIn Advertising</h1>
+            <p className="text-muted-foreground">
+              Manage your LinkedIn advertising campaigns and performance.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCcw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* Campaign Creation Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Create New LinkedIn Campaign</CardTitle>
+            <CardDescription>
               Set up a new advertising campaign on LinkedIn with proper targeting and budget settings.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             {/* Required Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -347,71 +385,17 @@ const Advertising = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end pt-4">
               <Button 
-                variant="outline" 
-                onClick={() => setOpen(false)}
-                disabled={isSubmitting}
+                onClick={handleCreateCampaign}
+                disabled={isCreatingCampaign}
+                className="min-w-[150px]"
               >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Creating..." : "Create Campaign"}
+                {isCreatingCampaign ? "Creating..." : "Create Campaign"}
               </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE": return "bg-green-500";
-      case "PAUSED": return "bg-yellow-500";
-      case "ARCHIVED": return "bg-gray-500";
-      case "DRAFT": return "bg-blue-500";
-      default: return "bg-gray-500";
-    }
-  };
-
-  const filteredCampaigns = campaigns.filter(campaign =>
-    campaign.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">Loading advertising data...</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto p-6">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">LinkedIn Advertising</h1>
-            <p className="text-muted-foreground">
-              Manage your LinkedIn advertising campaigns and performance.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCcw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            <CreateCampaignDialog />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
