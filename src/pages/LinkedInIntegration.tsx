@@ -138,14 +138,26 @@ const LinkedInIntegration = () => {
       return;
     }
 
-    // Updated scopes based on LinkedIn API documentation and your app configuration
-    const scope = 'r_liteprofile r_emailaddress w_member_social rw_ads';
-    const redirectUri = encodeURIComponent(`${window.location.origin}/linkedin-callback`);
+    // Use one of the approved redirect URIs from your LinkedIn app
+    const redirectUri = 'https://webapp.growthaccelerator.nl/auth/linkedin/callback';
+    
+    // Updated scopes based on LinkedIn Marketing API documentation
+    const scope = 'r_liteprofile r_emailaddress w_member_social rw_ads r_organization_social rw_organization_admin';
     const state = Math.random().toString(36).substring(7);
     
-    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${credentials.client_id}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+    // Store state for validation (in production, use secure storage)
+    localStorage.setItem('linkedin_oauth_state', state);
+    
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${credentials.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=${state}`;
     
     console.log('Generated LinkedIn OAuth URL:', authUrl);
+    console.log('Redirect URI:', redirectUri);
+    
+    toast({
+      title: "OAuth URL Generated",
+      description: "Opening LinkedIn authorization in new tab. After authorization, manually copy the access token to your Supabase secrets.",
+    });
+    
     window.open(authUrl, '_blank');
   };
 
@@ -220,12 +232,23 @@ const LinkedInIntegration = () => {
 
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Your LinkedIn access token may have expired (tokens expire after 60 days). Generate a new authorization URL to get a fresh access token.
+                LinkedIn access tokens expire after 60 days. Generate a new authorization URL using your approved redirect URI.
+                After authorization, you'll need to manually copy the access token to your Supabase secrets.
               </p>
               <Button variant="outline" onClick={generateAuthUrl} disabled={!credentials.client_id}>
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Generate New Auth URL
+                Generate OAuth URL
               </Button>
+              
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-2">Manual Token Setup:</p>
+                <ol className="text-sm text-muted-foreground space-y-1">
+                  <li>1. Click "Generate OAuth URL" above</li>
+                  <li>2. Complete LinkedIn authorization</li>
+                  <li>3. Extract access token from callback</li>
+                  <li>4. Update LINKEDIN_ACCESS_TOKEN in Supabase secrets</li>
+                </ol>
+              </div>
             </div>
           </CardContent>
         </Card>
