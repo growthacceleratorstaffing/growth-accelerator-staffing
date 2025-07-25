@@ -289,11 +289,15 @@ async function getAdAccounts(accessToken: string) {
 
 async function getCampaigns(accessToken: string, accountId?: string) {
   try {
-    // Use the correct LinkedIn Marketing API endpoint for campaigns
+    console.log('Fetching LinkedIn campaigns...', { accountId });
+    
+    // Build the URL for campaigns - if no accountId provided, get all campaigns
     let url = 'https://api.linkedin.com/rest/campaigns?q=search&pageSize=100';
     if (accountId) {
       url += `&search=(account:(values:List(urn:li:sponsoredAccount:${accountId})))`;
     }
+
+    console.log('Campaigns API URL:', url);
 
     const response = await fetch(url, {
       headers: {
@@ -307,10 +311,59 @@ async function getCampaigns(accessToken: string, accountId?: string) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('LinkedIn Campaigns API error:', errorText);
+      
+      // Try alternative v2 endpoint if the rest endpoint fails
+      console.log('Trying alternative campaigns endpoint...');
+      const altUrl = 'https://api.linkedin.com/v2/campaignsV2?q=search&pageSize=100';
+      const altResponse = await fetch(altUrl, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'X-RestLi-Protocol-Version': '2.0.0'
+        }
+      });
+      
+      console.log('Alternative campaigns API response status:', altResponse.status);
+      
+      if (!altResponse.ok) {
+        const altErrorText = await altResponse.text();
+        console.error('Alternative campaigns API also failed:', altErrorText);
+        return new Response(
+          JSON.stringify({ 
+            error: 'LinkedIn API error', 
+            details: errorText,
+            alternative_error: altErrorText
+          }),
+          { 
+            status: response.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      // Use alternative response
+      const altData = await altResponse.json();
+      console.log('Alternative Campaigns data received:', altData);
+      
+      const campaigns = altData.elements?.map((campaign: any) => ({
+        id: campaign.id,
+        name: campaign.name,
+        status: campaign.runSchedule?.status || campaign.status || 'UNKNOWN',
+        budget: parseFloat(campaign.dailyBudget?.amount || campaign.totalBudget?.amount || '0'),
+        spent: 0,
+        impressions: 0,
+        clicks: 0,
+        ctr: 0,
+        cpc: 0,
+        conversions: 0,
+        created_at: new Date(campaign.createdTime || Date.now()).toISOString(),
+        updated_at: new Date(campaign.lastModifiedTime || Date.now()).toISOString(),
+        campaign_data: campaign
+      })) || [];
+
       return new Response(
-        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        JSON.stringify({ success: true, data: campaigns, source: 'v2_api' }),
         { 
-          status: response.status,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -336,8 +389,10 @@ async function getCampaigns(accessToken: string, accountId?: string) {
       campaign_data: campaign
     })) || [];
 
+    console.log(`Successfully fetched ${campaigns.length} campaigns`);
+
     return new Response(
-      JSON.stringify({ success: true, data: campaigns }),
+      JSON.stringify({ success: true, data: campaigns, source: 'rest_api' }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
