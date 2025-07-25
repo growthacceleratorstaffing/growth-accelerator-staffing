@@ -100,14 +100,14 @@ Deno.serve(async (req) => {
           throw new Error('LinkedIn access token not configured');
         }
 
-        // Use LinkedIn Profile API v2 with new base URL and versioning
+        // Use LinkedIn Profile API v2 with correct endpoint
         const response = await fetch(
-          'https://api.linkedin.com/rest/people?q=finder&finder=CURRENT_USER&projection=(id,localizedFirstName,localizedLastName)',
+          'https://api.linkedin.com/v2/me',
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
-              'LinkedIn-Version': '202507'
+              'X-RestLi-Protocol-Version': '2.0.0'
             }
           }
         );
@@ -136,11 +136,8 @@ Deno.serve(async (req) => {
         const profileData = await response.json();
         console.log('Profile data received:', profileData);
         
-        // Handle the new API response format
-        const user = profileData.elements?.[0] || profileData;
-        
         return new Response(
-          JSON.stringify({ success: true, data: user }),
+          JSON.stringify({ success: true, data: profileData }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -157,14 +154,14 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Test connection with LinkedIn Profile API using new base URL and versioning
+        // Test connection with LinkedIn Profile API v2 with correct endpoint
         const response = await fetch(
-          'https://api.linkedin.com/rest/people?q=finder&finder=CURRENT_USER&projection=(id)',
+          'https://api.linkedin.com/v2/me',
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
-              'LinkedIn-Version': '202507'
+              'X-RestLi-Protocol-Version': '2.0.0'
             }
           }
         );
