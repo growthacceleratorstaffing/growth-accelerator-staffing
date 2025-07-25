@@ -81,33 +81,25 @@ const CrmData = () => {
         .single();
       
       if (!existing) {
-        // Check if LinkedIn is connected by testing the API
-        const { data: linkedinTest } = await supabase.functions.invoke('linkedin-api', {
+        // Check if LinkedIn is connected by testing the connection
+        const { data: linkedinTest } = await supabase.functions.invoke('linkedin-lead-sync', {
           body: { action: 'testConnection' }
         });
         
         if (linkedinTest?.success) {
-          // Create LinkedIn integration record
-          const { error } = await supabase
-            .from('crm_integrations')
-            .insert({
-              user_id: user.id,
-              crm_type: 'linkedin',
-              crm_name: 'LinkedIn Profile',
-              is_active: true,
-              last_sync_at: new Date().toISOString(),
-              settings: {
-                source: 'LinkedIn API',
-                type: 'profile'
-              }
-            });
+          // Auto-sync LinkedIn profile data
+          const { data: syncResult } = await supabase.functions.invoke('linkedin-lead-sync', {
+            body: { action: 'syncProfile' }
+          });
           
-          if (!error) {
-            console.log('LinkedIn integration record created');
+          if (syncResult?.success) {
+            console.log('LinkedIn profile synced successfully');
             toast({
               title: "LinkedIn Connected",
-              description: "Your LinkedIn profile will be loaded automatically."
+              description: "Your LinkedIn profile has been synced successfully."
             });
+            // Refresh data to show the synced profile
+            await fetchCrmData();
           }
         }
       }
@@ -192,9 +184,11 @@ const CrmData = () => {
             for (const contact of contacts) {
               const { data: insertedContact } = await supabase.from('crm_contacts').insert(contact).select().single();
               
-              // If this is LinkedIn, fetch real profile data
+              // If this is LinkedIn, use the Lead Sync API
               if (integration.crm_type === 'linkedin' && insertedContact) {
-                await fetchLinkedInProfile(insertedContact.id);
+                await supabase.functions.invoke('linkedin-lead-sync', {
+                  body: { action: 'syncProfile' }
+                });
               }
             }
           }
@@ -279,16 +273,15 @@ const CrmData = () => {
 
   const refreshLinkedInData = async (userId: string) => {
     try {
-      // Find existing LinkedIn contacts
-      const { data: linkedinContacts } = await supabase
-        .from('crm_contacts')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('crm_source', 'linkedin');
-
-      if (linkedinContacts && linkedinContacts.length > 0) {
-        // Refresh the first LinkedIn contact (your profile)
-        await fetchLinkedInProfile(linkedinContacts[0].id);
+      // Use the LinkedIn Lead Sync API to refresh profile data
+      const { data: syncResult } = await supabase.functions.invoke('linkedin-lead-sync', {
+        body: { action: 'syncProfile' }
+      });
+      
+      if (syncResult?.success) {
+        console.log('LinkedIn data refreshed successfully');
+        // Refresh the local data to show updates
+        await fetchCrmData();
       }
     } catch (error) {
       console.error('Error refreshing LinkedIn data:', error);
