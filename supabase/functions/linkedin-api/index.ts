@@ -53,9 +53,9 @@ Deno.serve(async (req) => {
           throw new Error('LinkedIn access token not configured');
         }
 
-        // Updated to use LinkedIn API v2 according to documentation
+        // Updated to use correct LinkedIn API v2 endpoint
         const response = await fetch(
-          'https://api.linkedin.com/v2/people/~?projection=(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))',
+          'https://api.linkedin.com/v2/people/~?projection=(id,localizedFirstName,localizedLastName)',
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -69,8 +69,22 @@ Deno.serve(async (req) => {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('LinkedIn API error:', errorText);
-          throw new Error(`LinkedIn API error: ${response.status} ${response.statusText}`);
+          console.error('LinkedIn API error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText,
+            headers: Object.fromEntries(response.headers.entries())
+          });
+          
+          let errorMessage = `LinkedIn API error: ${response.status} ${response.statusText}`;
+          
+          if (response.status === 403) {
+            errorMessage = 'Access token expired or insufficient permissions. Please generate a new access token from LinkedIn Developer Portal.';
+          } else if (response.status === 401) {
+            errorMessage = 'Invalid access token. Please check your LinkedIn credentials.';
+          }
+          
+          throw new Error(errorMessage);
         }
 
         const profileData = await response.json();
@@ -94,7 +108,7 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Test connection with basic profile endpoint
+        // Test connection with basic profile endpoint using correct scope
         const response = await fetch(
           'https://api.linkedin.com/v2/people/~',
           {
@@ -106,10 +120,27 @@ Deno.serve(async (req) => {
           }
         );
 
-        console.log('Test connection response status:', response.status);
+        console.log('Test connection response:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries())
+        });
 
+        let message = 'Connection successful';
         const isSuccess = response.ok;
-        const message = isSuccess ? 'Connection successful' : `Connection failed: ${response.status} ${response.statusText}`;
+
+        if (!isSuccess) {
+          const errorBody = await response.text();
+          console.error('LinkedIn test connection error:', errorBody);
+          
+          if (response.status === 403) {
+            message = 'Access token expired or insufficient permissions. Generate a new token from LinkedIn Developer Portal.';
+          } else if (response.status === 401) {
+            message = 'Invalid access token. Please verify your LinkedIn credentials.';
+          } else {
+            message = `Connection failed: ${response.status} ${response.statusText}`;
+          }
+        }
 
         return new Response(
           JSON.stringify({ 

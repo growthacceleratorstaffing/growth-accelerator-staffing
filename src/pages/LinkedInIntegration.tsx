@@ -138,12 +138,14 @@ const LinkedInIntegration = () => {
       return;
     }
 
+    // Updated scopes based on LinkedIn API documentation and your app configuration
     const scope = 'r_liteprofile r_emailaddress w_member_social rw_ads';
-    const redirectUri = encodeURIComponent(window.location.origin + '/linkedin-callback');
+    const redirectUri = encodeURIComponent(`${window.location.origin}/linkedin-callback`);
     const state = Math.random().toString(36).substring(7);
     
     const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${credentials.client_id}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
     
+    console.log('Generated LinkedIn OAuth URL:', authUrl);
     window.open(authUrl, '_blank');
   };
 
@@ -218,11 +220,11 @@ const LinkedInIntegration = () => {
 
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Generate an authorization URL to get an access token
+                Your LinkedIn access token may have expired (tokens expire after 60 days). Generate a new authorization URL to get a fresh access token.
               </p>
               <Button variant="outline" onClick={generateAuthUrl} disabled={!credentials.client_id}>
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Generate Auth URL
+                Generate New Auth URL
               </Button>
             </div>
           </CardContent>
