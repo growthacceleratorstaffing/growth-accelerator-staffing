@@ -154,9 +154,9 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Test connection with LinkedIn Profile API
+        // Test connection with LinkedIn Profile API v2 - use minimal projection
         const response = await fetch(
-          'https://api.linkedin.com/v2/people/~',
+          'https://api.linkedin.com/v2/people/~?projection=(id)',
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
