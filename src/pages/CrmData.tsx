@@ -62,8 +62,59 @@ const CrmData = () => {
   
   // Fetch user's CRM data and auto-sync
   useEffect(() => {
-    fetchCrmData();
+    if (user) {
+      checkLinkedInIntegration();
+      fetchCrmData();
+    }
   }, [user]);
+
+  const checkLinkedInIntegration = async () => {
+    if (!user) return;
+    
+    try {
+      // Check if LinkedIn integration exists
+      const { data: existing } = await supabase
+        .from('crm_integrations')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('crm_type', 'linkedin')
+        .single();
+      
+      if (!existing) {
+        // Check if LinkedIn is connected by testing the API
+        const { data: linkedinTest } = await supabase.functions.invoke('linkedin-api', {
+          body: { action: 'testConnection' }
+        });
+        
+        if (linkedinTest?.success) {
+          // Create LinkedIn integration record
+          const { error } = await supabase
+            .from('crm_integrations')
+            .insert({
+              user_id: user.id,
+              crm_type: 'linkedin',
+              crm_name: 'LinkedIn Profile',
+              is_active: true,
+              last_sync_at: new Date().toISOString(),
+              settings: {
+                source: 'LinkedIn API',
+                type: 'profile'
+              }
+            });
+          
+          if (!error) {
+            console.log('LinkedIn integration record created');
+            toast({
+              title: "LinkedIn Connected",
+              description: "Your LinkedIn profile will be loaded automatically."
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking LinkedIn integration:', error);
+    }
+  };
 
   const fetchCrmData = async () => {
     if (!user) return;
@@ -139,7 +190,12 @@ const CrmData = () => {
           // Insert sample contacts
           if (contacts.length > 0) {
             for (const contact of contacts) {
-              await supabase.from('crm_contacts').insert(contact);
+              const { data: insertedContact } = await supabase.from('crm_contacts').insert(contact).select().single();
+              
+              // If this is LinkedIn, fetch real profile data
+              if (integration.crm_type === 'linkedin' && insertedContact) {
+                await fetchLinkedInProfile(insertedContact.id);
+              }
             }
           }
 
@@ -149,11 +205,76 @@ const CrmData = () => {
               await supabase.from('crm_companies').insert(company);
             }
           }
+        } else if (integration.crm_type === 'linkedin') {
+          // If LinkedIn data exists but might be outdated, refresh it
+          await refreshLinkedInData(integration.user_id);
         }
       }
     } catch (error) {
       console.error('Auto-sync error:', error);
       // Don't show error toast for auto-sync failures
+    }
+  };
+
+  const fetchLinkedInProfile = async (contactId: string) => {
+    try {
+      console.log('Fetching LinkedIn profile data...');
+      const { data, error } = await supabase.functions.invoke('linkedin-api', {
+        body: { action: 'getProfile' }
+      });
+
+      if (error) {
+        console.error('LinkedIn API error:', error);
+        return;
+      }
+
+      if (data?.success && data.data) {
+        console.log('LinkedIn profile data:', data.data);
+        
+        // Update the contact with real LinkedIn data
+        const { error: updateError } = await supabase
+          .from('crm_contacts')
+          .update({
+            name: `${data.data.localizedFirstName} ${data.data.localizedLastName}`,
+            contact_data: {
+              source: 'LinkedIn',
+              profile_type: 'self',
+              linkedin_profile: data.data,
+              synced_at: new Date().toISOString(),
+              loading: false
+            },
+            last_synced_at: new Date().toISOString()
+          })
+          .eq('id', contactId);
+
+        if (updateError) {
+          console.error('Error updating LinkedIn contact:', updateError);
+        } else {
+          console.log('LinkedIn profile updated successfully');
+          // Refresh the data to show updated profile
+          await fetchCrmData();
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching LinkedIn profile:', error);
+    }
+  };
+
+  const refreshLinkedInData = async (userId: string) => {
+    try {
+      // Find existing LinkedIn contacts
+      const { data: linkedinContacts } = await supabase
+        .from('crm_contacts')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('crm_source', 'linkedin');
+
+      if (linkedinContacts && linkedinContacts.length > 0) {
+        // Refresh the first LinkedIn contact (your profile)
+        await fetchLinkedInProfile(linkedinContacts[0].id);
+      }
+    } catch (error) {
+      console.error('Error refreshing LinkedIn data:', error);
     }
   };
 
@@ -435,6 +556,28 @@ const CrmData = () => {
               }
             }
           ]
+        };
+
+      case 'linkedin':
+        return {
+          contacts: [
+            {
+              user_id,
+              name: 'Your LinkedIn Profile',
+              email: 'Loading...',
+              company: 'Loading...',
+              position: 'Loading...',
+              crm_source: 'linkedin',
+              status: 'prospect',
+              external_id: 'linkedin_profile',
+              contact_data: {
+                source: 'LinkedIn',
+                profile_type: 'self',
+                loading: true
+              }
+            }
+          ],
+          companies: []
         };
 
       default:
