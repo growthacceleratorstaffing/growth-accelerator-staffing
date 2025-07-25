@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 async function testLinkedInConnection(accessToken: string) {
   try {
     console.log('Testing LinkedIn connection with access token...');
-    // Use the same API endpoint as the working LinkedIn Lead Sync API
+    // Use the same working API as the Lead Sync API for connection test
     const response = await fetch('https://api.linkedin.com/v2/me', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -148,6 +148,11 @@ async function testLinkedInConnection(accessToken: string) {
     });
 
     console.log('LinkedIn connection test response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn connection test failed:', errorText);
+    }
 
     const isValid = response.ok;
     return new Response(
@@ -180,7 +185,9 @@ async function testLinkedInConnection(accessToken: string) {
 
 async function getAdAccounts(accessToken: string) {
   try {
-    // Use the correct LinkedIn Marketing API endpoint
+    console.log('Fetching LinkedIn ad accounts...');
+    
+    // First try the current Marketing API endpoint
     const response = await fetch('https://api.linkedin.com/rest/adAccounts?q=search&search=(status:(values:List(ACTIVE,DRAFT)))&pageSize=100', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -193,10 +200,52 @@ async function getAdAccounts(accessToken: string) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('LinkedIn Ad Accounts API error:', errorText);
+      
+      // If the marketing API fails, try the v2 approach
+      console.log('Trying alternative ad accounts endpoint...');
+      const altResponse = await fetch('https://api.linkedin.com/v2/adAccountsV2?q=search&search=(status:(values:List(ACTIVE,DRAFT)))', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'X-RestLi-Protocol-Version': '2.0.0'
+        }
+      });
+      
+      console.log('Alternative ad accounts API response status:', altResponse.status);
+      
+      if (!altResponse.ok) {
+        const altErrorText = await altResponse.text();
+        console.error('Alternative ad accounts API also failed:', altErrorText);
+        return new Response(
+          JSON.stringify({ 
+            error: 'LinkedIn API error', 
+            details: errorText,
+            alternative_error: altErrorText
+          }),
+          { 
+            status: response.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      // Use alternative response
+      const altData = await altResponse.json();
+      console.log('Alternative Ad Accounts data received:', altData);
+      
+      const accounts = altData.elements?.map((account: any) => ({
+        id: account.id,
+        name: account.name,
+        status: account.status,
+        type: account.type,
+        currency: account.currency || 'USD',
+        total_budget: 0,
+        account_data: account
+      })) || [];
+
       return new Response(
-        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        JSON.stringify({ success: true, data: accounts, source: 'v2_api' }),
         { 
-          status: response.status,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -216,8 +265,10 @@ async function getAdAccounts(accessToken: string) {
       account_data: account
     })) || [];
 
+    console.log(`Successfully fetched ${accounts.length} ad accounts`);
+
     return new Response(
-      JSON.stringify({ success: true, data: accounts }),
+      JSON.stringify({ success: true, data: accounts, source: 'rest_api' }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
