@@ -53,6 +53,11 @@ const LinkedInCallback = () => {
             title: "Success!",
             description: `Access token generated successfully. Expires in ${Math.round(data.data.expires_in / 3600)} hours.`
           });
+          
+          // Auto-redirect back to LinkedIn integration after 3 seconds
+          setTimeout(() => {
+            navigate('/linkedin-integration');
+          }, 3000);
         } else {
           throw new Error('Failed to exchange code for access token');
         }

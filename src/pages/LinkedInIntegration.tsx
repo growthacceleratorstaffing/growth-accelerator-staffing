@@ -178,10 +178,11 @@ const LinkedInIntegration = () => {
     
     toast({
       title: "OAuth URL Generated",
-      description: "Opening LinkedIn authorization in new tab. After authorization, manually copy the access token to your Supabase secrets.",
+      description: "Redirecting to LinkedIn for authorization..."
     });
     
-    window.open(authUrl, '_blank');
+    // Navigate in the same tab to preserve session
+    window.location.href = authUrl;
   };
 
   return (
