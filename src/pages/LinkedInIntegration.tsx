@@ -83,7 +83,8 @@ const LinkedInIntegration = () => {
     setLoading(true);
     try {
       console.log('Testing LinkedIn connection automatically...');
-      const { data, error } = await supabase.functions.invoke('linkedin-api', {
+      // Use the same API as the working Lead Sync API
+      const { data, error } = await supabase.functions.invoke('linkedin-lead-sync', {
         body: { action: 'testConnection' }
       });
 
@@ -127,7 +128,8 @@ const LinkedInIntegration = () => {
   const fetchProfile = async () => {
     try {
       console.log('Fetching LinkedIn profile...');
-      const { data, error } = await supabase.functions.invoke('linkedin-api', {
+      // Use the same API as the working Lead Sync API
+      const { data, error } = await supabase.functions.invoke('linkedin-lead-sync', {
         body: { action: 'getProfile' }
       });
 

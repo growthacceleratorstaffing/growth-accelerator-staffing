@@ -48,50 +48,12 @@ const Advertising = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (user) {
-      checkLinkedInConnection();
       fetchAdvertisingData();
     }
   }, [user]);
-
-  const checkLinkedInConnection = async () => {
-    console.log('Starting LinkedIn connection check...');
-    try {
-      const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
-        body: { action: 'testConnection' }
-      });
-      
-      console.log('LinkedIn connection response:', { data, error });
-      
-      if (data?.success) {
-        setIsConnected(true);
-        console.log('LinkedIn connection successful');
-        toast({
-          title: "LinkedIn Connected",
-          description: "LinkedIn Advertising API is connected and ready."
-        });
-      } else {
-        setIsConnected(false);
-        console.log('LinkedIn connection failed:', data);
-        toast({
-          title: "Connection Failed",
-          description: data?.message || "LinkedIn Advertising API connection failed",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error checking LinkedIn connection:', error);
-      setIsConnected(false);
-      toast({
-        title: "Connection Error",
-        description: "Failed to check LinkedIn connection",
-        variant: "destructive"
-      });
-    }
-  };
 
   const fetchAdvertisingData = async () => {
     if (!user) return;
@@ -291,20 +253,6 @@ const Advertising = () => {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center">Loading advertising data...</div>
-      </div>
-    );
-  }
-
-  if (!isConnected) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold">LinkedIn Advertising</h1>
-          <p className="text-muted-foreground">LinkedIn Advertising API is not connected.</p>
-          <Button onClick={checkLinkedInConnection}>
-            Try to Connect
-          </Button>
-        </div>
       </div>
     );
   }
