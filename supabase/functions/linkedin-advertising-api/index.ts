@@ -84,10 +84,20 @@ Deno.serve(async (req) => {
     // Try user-specific token first, then fall back to global token
     let linkedinAccessToken = tokenData?.access_token;
     
+    console.log('User token data check:', {
+      tokenExists: !!tokenData,
+      hasAccessToken: !!tokenData?.access_token,
+      userId: user.id
+    });
+    
     // If no user-specific token, try the global token from secrets
     if (!linkedinAccessToken) {
+      console.log('No user-specific token found, checking global token...');
       linkedinAccessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
-      console.log('Using global LinkedIn access token as fallback');
+      console.log('Global token check:', {
+        hasGlobalToken: !!linkedinAccessToken,
+        globalTokenLength: linkedinAccessToken?.length || 0
+      });
     }
 
     console.log('LinkedIn credentials check:', {

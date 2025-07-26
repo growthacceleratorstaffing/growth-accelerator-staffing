@@ -74,6 +74,14 @@ const Advertising = () => {
     }
   }, [user]);
 
+  // Force a refresh of the advertising data when component mounts
+  useEffect(() => {
+    console.log('Advertising page mounted, forcing data refresh...');
+    if (user) {
+      setTimeout(() => fetchAdvertisingData(), 1000);
+    }
+  }, []);
+
   const checkLinkedInConnection = async () => {
     try {
       // Directly test the connection using the existing API
