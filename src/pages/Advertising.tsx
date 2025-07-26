@@ -74,15 +74,34 @@ const Advertising = () => {
 
   const checkLinkedInConnection = async () => {
     try {
-      // Check if user has a valid LinkedIn token in the database
+      // Check if user has a valid LinkedIn token in the database first
       const { data: tokenData } = await supabase
         .from('linkedin_user_tokens')
         .select('*')
         .eq('user_id', user?.id)
         .maybeSingle();
 
+      let hasValidToken = false;
+      
       if (tokenData && new Date(tokenData.token_expires_at) > new Date()) {
-        // Token exists and is not expired, test the connection
+        hasValidToken = true;
+      } else {
+        // Fallback to check global token
+        try {
+          const { data: globalTokenData } = await supabase.functions.invoke('linkedin-api', {
+            body: { action: 'getCredentials' }
+          });
+          
+          if (globalTokenData?.success && globalTokenData.data?.has_access_token) {
+            hasValidToken = true;
+          }
+        } catch (error) {
+          console.error('Error checking global token:', error);
+        }
+      }
+
+      if (hasValidToken) {
+        // Test the connection
         const { data: connectionData } = await supabase.functions.invoke('linkedin-lead-sync', {
           body: { action: 'testConnection' }
         });

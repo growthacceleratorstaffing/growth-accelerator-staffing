@@ -79,12 +79,34 @@ const LinkedInIntegration = () => {
           await testConnectionAutomatically();
         }
       } else {
-        console.log('No token found or error occurred');
-        setCredentials({
-          client_id: 'configured',
-          has_client_secret: true,
-          has_access_token: false
-        });
+        console.log('No user-specific token found, checking global token...');
+        
+        // Fallback to check global token in Supabase secrets
+        try {
+          const { data: globalTokenData } = await supabase.functions.invoke('linkedin-api', {
+            body: { action: 'getCredentials' }
+          });
+          
+          if (globalTokenData?.success && globalTokenData.data?.has_access_token) {
+            console.log('Global token found');
+            setCredentials(globalTokenData.data);
+            await testConnectionAutomatically();
+          } else {
+            console.log('No global token found either');
+            setCredentials({
+              client_id: 'configured',
+              has_client_secret: true,
+              has_access_token: false
+            });
+          }
+        } catch (error) {
+          console.error('Error checking global token:', error);
+          setCredentials({
+            client_id: 'configured',
+            has_client_secret: true,
+            has_access_token: false
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading credentials:', error);
