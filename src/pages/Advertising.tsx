@@ -138,30 +138,33 @@ const Advertising = () => {
         // Fetch campaigns from all accounts
         let allCampaigns: Campaign[] = [];
         
-        // Try to fetch all campaigns first
-        try {
-          const { data: allCampaignsData, error: campaignsError } = await supabase.functions.invoke('linkedin-advertising-api', {
-            body: { action: 'getCampaigns' }
-          });
-          
-          console.log('Campaigns response:', { allCampaignsData, campaignsError });
-          
-          if (campaignsError) {
-            console.error('Supabase function error for campaigns:', campaignsError);
-          } else if (allCampaignsData?.success && allCampaignsData.data) {
-            console.log(`Found ${allCampaignsData.data.length} campaigns from general query`);
+        // Try to fetch campaigns for each account since the new API requires account-specific queries
+        for (const account of accounts) {
+          try {
+            console.log(`Fetching campaigns for account: ${account.id}`);
+            const { data: campaignsData, error: campaignsError } = await supabase.functions.invoke('linkedin-advertising-api', {
+              body: { action: 'getCampaigns', accountId: account.id }
+            });
             
-            // Add account info to campaigns
-            const campaignsWithAccount = allCampaignsData.data.map((campaign: Campaign) => ({
-              ...campaign,
-              account_id: campaign.account_id || 'general',
-              account_name: campaign.account_name || 'LinkedIn Campaigns',
-              account_currency: campaign.account_currency || 'USD'
-            }));
-            allCampaigns.push(...campaignsWithAccount);
+            console.log(`Campaigns response for account ${account.id}:`, { campaignsData, campaignsError });
+            
+            if (campaignsError) {
+              console.error(`Supabase function error for campaigns in account ${account.id}:`, campaignsError);
+            } else if (campaignsData?.success && campaignsData.data) {
+              console.log(`Found ${campaignsData.data.length} campaigns for account ${account.id}`);
+              
+              // Add account info to campaigns
+              const campaignsWithAccount = campaignsData.data.map((campaign: Campaign) => ({
+                ...campaign,
+                account_id: account.id,
+                account_name: account.name,
+                account_currency: account.currency || 'USD'
+              }));
+              allCampaigns.push(...campaignsWithAccount);
+            }
+          } catch (error) {
+            console.error(`Error fetching campaigns for account ${account.id}:`, error);
           }
-        } catch (error) {
-          console.error('Error fetching campaigns:', error);
         }
         
         setCampaigns(allCampaigns);
@@ -571,10 +574,10 @@ const Advertising = () => {
           </div>
 
           {/* Data Tables */}
-          <Tabs defaultValue="campaigns" className="space-y-4">
+          <Tabs defaultValue="accounts" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
               <TabsTrigger value="accounts">Ad Accounts</TabsTrigger>
+              <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
             </TabsList>
             
             <TabsContent value="campaigns">
