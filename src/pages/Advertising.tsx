@@ -74,21 +74,36 @@ const Advertising = () => {
 
   const checkLinkedInConnection = async () => {
     try {
-      const { data: connectionData } = await supabase.functions.invoke('linkedin-lead-sync', {
-        body: { action: 'testConnection' }
-      });
-      
-      if (connectionData?.success) {
-        setLinkedInConnected(true);
-        // Get LinkedIn profile info
-        const { data: profileData } = await supabase.functions.invoke('linkedin-lead-sync', {
-          body: { action: 'getProfile' }
+      // Check if user has a valid LinkedIn token in the database
+      const { data: tokenData } = await supabase
+        .from('linkedin_user_tokens')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (tokenData && new Date(tokenData.token_expires_at) > new Date()) {
+        // Token exists and is not expired, test the connection
+        const { data: connectionData } = await supabase.functions.invoke('linkedin-lead-sync', {
+          body: { action: 'testConnection' }
         });
-        if (profileData?.success) {
-          setLinkedInProfile(profileData.data);
+        
+        if (connectionData?.success) {
+          setLinkedInConnected(true);
+          // Get LinkedIn profile info
+          const { data: profileData } = await supabase.functions.invoke('linkedin-lead-sync', {
+            body: { action: 'getProfile' }
+          });
+          if (profileData?.success) {
+            setLinkedInProfile(profileData.data);
+          }
+          fetchAdvertisingData();
+        } else {
+          setLinkedInConnected(false);
+          setLinkedInProfile(null);
+          setLoading(false);
         }
-        fetchAdvertisingData();
       } else {
+        // No valid token found
         setLinkedInConnected(false);
         setLinkedInProfile(null);
         setLoading(false);

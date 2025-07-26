@@ -60,7 +60,7 @@ const LinkedInIntegration = () => {
         .from('linkedin_user_tokens')
         .select('*')
         .eq('user_id', user.user.id)
-        .single();
+        .maybeSingle();
 
       console.log('Token data:', tokenData, 'Error:', tokenError);
 
