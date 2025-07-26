@@ -80,6 +80,7 @@ const Advertising = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
+  const [campaignGroups, setCampaignGroups] = useState<any[]>([]);
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +100,7 @@ const Advertising = () => {
   const [campaignName, setCampaignName] = useState("");
   const [campaignType, setCampaignType] = useState("");
   const [selectedAccount, setSelectedAccount] = useState("");
+  const [selectedCampaignGroup, setSelectedCampaignGroup] = useState(""); // New: for campaign group selection
   const [selectedCreative, setSelectedCreative] = useState("");
   const [budget, setBudget] = useState("");
   const [bidAmount, setBidAmount] = useState("");
@@ -177,11 +179,12 @@ const Advertising = () => {
         setAdAccounts(accounts);
         console.log(`Loaded ${accounts.length} ad accounts`);
 
-        // Fetch campaigns, creatives, and job postings from all accounts
+        // Fetch campaigns, creatives, campaign groups, and job postings from all accounts
         let allCampaigns: Campaign[] = [];
         let allCreatives: Creative[] = [];
+        let allCampaignGroups: any[] = [];
         
-        // Try to fetch campaigns and creatives for each account
+        // Try to fetch campaigns, creatives, and campaign groups for each account
         for (const account of accounts) {
           try {
             // Fetch campaigns
@@ -198,6 +201,22 @@ const Advertising = () => {
                 account_currency: account.currency || 'USD'
               }));
               allCampaigns.push(...campaignsWithAccount);
+            }
+
+            // Fetch campaign groups with field projections
+            console.log(`Fetching campaign groups for account: ${account.id}`);
+            const { data: campaignGroupsData, error: campaignGroupsError } = await supabase.functions.invoke('linkedin-advertising-api', {
+              body: { action: 'getCampaignGroups', accountId: account.id }
+            });
+            
+            if (campaignGroupsData?.success && campaignGroupsData.data) {
+              const campaignGroupsWithAccount = campaignGroupsData.data.map((group: any) => ({
+                ...group,
+                account_id: account.id,
+                account_name: account.name,
+                account_currency: account.currency || 'USD'
+              }));
+              allCampaignGroups.push(...campaignGroupsWithAccount);
             }
 
             // Fetch both regular creatives and direct sponsored contents
@@ -258,8 +277,9 @@ const Advertising = () => {
         
         
         setCampaigns(allCampaigns);
+        setCampaignGroups(allCampaignGroups);
         setCreatives(allCreatives);
-        console.log(`Total campaigns loaded: ${allCampaigns.length}, creatives: ${allCreatives.length}`);
+        console.log(`Total campaigns loaded: ${allCampaigns.length}, campaign groups: ${allCampaignGroups.length}, creatives: ${allCreatives.length}`);
       } else if (accountsData?.error) {
         console.error('LinkedIn API error:', accountsData.error);
         toast({
@@ -452,10 +472,10 @@ const Advertising = () => {
   };
 
   const handleCreateCampaign = async () => {
-    if (!campaignName || !campaignType || !budget || !selectedAccount) {
+    if (!campaignName || !campaignType || !budget || !selectedAccount || !selectedCampaignGroup) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields (Campaign Name, Type, Account, and Budget)",
+        description: "Please fill in all required fields (Campaign Name, Type, Account, Campaign Group, and Budget)",
         variant: "destructive"
       });
       return;
@@ -473,6 +493,7 @@ const Advertising = () => {
           name: campaignName,
           type: campaignType,
           account: selectedAccount,
+          campaignGroup: selectedCampaignGroup, // Pass the selected campaign group
           budget: parseFloat(budget),
           bidAmount: parseFloat(bidAmount) || 5.00,
           costType,
@@ -767,13 +788,43 @@ const Advertising = () => {
                     <SelectValue placeholder="Select campaign type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SPONSORED_CONTENT">Sponsored Content</SelectItem>
+                    <SelectItem value="SPONSORED_UPDATES">Sponsored Content</SelectItem>
                     <SelectItem value="SPONSORED_MESSAGING">Sponsored Messaging</SelectItem>
                     <SelectItem value="TEXT_ADS">Text Ads</SelectItem>
                     <SelectItem value="DYNAMIC_ADS">Dynamic Ads</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label htmlFor="selectedCampaignGroup">Campaign Group *</Label>
+                <Select value={selectedCampaignGroup} onValueChange={setSelectedCampaignGroup}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={campaignGroups.length === 0 ? "No campaign groups found" : "Select campaign group"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campaignGroups
+                      .filter(group => !selectedAccount || group.account_id === selectedAccount)
+                      .map((group) => (
+                        <SelectItem key={group.id} value={group.id.toString()}>
+                          {group.name} ({group.status})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {campaignGroups.length === 0 && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    No campaign groups found. Campaign groups are required for campaigns.
+                  </p>
+                )}
+                {selectedAccount && campaignGroups.filter(g => g.account_id === selectedAccount).length === 0 && campaignGroups.length > 0 && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    No campaign groups found for selected account.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="selectedCreative">Advertisement Creative (Optional)</Label>
                 <Select value={selectedCreative} onValueChange={setSelectedCreative}>

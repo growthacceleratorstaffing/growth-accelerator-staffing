@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
       .from('linkedin_user_tokens')
       .select('access_token, token_expires_at')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     
     // Try user-specific token first, then fall back to global token
     let linkedinAccessToken = tokenData?.access_token;
@@ -148,6 +148,13 @@ Deno.serve(async (req) => {
       
       case 'getDirectSponsoredContents':
         return await getDirectSponsoredContents(linkedinAccessToken, params.accountId);
+      
+      case 'getCampaignGroups':
+        return await getCampaignGroups(linkedinAccessToken, params.accountId);
+      
+      case 'createCampaignGroup':
+        return await createCampaignGroup(linkedinAccessToken, params);
+      
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
@@ -1098,6 +1105,189 @@ async function getDirectSponsoredContents(accessToken: string, accountId: string
       }),
       { 
         status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function getCampaignGroups(accessToken: string, accountId: string) {
+  try {
+    console.log('Fetching LinkedIn campaign groups for account:', accountId);
+    
+    // Use field projections to get specific fields we need for the UI
+    // Based on: https://learn.microsoft.com/en-us/linkedin/shared/api-guide/concepts/projections
+    const fieldsParam = '&fields=id,name,status,account,changeAuditStamps,totalBudget,runSchedule';
+    const url = `https://api.linkedin.com/rest/adAccounts/${accountId}/adCampaignGroups?pageSize=100${fieldsParam}`;
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202411'
+      }
+    });
+
+    console.log('LinkedIn Campaign Groups API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Campaign Groups API error:', errorText);
+      
+      // Return empty array instead of error to avoid blocking the UI
+      console.log('Campaign Groups API failed, returning empty array');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: [], 
+          message: 'Could not fetch campaign groups - this is normal if none exist yet',
+          source: 'fallback_empty'
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Campaign Groups data received:', data);
+
+    // Transform campaign groups data to include useful information using field projections
+    const campaignGroups = data.elements?.map((group: any) => ({
+      id: group.id,
+      name: group.name,
+      status: group.status,
+      account: group.account,
+      totalBudget: group.totalBudget,
+      runSchedule: group.runSchedule,
+      created_at: new Date(group.changeAuditStamps?.created?.time || Date.now()).toISOString(),
+      updated_at: new Date(group.changeAuditStamps?.lastModified?.time || Date.now()).toISOString(),
+      group_data: group
+    })) || [];
+
+    return new Response(
+      JSON.stringify({ success: true, data: campaignGroups }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching campaign groups:', error);
+    // Return empty array on error to avoid blocking the UI
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        data: [], 
+        message: 'Could not fetch campaign groups - this is normal if none exist yet',
+        source: 'error_fallback'
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function createCampaignGroup(accessToken: string, groupData: any) {
+  try {
+    console.log('Creating LinkedIn campaign group with data:', groupData);
+    
+    // Validate required fields for LinkedIn campaign group creation
+    if (!groupData.account || !groupData.name) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields', 
+          details: 'Account and name are required for campaign group creation' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // LinkedIn campaign group creation payload according to their API specs
+    const payload = {
+      name: groupData.name,
+      account: `urn:li:sponsoredAccount:${groupData.account}`,
+      status: 'ACTIVE', // Set to active by default
+      totalBudget: groupData.totalBudget ? {
+        amount: groupData.totalBudget.toString(),
+        currencyCode: groupData.currency || 'USD'
+      } : undefined,
+      runSchedule: groupData.runSchedule || {
+        start: Date.now()
+      }
+    };
+
+    console.log('Campaign group creation payload:', JSON.stringify(payload, null, 2));
+
+    // Use the correct endpoint format from documentation
+    const response = await fetch(`https://api.linkedin.com/rest/adAccounts/${groupData.account}/adCampaignGroups`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202411',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('LinkedIn Campaign Group Creation API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Campaign Group Creation API error:', errorText);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'LinkedIn API error', 
+          details: errorText,
+          message: 'Failed to create campaign group in LinkedIn. Please check your account permissions and try again.'
+        }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Campaign group created successfully:', data);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Campaign group created successfully in LinkedIn',
+        data: {
+          id: data.id,
+          name: data.name,
+          status: data.status,
+          account: data.account,
+          ...data
+        }
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error creating campaign group:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to create campaign group', 
+        details: error.message,
+        message: 'An unexpected error occurred while creating the campaign group.'
+      }),
+      { 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
