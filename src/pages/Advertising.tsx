@@ -216,8 +216,16 @@ const Advertising = () => {
             const directContentsData = directContentsResponse.data?.success ? directContentsResponse.data.data : [];
             
             const accountCreatives = [
-              ...creativesData.map((c: any) => ({ ...c, creative_type: 'legacy' })),
-              ...directContentsData.map((c: any) => ({ ...c, creative_type: 'direct_content' }))
+              ...creativesData.map((c: any) => ({ 
+                ...c, 
+                creative_type: 'legacy',
+                content: c.content || { title: `Creative ${c.id?.slice(-8) || 'Unknown'}`, description: '', clickUri: '' }
+              })),
+              ...directContentsData.map((c: any) => ({ 
+                ...c, 
+                creative_type: 'direct_content',
+                content: c.content || { title: `Direct Content ${c.id?.slice(-8) || 'Unknown'}`, description: '', clickUri: '' }
+              }))
             ];
             
             allCreatives.push(...accountCreatives);
