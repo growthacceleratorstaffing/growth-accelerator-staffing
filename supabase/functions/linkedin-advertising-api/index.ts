@@ -698,65 +698,85 @@ async function createCreative(accessToken: string, creativeData: any) {
       );
     }
 
-    // LinkedIn Direct Sponsored Content creation payload
-    // This is the correct format for creating direct ads without requiring posted content
-    const payload = {
-      account: `urn:li:sponsoredAccount:${creativeData.account}`,
-      intendedStatus: 'ACTIVE',
-      creative: {
-        type: 'TEXT_AD',
+    // First create Direct Sponsored Content (the creative content)
+    const contentPayload = {
+      author: `urn:li:sponsoredAccount:${creativeData.account}`,
+      lifecycleState: 'PUBLISHED',
+      specificContent: {
+        'com.linkedin.ugc.ShareContent': {
+          shareCommentary: {
+            text: (creativeData.content.description || '').replace(/<[^>]*>/g, '') // Strip HTML tags
+          },
+          shareMediaCategory: 'NONE'
+        }
+      },
+      visibility: {
+        'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
+      }
+    };
+
+    console.log('Creating UGC content with payload:', JSON.stringify(contentPayload, null, 2));
+
+    // Create UGC content first
+    const ugcResponse = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(contentPayload)
+    });
+
+    console.log('UGC creation response status:', ugcResponse.status);
+    
+    if (!ugcResponse.ok) {
+      const ugcError = await ugcResponse.text();
+      console.error('UGC creation failed:', ugcError);
+      
+      // Try with a simpler direct sponsored content approach
+      const directPayload = {
+        account: `urn:li:sponsoredAccount:${creativeData.account}`,
+        name: creativeData.content.title || 'Advertisement',
+        type: 'SPONSORED_CONTENT',
+        intendedStatus: 'ACTIVE',
         variables: {
-          clickUri: creativeData.content.clickUri || '',
           data: {
             'com.linkedin.ads.SponsoredContentCreativeVariables': {
               directSponsoredContent: {
-                headlines: [
-                  {
-                    text: creativeData.content.title || 'Advertisement'
-                  }
-                ],
-                descriptions: [
-                  {
-                    text: (creativeData.content.description || '').replace(/<[^>]*>/g, '') // Strip HTML tags
-                  }
-                ],
-                callToAction: {
-                  actionType: 'LEARN_MORE',
-                  label: 'Learn More'
+                landingPage: {
+                  url: creativeData.content.clickUri || ''
+                },
+                text: {
+                  value: (creativeData.content.description || '').replace(/<[^>]*>/g, '')
+                },
+                title: {
+                  value: creativeData.content.title || 'Advertisement'
                 }
               }
             }
           }
         }
-      }
-    };
+      };
 
-    // Add campaign if provided
-    if (creativeData.campaign) {
-      payload['campaign'] = `urn:li:sponsoredCampaign:${creativeData.campaign}`;
-    }
+      console.log('Trying direct creative creation with payload:', JSON.stringify(directPayload, null, 2));
 
-    console.log('Creative creation payload:', JSON.stringify(payload, null, 2));
+      const response = await fetch('https://api.linkedin.com/rest/adCreatives', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'X-RestLi-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202411',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(directPayload)
+      });
 
-    // Use Direct Sponsored Content endpoint instead of creatives endpoint
-    // This endpoint is confirmed to work for creating ads without campaign dependencies
-    const response = await fetch('https://api.linkedin.com/rest/adDirectSponsoredContents', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202507',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+      console.log('LinkedIn Creative Creation API response status:', response.status);
 
-    console.log('LinkedIn Creative Creation API response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('LinkedIn Creative Creation API error:', errorText);
-      console.error('Failed payload that caused the error:', JSON.stringify(payload, null, 2));
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('LinkedIn Creative Creation API error:', errorText);
+        console.error('Failed payload that caused the error:', JSON.stringify(directPayload, null, 2));
       
       // Try to parse the error for more details
       let parsedError;
@@ -767,33 +787,103 @@ async function createCreative(accessToken: string, creativeData: any) {
         console.error('Could not parse error response as JSON');
       }
       
+        return new Response(
+          JSON.stringify({ 
+            error: 'LinkedIn API error', 
+            details: errorText,
+            payload_used: directPayload,
+            message: 'Failed to create creative in LinkedIn. Please check your content and try again.'
+          }),
+          { 
+            status: response.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      const data = await response.json();
+      console.log('Creative created successfully:', data);
+
       return new Response(
         JSON.stringify({ 
-          error: 'LinkedIn API error', 
-          details: errorText,
-          payload_used: payload,
-          message: 'Failed to create creative in LinkedIn. Please check your content and try again.'
+          success: true, 
+          message: 'Creative created successfully in LinkedIn',
+          data: {
+            id: data.id,
+            status: data.status,
+            account: data.account,
+            campaign: data.campaign,
+            ...data
+          }
         }),
         { 
-          status: response.status,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
-    const data = await response.json();
-    console.log('Creative created successfully:', data);
+    // If UGC creation was successful, use that content for the creative
+    const ugcData = await ugcResponse.json();
+    console.log('UGC created successfully:', ugcData);
+
+    // Now create the creative using the UGC content
+    const creativePayload = {
+      account: `urn:li:sponsoredAccount:${creativeData.account}`,
+      name: creativeData.content.title || 'Advertisement',
+      type: 'SPONSORED_CONTENT',
+      intendedStatus: 'ACTIVE',
+      content: ugcData.id, // Reference the created UGC content
+      variables: {
+        clickUri: creativeData.content.clickUri || ''
+      }
+    };
+
+    const creativeResponse = await fetch('https://api.linkedin.com/rest/adCreatives', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202411',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(creativePayload)
+    });
+
+    console.log('LinkedIn Creative Creation API response status:', creativeResponse.status);
+
+    if (!creativeResponse.ok) {
+      const errorText = await creativeResponse.text();
+      console.error('LinkedIn Creative Creation API error:', errorText);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'LinkedIn API error', 
+          details: errorText,
+          payload_used: creativePayload,
+          message: 'Failed to create creative in LinkedIn after UGC creation. Please check your content and try again.'
+        }),
+        { 
+          status: creativeResponse.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const creativeData_result = await creativeResponse.json();
+    console.log('Creative created successfully with UGC:', creativeData_result);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Creative created successfully in LinkedIn',
+        message: 'Creative created successfully in LinkedIn with UGC content',
         data: {
-          id: data.id,
-          status: data.status,
-          account: data.account,
-          campaign: data.campaign,
-          ...data
+          id: creativeData_result.id,
+          status: creativeData_result.status,
+          account: creativeData_result.account,
+          campaign: creativeData_result.campaign,
+          ugc_content: ugcData.id,
+          ...creativeData_result
         }
       }),
       { 
