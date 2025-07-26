@@ -50,6 +50,19 @@ interface Creative {
   creative_data?: any;
 }
 
+interface JobPosting {
+  id: string;
+  title: string;
+  job_description: string;
+  company_name?: string;
+  location_name?: string;
+  salary_rate_low?: number;
+  salary_rate_high?: number;
+  salary_currency?: string;
+  work_type_name?: string;
+  created_at: string;
+}
+
 interface AdAccount {
   id: string;
   name: string;
@@ -68,11 +81,14 @@ const Advertising = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const [creatives, setCreatives] = useState<Creative[]>([]);
+  const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
   const [loading, setLoading] = useState(true);
   const [linkedInConnected, setLinkedInConnected] = useState(false);
   const [linkedInProfile, setLinkedInProfile] = useState<any>(null);
 
+  const [creativeSource, setCreativeSource] = useState<"custom" | "job">("job"); // Default to job postings
   // Creative creation form state
+  const [selectedJobPosting, setSelectedJobPosting] = useState("");
   const [creativeTitle, setCreativeTitle] = useState("");
   const [creativeDescription, setCreativeDescription] = useState("");
   const [creativeClickUri, setCreativeClickUri] = useState("");
@@ -161,7 +177,7 @@ const Advertising = () => {
         setAdAccounts(accounts);
         console.log(`Loaded ${accounts.length} ad accounts`);
 
-        // Fetch campaigns and creatives from all accounts
+        // Fetch campaigns, creatives, and job postings from all accounts
         let allCampaigns: Campaign[] = [];
         let allCreatives: Creative[] = [];
         
@@ -199,6 +215,28 @@ const Advertising = () => {
           }
         }
         
+        // Fetch job postings from local database
+        try {
+          console.log('Fetching job postings...');
+          const { data: jobPostingsData, error: jobPostingsError } = await supabase
+            .from('jobs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(50);
+          
+          if (!jobPostingsError && jobPostingsData) {
+            setJobPostings(jobPostingsData);
+            console.log(`Loaded ${jobPostingsData.length} job postings`);
+          } else {
+            console.error('Error fetching job postings:', jobPostingsError);
+            setJobPostings([]);
+          }
+        } catch (error) {
+          console.error('Error fetching job postings:', error);
+          setJobPostings([]);
+        }
+        
+        
         setCampaigns(allCampaigns);
         setCreatives(allCreatives);
         console.log(`Total campaigns loaded: ${allCampaigns.length}, creatives: ${allCreatives.length}`);
@@ -212,11 +250,13 @@ const Advertising = () => {
         setAdAccounts([]);
         setCampaigns([]);
         setCreatives([]);
+        setJobPostings([]);
       } else {
         console.log('No ad accounts data or API call failed');
         setAdAccounts([]);
         setCampaigns([]);
         setCreatives([]);
+        setJobPostings([]);
       }
 
     } catch (error: any) {
@@ -229,6 +269,7 @@ const Advertising = () => {
       setAdAccounts([]);
       setCampaigns([]);
       setCreatives([]);
+      setJobPostings([]);
     } finally {
       setLoading(false);
     }
@@ -272,55 +313,121 @@ const Advertising = () => {
   };
 
   const handleCreateCreative = async () => {
-    if (!creativeTitle || !creativeDescription || !creativeClickUri || !selectedAccountForCreative) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields for the creative",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsCreatingCreative(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
-        body: { 
-          action: 'createCreative',
-          account: selectedAccountForCreative,
-          content: {
-            title: creativeTitle,
-            description: creativeDescription,
-            clickUri: creativeClickUri
-          }
-        }
-      });
-      
-      if (error) throw error;
-      
-      if (data?.success) {
+    if (creativeSource === "job") {
+      // Creating creative from job posting
+      if (!selectedJobPosting || !selectedAccountForCreative) {
         toast({
-          title: "Creative Created",
-          description: "Advertisement creative has been created successfully.",
+          title: "Error",
+          description: "Please select both a job posting and an ad account",
+          variant: "destructive"
         });
-        // Reset form
-        setCreativeTitle("");
-        setCreativeDescription("");
-        setCreativeClickUri("");
-        setSelectedAccountForCreative("");
-        // Refresh data to show new creative
-        await fetchAdvertisingData();
-      } else {
-        throw new Error(data?.message || 'Failed to create creative');
+        return;
       }
-    } catch (error) {
-      console.error('Error creating creative:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create creative",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCreatingCreative(false);
+      
+      const jobPosting = jobPostings.find(job => job.id === selectedJobPosting);
+      if (!jobPosting) {
+        toast({
+          title: "Error",
+          description: "Selected job posting not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setIsCreatingCreative(true);
+      try {
+        // Create a landing page URL for the job (you can customize this)
+        const jobApplicationUrl = `${window.location.origin}/apply-job/${jobPosting.id}`;
+        
+        const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
+          body: { 
+            action: 'createCreative',
+            account: selectedAccountForCreative,
+            content: {
+              title: jobPosting.title,
+              description: jobPosting.job_description.substring(0, 300) + "...", // LinkedIn has description limits
+              clickUri: jobApplicationUrl
+            }
+          }
+        });
+        
+        if (error) throw error;
+        
+        if (data?.success) {
+          toast({
+            title: "Creative Created from Job Posting",
+            description: `Advertisement creative has been created for "${jobPosting.title}".`,
+          });
+          // Reset form
+          setSelectedJobPosting("");
+          setSelectedAccountForCreative("");
+          // Refresh data to show new creative
+          await fetchAdvertisingData();
+        } else {
+          throw new Error(data?.message || 'Failed to create creative');
+        }
+      } catch (error) {
+        console.error('Error creating creative from job posting:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create creative from job posting",
+          variant: "destructive"
+        });
+      } finally {
+        setIsCreatingCreative(false);
+      }
+    } else {
+      // Creating custom creative
+      if (!creativeTitle || !creativeDescription || !creativeClickUri || !selectedAccountForCreative) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required fields for the creative",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setIsCreatingCreative(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
+          body: { 
+            action: 'createCreative',
+            account: selectedAccountForCreative,
+            content: {
+              title: creativeTitle,
+              description: creativeDescription,
+              clickUri: creativeClickUri
+            }
+          }
+        });
+        
+        if (error) throw error;
+        
+        if (data?.success) {
+          toast({
+            title: "Custom Creative Created",
+            description: "Advertisement creative has been created successfully.",
+          });
+          // Reset form
+          setCreativeTitle("");
+          setCreativeDescription("");
+          setCreativeClickUri("");
+          setSelectedAccountForCreative("");
+          // Refresh data to show new creative
+          await fetchAdvertisingData();
+        } else {
+          throw new Error(data?.message || 'Failed to create creative');
+        }
+      } catch (error) {
+        console.error('Error creating custom creative:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create creative",
+          variant: "destructive"
+        });
+      } finally {
+        setIsCreatingCreative(false);
+      }
     }
   };
 
@@ -441,63 +548,153 @@ const Advertising = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="creativeTitle">Creative Title *</Label>
-                <Input
-                  id="creativeTitle"
-                  placeholder="e.g. Hiring Software Engineers - Join Our Team"
-                  value={creativeTitle}
-                  onChange={(e) => setCreativeTitle(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="selectedAccountForCreative">Ad Account *</Label>
-                <Select value={selectedAccountForCreative} onValueChange={setSelectedAccountForCreative}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select ad account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {adAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id.toString()}>
-                        {account.name} ({account.currency})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Creative Source Selection */}
+            <div>
+              <Label>Creative Source</Label>
+              <Select value={creativeSource} onValueChange={(value: "custom" | "job") => setCreativeSource(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="job">Use Existing Job Posting</SelectItem>
+                  <SelectItem value="custom">Create Custom Creative</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {creativeSource === "job" 
+                  ? `Use one of your ${jobPostings.length} job postings as advertisement content`
+                  : "Create a custom advertisement with your own content"
+                }
+              </p>
             </div>
 
-            <div>
-              <Label htmlFor="creativeDescription">Creative Description *</Label>
-              <Textarea
-                id="creativeDescription"
-                placeholder="Describe your job opportunity, company benefits, and what makes this role attractive..."
-                value={creativeDescription}
-                onChange={(e) => setCreativeDescription(e.target.value)}
-                rows={3}
-              />
-            </div>
+            {creativeSource === "job" ? (
+              // Job Posting Selection
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="selectedJobPosting">Select Job Posting *</Label>
+                  <Select value={selectedJobPosting} onValueChange={setSelectedJobPosting}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={jobPostings.length === 0 ? "No job postings available" : "Select a job posting"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jobPostings.map((job) => (
+                        <SelectItem key={job.id} value={job.id}>
+                          {job.title} {job.company_name && `• ${job.company_name}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {jobPostings.length === 0 && (
+                    <p className="text-xs text-orange-600 mt-1">
+                      No job postings found. Create job postings in the Job Posting section first.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="selectedAccountForCreative">Ad Account *</Label>
+                  <Select value={selectedAccountForCreative} onValueChange={setSelectedAccountForCreative}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select ad account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {adAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id.toString()}>
+                          {account.name} ({account.currency})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              // Custom Creative Form
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="creativeTitle">Creative Title *</Label>
+                    <Input
+                      id="creativeTitle"
+                      placeholder="e.g. Hiring Software Engineers - Join Our Team"
+                      value={creativeTitle}
+                      onChange={(e) => setCreativeTitle(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="selectedAccountForCreative">Ad Account *</Label>
+                    <Select value={selectedAccountForCreative} onValueChange={setSelectedAccountForCreative}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select ad account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {adAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id.toString()}>
+                            {account.name} ({account.currency})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            <div>
-              <Label htmlFor="creativeClickUri">Landing Page URL *</Label>
-              <Input
-                id="creativeClickUri"
-                type="url"
-                placeholder="https://yourcompany.com/careers/software-engineer"
-                value={creativeClickUri}
-                onChange={(e) => setCreativeClickUri(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Where users will be directed when they click your ad</p>
-            </div>
+                <div>
+                  <Label htmlFor="creativeDescription">Creative Description *</Label>
+                  <Textarea
+                    id="creativeDescription"
+                    placeholder="Describe your job opportunity, company benefits, and what makes this role attractive..."
+                    value={creativeDescription}
+                    onChange={(e) => setCreativeDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="creativeClickUri">Landing Page URL *</Label>
+                  <Input
+                    id="creativeClickUri"
+                    type="url"
+                    placeholder="https://yourcompany.com/careers/software-engineer"
+                    value={creativeClickUri}
+                    onChange={(e) => setCreativeClickUri(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Where users will be directed when they click your ad</p>
+                </div>
+              </>
+            )}
+
+            {/* Preview for job posting */}
+            {creativeSource === "job" && selectedJobPosting && (
+              <div className="p-4 border rounded-lg bg-muted/30">
+                <Label className="text-sm font-medium">Advertisement Preview</Label>
+                {(() => {
+                  const selectedJob = jobPostings.find(job => job.id === selectedJobPosting);
+                  if (!selectedJob) return null;
+                  return (
+                    <div className="mt-2 space-y-2">
+                      <div className="font-medium">{selectedJob.title}</div>
+                      <div className="text-sm text-muted-foreground line-clamp-3">
+                        {selectedJob.job_description.substring(0, 200)}...
+                      </div>
+                      <div className="text-xs text-blue-600">
+                        → {window.location.origin}/apply-job/{selectedJob.id}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             <div className="flex justify-end pt-4">
               <Button 
                 onClick={handleCreateCreative}
-                disabled={isCreatingCreative || adAccounts.length === 0}
+                disabled={
+                  isCreatingCreative || 
+                  adAccounts.length === 0 || 
+                  (creativeSource === "job" && (!selectedJobPosting || jobPostings.length === 0))
+                }
                 className="min-w-[150px]"
               >
-                {isCreatingCreative ? "Creating..." : "Create Creative"}
+                {isCreatingCreative ? "Creating..." : creativeSource === "job" ? "Create Creative from Job" : "Create Custom Creative"}
               </Button>
             </div>
           </CardContent>
@@ -508,7 +705,7 @@ const Advertising = () => {
           <CardHeader>
             <CardTitle>Step 2: Create LinkedIn Campaign</CardTitle>
             <CardDescription>
-              Create a campaign using your advertisement creatives. You need at least one creative before creating a campaign.
+              Create a campaign using your advertisement creatives or job postings. You need at least one creative before creating a campaign.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -568,8 +765,8 @@ const Advertising = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {creatives.length === 0 && (
-                  <p className="text-xs text-orange-600 mt-1">Create a creative first before creating campaigns</p>
+                {(creatives.length === 0 && jobPostings.length === 0) && (
+                  <p className="text-xs text-orange-600 mt-1">Create a creative or have job postings first before creating campaigns</p>
                 )}
               </div>
             </div>
@@ -620,7 +817,7 @@ const Advertising = () => {
             <div className="flex justify-end pt-4">
               <Button 
                 onClick={handleCreateCampaign}
-                disabled={isCreatingCampaign || creatives.length === 0}
+                disabled={isCreatingCampaign || (creatives.length === 0 && jobPostings.length === 0)}
                 className="min-w-[150px]"
               >
                 {isCreatingCampaign ? "Creating..." : "Create Campaign"}
