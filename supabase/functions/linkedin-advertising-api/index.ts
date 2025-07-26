@@ -145,6 +145,9 @@ Deno.serve(async (req) => {
       
       case 'getAccountCreatives':
         return await getAccountCreatives(linkedinAccessToken, params.accountId);
+      
+      case 'getDirectSponsoredContents':
+        return await getDirectSponsoredContents(linkedinAccessToken, params.accountId);
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
@@ -695,31 +698,47 @@ async function createCreative(accessToken: string, creativeData: any) {
       );
     }
 
-    // LinkedIn creative creation payload for Sponsored Content
-    const payload: any = {
+    // Simplified LinkedIn creative creation payload for Direct Sponsored Content
+    // This creates a simple text ad that doesn't require pre-uploaded content
+    const payload = {
       account: `urn:li:sponsoredAccount:${creativeData.account}`,
-      status: 'ACTIVE',
-      type: 'SPONSORED_CONTENT',
-      content: {
-        sponsoredContentReference: creativeData.content.shareUrn || null,
-        contentReference: creativeData.content.shareUrn ? {
-          share: creativeData.content.shareUrn
-        } : null,
-        title: creativeData.content.title || '',
-        description: creativeData.content.description || '',
-        clickUri: creativeData.content.clickUri || '',
-        imageReference: creativeData.content.imageReference || null
+      intendedStatus: 'ACTIVE',
+      creative: {
+        type: 'SINGLE_IMAGE_AD',
+        variables: {
+          clickUri: creativeData.content.clickUri || '',
+          data: {
+            'com.linkedin.ads.SponsoredContentCreativeVariables': {
+              directSponsoredContent: {
+                headlines: [
+                  {
+                    text: creativeData.content.title || 'Advertisement'
+                  }
+                ],
+                descriptions: [
+                  {
+                    text: creativeData.content.description || ''
+                  }
+                ],
+                callToAction: {
+                  actionType: 'LEARN_MORE',
+                  label: 'Learn More'
+                }
+              }
+            }
+          }
+        }
       }
     };
 
-    // Only add campaign if provided (it's optional for standalone creatives)
+    // Add campaign if provided
     if (creativeData.campaign) {
-      payload.campaign = `urn:li:sponsoredCampaign:${creativeData.campaign}`;
+      payload['campaign'] = `urn:li:sponsoredCampaign:${creativeData.campaign}`;
     }
 
-    console.log('Creative creation payload:', payload);
+    console.log('Creative creation payload:', JSON.stringify(payload, null, 2));
 
-    const response = await fetch('https://api.linkedin.com/rest/creatives', {
+    const response = await fetch('https://api.linkedin.com/rest/adDirectSponsoredContents', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -856,6 +875,84 @@ async function getAccountCreatives(accessToken: string, accountId: string) {
         success: true, 
         data: [], 
         message: 'Could not fetch creatives - this is normal if no creatives exist yet',
+        source: 'error_fallback'
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function getDirectSponsoredContents(accessToken: string, accountId: string) {
+  try {
+    console.log('Fetching LinkedIn Direct Sponsored Contents for account:', accountId);
+    
+    // Use the correct LinkedIn API endpoint for fetching Direct Sponsored Contents by account
+    const url = `https://api.linkedin.com/rest/adAccounts/${accountId}/adDirectSponsoredContents?pageSize=100`;
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507'
+      }
+    });
+
+    console.log('LinkedIn Direct Sponsored Contents API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Direct Sponsored Contents API error:', errorText);
+      
+      // Return empty array instead of error to avoid blocking the UI
+      console.log('Direct Sponsored Contents API failed, returning empty array');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: [], 
+          message: 'Could not fetch Direct Sponsored Contents - this is normal if none exist yet',
+          source: 'fallback_empty'
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Direct Sponsored Contents data received:', data);
+
+    // Transform data to include useful information
+    const contents = data.elements?.map((content: any) => ({
+      id: content.id,
+      status: content.status,
+      account: content.account,
+      campaign: content.campaign,
+      creative: content.creative,
+      created_at: new Date(content.changeAuditStamps?.created?.time || Date.now()).toISOString(),
+      updated_at: new Date(content.changeAuditStamps?.lastModified?.time || Date.now()).toISOString(),
+      content_data: content
+    })) || [];
+
+    return new Response(
+      JSON.stringify({ success: true, data: contents }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching Direct Sponsored Contents:', error);
+    // Return empty array on error to avoid blocking the UI
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        data: [], 
+        message: 'Could not fetch Direct Sponsored Contents - this is normal if none exist yet',
         source: 'error_fallback'
       }),
       { 

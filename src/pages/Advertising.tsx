@@ -200,15 +200,27 @@ const Advertising = () => {
               allCampaigns.push(...campaignsWithAccount);
             }
 
-            // Fetch creatives
+            // Fetch both regular creatives and direct sponsored contents
             console.log(`Fetching creatives for account: ${account.id}`);
-            const { data: creativesData, error: creativesError } = await supabase.functions.invoke('linkedin-advertising-api', {
-              body: { action: 'getAccountCreatives', accountId: account.id }
-            });
+            const [creativesResponse, directContentsResponse] = await Promise.all([
+              supabase.functions.invoke('linkedin-advertising-api', {
+                body: { action: 'getAccountCreatives', accountId: account.id }
+              }),
+              supabase.functions.invoke('linkedin-advertising-api', {
+                body: { action: 'getDirectSponsoredContents', accountId: account.id }
+              })
+            ]);
             
-            if (creativesData?.success && creativesData.data) {
-              allCreatives.push(...creativesData.data);
-            }
+            // Combine both types of creatives
+            const creativesData = creativesResponse.data?.success ? creativesResponse.data.data : [];
+            const directContentsData = directContentsResponse.data?.success ? directContentsResponse.data.data : [];
+            
+            const accountCreatives = [
+              ...creativesData.map((c: any) => ({ ...c, creative_type: 'legacy' })),
+              ...directContentsData.map((c: any) => ({ ...c, creative_type: 'direct_content' }))
+            ];
+            
+            allCreatives.push(...accountCreatives);
             
           } catch (error) {
             console.error(`Error fetching data for account ${account.id}:`, error);
