@@ -220,7 +220,7 @@ const AppSidebar = () => {
                     <Settings className="h-4 w-4" />
                     <span className="text-base">Backoffice</span>
                   </button>
-                </SidebarMenuButton>
+                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

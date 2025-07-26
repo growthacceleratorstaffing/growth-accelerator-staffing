@@ -73,7 +73,15 @@ Deno.serve(async (req) => {
     // Get LinkedIn credentials
     const linkedinClientId = Deno.env.get('LINKEDIN_CLIENT_ID');
     const linkedinClientSecret = Deno.env.get('LINKEDIN_CLIENT_SECRET');
-    const linkedinAccessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
+    
+    // Get user-specific LinkedIn token from database
+    const { data: tokenData } = await supabase
+      .from('linkedin_user_tokens')
+      .select('access_token, token_expires_at')
+      .eq('user_id', user.id)
+      .single();
+    
+    const linkedinAccessToken = tokenData?.access_token;
 
     console.log('LinkedIn credentials check:', {
       hasClientId: !!linkedinClientId,

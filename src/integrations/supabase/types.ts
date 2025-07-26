@@ -517,231 +517,6 @@ export type Database = {
           },
         ]
       }
-      jazzhr_oauth_users: {
-        Row: {
-          access_token: string | null
-          company_id: string | null
-          company_name: string | null
-          company_rcid: string | null
-          created_at: string
-          email: string
-          id: string
-          is_active: boolean | null
-          jazzhr_user_id: string
-          name: string
-          partner_owner_rcid: string | null
-          permissions: Json | null
-          refresh_token: string | null
-          role: Database["public"]["Enums"]["jazzhr_user_role"]
-          token_expires_at: string | null
-          updated_at: string
-          user_account_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          access_token?: string | null
-          company_id?: string | null
-          company_name?: string | null
-          company_rcid?: string | null
-          created_at?: string
-          email: string
-          id?: string
-          is_active?: boolean | null
-          jazzhr_user_id: string
-          name: string
-          partner_owner_rcid?: string | null
-          permissions?: Json | null
-          refresh_token?: string | null
-          role?: Database["public"]["Enums"]["jazzhr_user_role"]
-          token_expires_at?: string | null
-          updated_at?: string
-          user_account_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          access_token?: string | null
-          company_id?: string | null
-          company_name?: string | null
-          company_rcid?: string | null
-          created_at?: string
-          email?: string
-          id?: string
-          is_active?: boolean | null
-          jazzhr_user_id?: string
-          name?: string
-          partner_owner_rcid?: string | null
-          permissions?: Json | null
-          refresh_token?: string | null
-          role?: Database["public"]["Enums"]["jazzhr_user_role"]
-          token_expires_at?: string | null
-          updated_at?: string
-          user_account_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      jazzhr_users: {
-        Row: {
-          assigned_jobs: string[] | null
-          created_at: string | null
-          email: string
-          id: string
-          is_active: boolean | null
-          jazzhr_role: Database["public"]["Enums"]["jazzhr_role"]
-          jazzhr_user_id: string
-          last_synced_at: string | null
-          name: string
-          permissions: Json | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          assigned_jobs?: string[] | null
-          created_at?: string | null
-          email: string
-          id?: string
-          is_active?: boolean | null
-          jazzhr_role?: Database["public"]["Enums"]["jazzhr_role"]
-          jazzhr_user_id: string
-          last_synced_at?: string | null
-          name: string
-          permissions?: Json | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          assigned_jobs?: string[] | null
-          created_at?: string | null
-          email?: string
-          id?: string
-          is_active?: boolean | null
-          jazzhr_role?: Database["public"]["Enums"]["jazzhr_role"]
-          jazzhr_user_id?: string
-          last_synced_at?: string | null
-          name?: string
-          permissions?: Json | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      jobadder_tokens: {
-        Row: {
-          access_token: string
-          api_base_url: string
-          created_at: string
-          expires_at: string
-          id: string
-          refresh_token: string | null
-          scopes: string[]
-          token_type: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          api_base_url?: string
-          created_at?: string
-          expires_at: string
-          id?: string
-          refresh_token?: string | null
-          scopes?: string[]
-          token_type?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          api_base_url?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          refresh_token?: string | null
-          scopes?: string[]
-          token_type?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      jobadder_user_permissions: {
-        Row: {
-          created_at: string | null
-          granted_at: string | null
-          granted_by: string | null
-          id: string
-          scope: Database["public"]["Enums"]["jobadder_scope"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          granted_at?: string | null
-          granted_by?: string | null
-          id?: string
-          scope: Database["public"]["Enums"]["jobadder_scope"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          granted_at?: string | null
-          granted_by?: string | null
-          id?: string
-          scope?: Database["public"]["Enums"]["jobadder_scope"]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "jobadder_user_permissions_granted_by_fkey"
-            columns: ["granted_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "jobadder_user_permissions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      jobadder_users: {
-        Row: {
-          assigned_jobs: string[] | null
-          created_at: string | null
-          id: string
-          jobadder_email: string
-          jobadder_role: Database["public"]["Enums"]["jobadder_scope"]
-          jobadder_user_id: string
-          permissions: Json | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          assigned_jobs?: string[] | null
-          created_at?: string | null
-          id?: string
-          jobadder_email: string
-          jobadder_role?: Database["public"]["Enums"]["jobadder_scope"]
-          jobadder_user_id: string
-          permissions?: Json | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          assigned_jobs?: string[] | null
-          created_at?: string | null
-          id?: string
-          jobadder_email?: string
-          jobadder_role?: Database["public"]["Enums"]["jobadder_scope"]
-          jobadder_user_id?: string
-          permissions?: Json | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       jobs: {
         Row: {
           area_id: string | null
@@ -754,7 +529,6 @@ export type Database = {
           created_by: string | null
           id: string
           job_description: string | null
-          jobadder_job_id: string | null
           location_id: string | null
           location_name: string | null
           salary_currency: string | null
@@ -764,7 +538,6 @@ export type Database = {
           skill_tags: string[] | null
           source: string | null
           sub_category_id: string | null
-          synced_to_jobadder: boolean | null
           title: string
           updated_at: string
           work_type_id: string | null
@@ -781,7 +554,6 @@ export type Database = {
           created_by?: string | null
           id?: string
           job_description?: string | null
-          jobadder_job_id?: string | null
           location_id?: string | null
           location_name?: string | null
           salary_currency?: string | null
@@ -791,7 +563,6 @@ export type Database = {
           skill_tags?: string[] | null
           source?: string | null
           sub_category_id?: string | null
-          synced_to_jobadder?: boolean | null
           title: string
           updated_at?: string
           work_type_id?: string | null
@@ -808,7 +579,6 @@ export type Database = {
           created_by?: string | null
           id?: string
           job_description?: string | null
-          jobadder_job_id?: string | null
           location_id?: string | null
           location_name?: string | null
           salary_currency?: string | null
@@ -818,7 +588,6 @@ export type Database = {
           skill_tags?: string[] | null
           source?: string | null
           sub_category_id?: string | null
-          synced_to_jobadder?: boolean | null
           title?: string
           updated_at?: string
           work_type_id?: string | null
@@ -990,6 +759,39 @@ export type Database = {
           },
         ]
       }
+      linkedin_user_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          refresh_token: string | null
+          scope: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       local_placements: {
         Row: {
           candidate_email: string
@@ -1001,7 +803,6 @@ export type Database = {
           id: string
           job_id: string
           job_title: string
-          jobadder_placement_id: number | null
           notes: string | null
           salary_currency: string | null
           salary_rate: number | null
@@ -1009,7 +810,6 @@ export type Database = {
           start_date: string
           status_id: number | null
           status_name: string | null
-          synced_to_jobadder: boolean | null
           updated_at: string
           work_type_id: string | null
         }
@@ -1023,7 +823,6 @@ export type Database = {
           id?: string
           job_id: string
           job_title: string
-          jobadder_placement_id?: number | null
           notes?: string | null
           salary_currency?: string | null
           salary_rate?: number | null
@@ -1031,7 +830,6 @@ export type Database = {
           start_date: string
           status_id?: number | null
           status_name?: string | null
-          synced_to_jobadder?: boolean | null
           updated_at?: string
           work_type_id?: string | null
         }
@@ -1045,7 +843,6 @@ export type Database = {
           id?: string
           job_id?: string
           job_title?: string
-          jobadder_placement_id?: number | null
           notes?: string | null
           salary_currency?: string | null
           salary_rate?: number | null
@@ -1053,7 +850,6 @@ export type Database = {
           start_date?: string
           status_id?: number | null
           status_name?: string | null
-          synced_to_jobadder?: boolean | null
           updated_at?: string
           work_type_id?: string | null
         }
@@ -1065,9 +861,6 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
-          jobadder_scopes:
-            | Database["public"]["Enums"]["jobadder_scope"][]
-            | null
           role: string | null
           updated_at: string | null
         }
@@ -1076,9 +869,6 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
-          jobadder_scopes?:
-            | Database["public"]["Enums"]["jobadder_scope"][]
-            | null
           role?: string | null
           updated_at?: string | null
         }
@@ -1087,11 +877,71 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
-          jobadder_scopes?:
-            | Database["public"]["Enums"]["jobadder_scope"][]
-            | null
           role?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      security_audit_logs: {
+        Row: {
+          created_at: string
+          event_details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_api_keys: {
+        Row: {
+          created_at: string
+          encrypted_key: string
+          id: string
+          is_active: boolean
+          key_label: string | null
+          service_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          encrypted_key: string
+          id?: string
+          is_active?: boolean
+          key_label?: string | null
+          service_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          encrypted_key?: string
+          id?: string
+          is_active?: boolean
+          key_label?: string | null
+          service_name?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1195,29 +1045,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
       }
-      get_user_assigned_jobs: {
-        Args: { _user_id: string }
-        Returns: string[]
-      }
-      has_jazzhr_role: {
-        Args:
-          | {
-              _user_id: string
-              _role: Database["public"]["Enums"]["jazzhr_role"]
-            }
-          | {
-              _user_id: string
-              _role: Database["public"]["Enums"]["jazzhr_user_role"]
-            }
-        Returns: boolean
-      }
-      has_jobadder_scope: {
-        Args: {
-          _user_id: string
-          _scope: Database["public"]["Enums"]["jobadder_scope"]
-        }
-        Returns: boolean
-      }
       has_role: {
         Args: {
           _user_id: string
@@ -1240,33 +1067,23 @@ export type Database = {
         }
         Returns: boolean
       }
-      make_first_user_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
+      log_security_event: {
+        Args: {
+          p_user_id: string
+          p_event_type: string
+          p_event_details?: Json
+          p_ip_address?: unknown
+          p_user_agent?: string
+        }
+        Returns: string
       }
-      trigger_jazzhr_sync: {
+      make_first_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
       trigger_workable_sync: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-      user_can_access_job: {
-        Args: { _user_id: string; _job_id: string }
-        Returns: boolean
-      }
-      validate_jazzhr_email: {
-        Args: { email_to_check: string }
-        Returns: boolean
-      }
-      validate_jazzhr_oauth_email: {
-        Args: { email_to_check: string }
-        Returns: boolean
-      }
-      validate_jobadder_email: {
-        Args: { email_to_check: string }
-        Returns: boolean
       }
       validate_workable_email: {
         Args: { email_to_check: string }
@@ -1289,35 +1106,6 @@ export type Database = {
         | "hired"
         | "rejected"
         | "withdrawn"
-      jazzhr_role:
-        | "super_admin"
-        | "recruiting_admin"
-        | "super_user"
-        | "recruiting_user"
-        | "interviewer"
-        | "developer"
-        | "external_recruiter"
-      jazzhr_user_role: "user" | "admin" | "hiring_manager" | "super_admin"
-      jobadder_scope:
-        | "read"
-        | "write"
-        | "read_candidate"
-        | "write_candidate"
-        | "read_company"
-        | "write_company"
-        | "read_contact"
-        | "write_contact"
-        | "read_jobad"
-        | "write_jobad"
-        | "read_jobapplication"
-        | "write_jobapplication"
-        | "read_job"
-        | "write_job"
-        | "read_placement"
-        | "write_placement"
-        | "read_user"
-        | "partner_jobboard"
-        | "offline_access"
       workable_role:
         | "admin"
         | "hiring_manager"
@@ -1472,37 +1260,6 @@ export const Constants = {
         "hired",
         "rejected",
         "withdrawn",
-      ],
-      jazzhr_role: [
-        "super_admin",
-        "recruiting_admin",
-        "super_user",
-        "recruiting_user",
-        "interviewer",
-        "developer",
-        "external_recruiter",
-      ],
-      jazzhr_user_role: ["user", "admin", "hiring_manager", "super_admin"],
-      jobadder_scope: [
-        "read",
-        "write",
-        "read_candidate",
-        "write_candidate",
-        "read_company",
-        "write_company",
-        "read_contact",
-        "write_contact",
-        "read_jobad",
-        "write_jobad",
-        "read_jobapplication",
-        "write_jobapplication",
-        "read_job",
-        "write_job",
-        "read_placement",
-        "write_placement",
-        "read_user",
-        "partner_jobboard",
-        "offline_access",
       ],
       workable_role: [
         "admin",
