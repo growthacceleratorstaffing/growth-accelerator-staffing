@@ -50,20 +50,36 @@ const LinkedInIntegration = () => {
       console.log('Loading LinkedIn credentials...');
       
       // Check if user has a LinkedIn access token
-      const { data: tokenData } = await supabase
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        console.log('No authenticated user');
+        return;
+      }
+
+      const { data: tokenData, error: tokenError } = await supabase
         .from('linkedin_user_tokens')
         .select('*')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('user_id', user.user.id)
         .single();
 
-      if (tokenData) {
+      console.log('Token data:', tokenData, 'Error:', tokenError);
+
+      if (tokenData && !tokenError) {
+        // Check if token is still valid
+        const isExpired = new Date(tokenData.token_expires_at) <= new Date();
+        console.log('Token expires at:', tokenData.token_expires_at, 'Is expired:', isExpired);
+        
         setCredentials({
           client_id: 'configured',
           has_client_secret: true,
-          has_access_token: true
+          has_access_token: !isExpired
         });
-        await testConnectionAutomatically();
+        
+        if (!isExpired) {
+          await testConnectionAutomatically();
+        }
       } else {
+        console.log('No token found or error occurred');
         setCredentials({
           client_id: 'configured',
           has_client_secret: true,
@@ -181,6 +197,35 @@ const LinkedInIntegration = () => {
     window.location.href = authUrl;
   };
 
+  const handleLinkedInConnect = async () => {
+    try {
+      // Redirect to LinkedIn OAuth
+      const redirectUri = `${window.location.origin}/linkedin-callback`;
+      const clientId = '78gu7z5i8r4cbk';
+      const scope = 'openid profile email w_member_social r_basicprofile r_organization_social rw_organization_admin r_marketing_leadgen_automation rw_ads w_organization_social_media_manager rw_organization_social_media_admin';
+      const state = Math.random().toString(36).substring(7);
+      
+      // Store state for validation
+      localStorage.setItem('linkedin_oauth_state', state);
+      
+      const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=${state}`;
+      
+      toast({
+        title: "Redirecting to LinkedIn",
+        description: "Please authorize access to your LinkedIn account..."
+      });
+      
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Error connecting to LinkedIn:', error);
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to LinkedIn. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3 mb-6">
@@ -245,29 +290,35 @@ const LinkedInIntegration = () => {
               </div>
             </div>
 
-
-            
-
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                LinkedIn access tokens expire after 60 days. Generate a new authorization URL using your approved redirect URI.
-                After authorization, you'll need to manually copy the access token to your Supabase secrets.
-              </p>
-              <Button variant="outline" onClick={generateAuthUrl} disabled={!credentials.client_id}>
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Generate OAuth URL
-              </Button>
-              
-              <div className="mt-4 p-3 bg-muted rounded-lg">
-                <p className="text-sm font-medium mb-2">Manual Token Setup:</p>
-                <ol className="text-sm text-muted-foreground space-y-1">
-                  <li>1. Click "Generate OAuth URL" above</li>
-                  <li>2. Complete LinkedIn authorization</li>
-                  <li>3. Extract access token from callback</li>
-                  <li>4. Update LINKEDIN_ACCESS_TOKEN in Supabase secrets</li>
-                </ol>
+            {!credentials.has_access_token && (
+              <div className="space-y-4">
+                <Separator />
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Connect your LinkedIn account to access advertising features, manage campaigns, and sync leads.
+                  </p>
+                  <Button onClick={handleLinkedInConnect} className="w-full">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Connect LinkedIn Account
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    You'll be redirected to LinkedIn to authorize access to your advertising accounts.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
+
+            {credentials.has_access_token && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  LinkedIn access tokens expire after 60 days. If you experience connection issues, reconnect your account.
+                </p>
+                <Button variant="outline" onClick={handleLinkedInConnect} className="w-full">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Reconnect LinkedIn Account
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -311,7 +362,7 @@ const LinkedInIntegration = () => {
                 </div>
                 <p className="text-muted-foreground">Not connected to LinkedIn</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Configure your credentials and generate a new OAuth URL
+                  Click "Connect LinkedIn Account" above to get started
                 </p>
               </div>
             )}
