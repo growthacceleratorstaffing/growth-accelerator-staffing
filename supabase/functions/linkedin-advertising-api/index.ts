@@ -140,6 +140,11 @@ Deno.serve(async (req) => {
       case 'getCreatives':
         return await getCreatives(linkedinAccessToken, params.campaignId);
       
+      case 'createCreative':
+        return await createCreative(linkedinAccessToken, params);
+      
+      case 'getAccountCreatives':
+        return await getAccountCreatives(linkedinAccessToken, params.accountId);
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
@@ -660,6 +665,175 @@ async function getCreatives(accessToken: string, campaignId: string) {
     console.error('Error fetching creatives:', error);
     return new Response(
       JSON.stringify({ error: 'Failed to fetch creatives', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function createCreative(accessToken: string, creativeData: any) {
+  try {
+    console.log('Creating LinkedIn creative with data:', creativeData);
+    
+    // Validate required fields for LinkedIn creative creation
+    if (!creativeData.account || !creativeData.campaign || !creativeData.content) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields', 
+          details: 'Account, campaign, and content are required for creative creation' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // LinkedIn creative creation payload for Sponsored Content
+    const payload = {
+      account: `urn:li:sponsoredAccount:${creativeData.account}`,
+      campaign: `urn:li:sponsoredCampaign:${creativeData.campaign}`,
+      status: 'ACTIVE',
+      type: 'SPONSORED_CONTENT',
+      content: {
+        sponsoredContentReference: creativeData.content.shareUrn || null,
+        contentReference: creativeData.content.shareUrn ? {
+          share: creativeData.content.shareUrn
+        } : null,
+        title: creativeData.content.title || '',
+        description: creativeData.content.description || '',
+        clickUri: creativeData.content.clickUri || '',
+        imageReference: creativeData.content.imageReference || null
+      }
+    };
+
+    console.log('Creative creation payload:', payload);
+
+    const response = await fetch('https://api.linkedin.com/rest/creatives', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('LinkedIn Creative Creation API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Creative Creation API error:', errorText);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'LinkedIn API error', 
+          details: errorText,
+          message: 'Failed to create creative in LinkedIn. Please check your content and try again.'
+        }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Creative created successfully:', data);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Creative created successfully in LinkedIn',
+        data: {
+          id: data.id,
+          status: data.status,
+          account: data.account,
+          campaign: data.campaign,
+          ...data
+        }
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error creating creative:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to create creative', 
+        details: error.message,
+        message: 'An unexpected error occurred while creating the creative.'
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function getAccountCreatives(accessToken: string, accountId: string) {
+  try {
+    console.log('Fetching LinkedIn creatives for account:', accountId);
+    
+    const url = `https://api.linkedin.com/rest/creatives?q=search&search=(account:(values:List(urn:li:sponsoredAccount:${accountId})))&pageSize=100`;
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507'
+      }
+    });
+
+    console.log('LinkedIn Account Creatives API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Account Creatives API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Account creatives data received:', data);
+
+    // Transform creatives data to include useful information
+    const creatives = data.elements?.map((creative: any) => ({
+      id: creative.id,
+      status: creative.status,
+      type: creative.type,
+      account: creative.account,
+      campaign: creative.campaign,
+      content: creative.content,
+      created_at: new Date(creative.changeAuditStamps?.created?.time || Date.now()).toISOString(),
+      updated_at: new Date(creative.changeAuditStamps?.lastModified?.time || Date.now()).toISOString(),
+      creative_data: creative
+    })) || [];
+
+    return new Response(
+      JSON.stringify({ success: true, data: creatives }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching account creatives:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch account creatives', details: error.message }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

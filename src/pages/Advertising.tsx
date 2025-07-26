@@ -33,6 +33,23 @@ interface Campaign {
   account_currency?: string;
 }
 
+interface Creative {
+  id: string;
+  status: string;
+  type: string;
+  account: string;
+  campaign?: string;
+  content: {
+    title?: string;
+    description?: string;
+    clickUri?: string;
+    imageReference?: string;
+  };
+  created_at: string;
+  updated_at: string;
+  creative_data?: any;
+}
+
 interface AdAccount {
   id: string;
   name: string;
@@ -50,14 +67,23 @@ const Advertising = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
+  const [creatives, setCreatives] = useState<Creative[]>([]);
   const [loading, setLoading] = useState(true);
   const [linkedInConnected, setLinkedInConnected] = useState(false);
   const [linkedInProfile, setLinkedInProfile] = useState<any>(null);
 
+  // Creative creation form state
+  const [creativeTitle, setCreativeTitle] = useState("");
+  const [creativeDescription, setCreativeDescription] = useState("");
+  const [creativeClickUri, setCreativeClickUri] = useState("");
+  const [selectedAccountForCreative, setSelectedAccountForCreative] = useState("");
+  const [isCreatingCreative, setIsCreatingCreative] = useState(false);
+  
   // Campaign creation form state
   const [campaignName, setCampaignName] = useState("");
   const [campaignType, setCampaignType] = useState("");
   const [selectedAccount, setSelectedAccount] = useState("");
+  const [selectedCreative, setSelectedCreative] = useState("");
   const [budget, setBudget] = useState("");
   const [bidAmount, setBidAmount] = useState("");
   const [costType, setCostType] = useState("CPC");
@@ -135,25 +161,20 @@ const Advertising = () => {
         setAdAccounts(accounts);
         console.log(`Loaded ${accounts.length} ad accounts`);
 
-        // Fetch campaigns from all accounts
+        // Fetch campaigns and creatives from all accounts
         let allCampaigns: Campaign[] = [];
+        let allCreatives: Creative[] = [];
         
-        // Try to fetch campaigns for each account since the new API requires account-specific queries
+        // Try to fetch campaigns and creatives for each account
         for (const account of accounts) {
           try {
+            // Fetch campaigns
             console.log(`Fetching campaigns for account: ${account.id}`);
             const { data: campaignsData, error: campaignsError } = await supabase.functions.invoke('linkedin-advertising-api', {
               body: { action: 'getCampaigns', accountId: account.id }
             });
             
-            console.log(`Campaigns response for account ${account.id}:`, { campaignsData, campaignsError });
-            
-            if (campaignsError) {
-              console.error(`Supabase function error for campaigns in account ${account.id}:`, campaignsError);
-            } else if (campaignsData?.success && campaignsData.data) {
-              console.log(`Found ${campaignsData.data.length} campaigns for account ${account.id}`);
-              
-              // Add account info to campaigns
+            if (campaignsData?.success && campaignsData.data) {
               const campaignsWithAccount = campaignsData.data.map((campaign: Campaign) => ({
                 ...campaign,
                 account_id: account.id,
@@ -162,13 +183,25 @@ const Advertising = () => {
               }));
               allCampaigns.push(...campaignsWithAccount);
             }
+
+            // Fetch creatives
+            console.log(`Fetching creatives for account: ${account.id}`);
+            const { data: creativesData, error: creativesError } = await supabase.functions.invoke('linkedin-advertising-api', {
+              body: { action: 'getAccountCreatives', accountId: account.id }
+            });
+            
+            if (creativesData?.success && creativesData.data) {
+              allCreatives.push(...creativesData.data);
+            }
+            
           } catch (error) {
-            console.error(`Error fetching campaigns for account ${account.id}:`, error);
+            console.error(`Error fetching data for account ${account.id}:`, error);
           }
         }
         
         setCampaigns(allCampaigns);
-        console.log(`Total campaigns loaded: ${allCampaigns.length}`);
+        setCreatives(allCreatives);
+        console.log(`Total campaigns loaded: ${allCampaigns.length}, creatives: ${allCreatives.length}`);
       } else if (accountsData?.error) {
         console.error('LinkedIn API error:', accountsData.error);
         toast({
@@ -176,14 +209,14 @@ const Advertising = () => {
           description: accountsData.error,
           variant: "destructive"
         });
-        // Still set empty arrays so the UI shows properly
         setAdAccounts([]);
         setCampaigns([]);
+        setCreatives([]);
       } else {
         console.log('No ad accounts data or API call failed');
-        // Still set empty arrays so the UI shows properly
         setAdAccounts([]);
         setCampaigns([]);
+        setCreatives([]);
       }
 
     } catch (error: any) {
@@ -193,9 +226,9 @@ const Advertising = () => {
         description: error.message || "Failed to load advertising data",
         variant: "destructive"
       });
-      // Set empty arrays on error so the UI still renders
       setAdAccounts([]);
       setCampaigns([]);
+      setCreatives([]);
     } finally {
       setLoading(false);
     }
@@ -238,11 +271,64 @@ const Advertising = () => {
     }
   };
 
-  const handleCreateCampaign = async () => {
-    if (!campaignName || !campaignType || !budget || !selectedAccount) {
+  const handleCreateCreative = async () => {
+    if (!creativeTitle || !creativeDescription || !creativeClickUri || !selectedAccountForCreative) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields (Campaign Name, Type, Account, and Budget)",
+        description: "Please fill in all required fields for the creative",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsCreatingCreative(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
+        body: { 
+          action: 'createCreative',
+          account: selectedAccountForCreative,
+          content: {
+            title: creativeTitle,
+            description: creativeDescription,
+            clickUri: creativeClickUri
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        toast({
+          title: "Creative Created",
+          description: "Advertisement creative has been created successfully.",
+        });
+        // Reset form
+        setCreativeTitle("");
+        setCreativeDescription("");
+        setCreativeClickUri("");
+        setSelectedAccountForCreative("");
+        // Refresh data to show new creative
+        await fetchAdvertisingData();
+      } else {
+        throw new Error(data?.message || 'Failed to create creative');
+      }
+    } catch (error) {
+      console.error('Error creating creative:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create creative",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingCreative(false);
+    }
+  };
+
+  const handleCreateCampaign = async () => {
+    if (!campaignName || !campaignType || !budget || !selectedAccount || !selectedCreative) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields (Campaign Name, Type, Account, Creative, and Budget)",
         variant: "destructive"
       });
       return;
@@ -255,6 +341,7 @@ const Advertising = () => {
           action: 'createCampaign',
           name: campaignName,
           type: campaignType,
+          creative: selectedCreative,
           account: selectedAccount,
           budget: parseFloat(budget),
           bidAmount: parseFloat(bidAmount) || 5.00,
@@ -275,6 +362,7 @@ const Advertising = () => {
         // Reset form
         setCampaignName("");
         setCampaignType("");
+        setSelectedCreative("");
         setSelectedAccount("");
         setBudget("");
         setBidAmount("");
@@ -344,64 +432,198 @@ const Advertising = () => {
         </div>
 
 
-        {/* LinkedIn Advertising Workflow Notice */}
-        <Card className="border-orange-200 bg-orange-50">
+        {/* Creative Creation Form */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-orange-800">LinkedIn Advertising Setup Required</CardTitle>
-            <CardDescription className="text-orange-700">
-              To create LinkedIn campaigns, you need to follow the proper workflow: Ad Account → Advertisement Creative → Campaign
+            <CardTitle>Step 1: Create Advertisement Creative</CardTitle>
+            <CardDescription>
+              Create your advertisement creative first. This defines the content that will be shown to your audience.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                  <span className="text-green-600 font-semibold text-sm">1</span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Ad Account</p>
-                  <p className="text-sm text-gray-600">
-                    {adAccounts.length > 0 ? `✅ ${adAccounts.length} account(s) connected` : '❌ No ad accounts found'}
-                  </p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="creativeTitle">Creative Title *</Label>
+                <Input
+                  id="creativeTitle"
+                  placeholder="e.g. Hiring Software Engineers - Join Our Team"
+                  value={creativeTitle}
+                  onChange={(e) => setCreativeTitle(e.target.value)}
+                />
               </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                  <span className="text-orange-600 font-semibold text-sm">2</span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Advertisement Creative</p>
-                  <p className="text-sm text-gray-600">❌ No creatives management available - LinkedIn requires advertisement creatives before creating campaigns</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-600 font-semibold text-sm">3</span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-500">Campaign</p>
-                  <p className="text-sm text-gray-500">Can only be created after advertisement creatives are ready</p>
-                </div>
+              <div>
+                <Label htmlFor="selectedAccountForCreative">Ad Account *</Label>
+                <Select value={selectedAccountForCreative} onValueChange={setSelectedAccountForCreative}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select ad account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {adAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id.toString()}>
+                        {account.name} ({account.currency})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="font-medium text-blue-900 mb-2">Next Steps:</h4>
-              <ol className="text-sm text-blue-800 space-y-1">
-                <li>1. Use LinkedIn Campaign Manager directly to create advertisement creatives</li>
-                <li>2. Once creatives are ready, you can create campaigns that reference those creatives</li>
-                <li>3. This page currently allows you to view and manage existing campaigns only</li>
-              </ol>
+
+            <div>
+              <Label htmlFor="creativeDescription">Creative Description *</Label>
+              <Textarea
+                id="creativeDescription"
+                placeholder="Describe your job opportunity, company benefits, and what makes this role attractive..."
+                value={creativeDescription}
+                onChange={(e) => setCreativeDescription(e.target.value)}
+                rows={3}
+              />
             </div>
-            
-            <div className="flex justify-end">
+
+            <div>
+              <Label htmlFor="creativeClickUri">Landing Page URL *</Label>
+              <Input
+                id="creativeClickUri"
+                type="url"
+                placeholder="https://yourcompany.com/careers/software-engineer"
+                value={creativeClickUri}
+                onChange={(e) => setCreativeClickUri(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Where users will be directed when they click your ad</p>
+            </div>
+
+            <div className="flex justify-end pt-4">
               <Button 
-                variant="outline"
-                onClick={() => window.open('https://www.linkedin.com/campaignmanager/', '_blank')}
+                onClick={handleCreateCreative}
+                disabled={isCreatingCreative || adAccounts.length === 0}
+                className="min-w-[150px]"
               >
-                Open LinkedIn Campaign Manager
+                {isCreatingCreative ? "Creating..." : "Create Creative"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Campaign Creation Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Step 2: Create LinkedIn Campaign</CardTitle>
+            <CardDescription>
+              Create a campaign using your advertisement creatives. You need at least one creative before creating a campaign.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="campaignName">Campaign Name *</Label>
+                <Input
+                  id="campaignName"
+                  placeholder="e.g. Q1 Software Engineer Recruitment"
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="selectedAccount">Ad Account *</Label>
+                <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select ad account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {adAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id.toString()}>
+                        {account.name} ({account.currency})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="campaignType">Campaign Type *</Label>
+                <Select value={campaignType} onValueChange={setCampaignType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select campaign type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SPONSORED_CONTENT">Sponsored Content</SelectItem>
+                    <SelectItem value="SPONSORED_MESSAGING">Sponsored Messaging</SelectItem>
+                    <SelectItem value="TEXT_ADS">Text Ads</SelectItem>
+                    <SelectItem value="DYNAMIC_ADS">Dynamic Ads</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="selectedCreative">Advertisement Creative *</Label>
+                <Select value={selectedCreative} onValueChange={setSelectedCreative}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={creatives.length === 0 ? "No creatives available" : "Select creative"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {creatives.map((creative) => (
+                      <SelectItem key={creative.id} value={creative.id.toString()}>
+                        {creative.content.title || `Creative ${creative.id.slice(-8)}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {creatives.length === 0 && (
+                  <p className="text-xs text-orange-600 mt-1">Create a creative first before creating campaigns</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="budget">Daily Budget *</Label>
+                <Input
+                  id="budget"
+                  type="number"
+                  step="0.01"
+                  min="10"
+                  placeholder="e.g. 100.00"
+                  value={budget}
+                  onChange={(e) => setBudget(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Minimum $10 USD</p>
+              </div>
+              <div>
+                <Label htmlFor="bidAmount">Bid Amount</Label>
+                <Input
+                  id="bidAmount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="e.g. 5.00"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="objective">Campaign Objective</Label>
+                <Select value={objective} onValueChange={setObjective}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select objective" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BRAND_AWARENESS">Brand Awareness</SelectItem>
+                    <SelectItem value="WEBSITE_VISITS">Website Visits</SelectItem>
+                    <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
+                    <SelectItem value="LEAD_GENERATION">Lead Generation</SelectItem>
+                    <SelectItem value="JOB_APPLICANTS">Job Applicants</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button 
+                onClick={handleCreateCampaign}
+                disabled={isCreatingCampaign || creatives.length === 0}
+                className="min-w-[150px]"
+              >
+                {isCreatingCampaign ? "Creating..." : "Create Campaign"}
               </Button>
             </div>
           </CardContent>
@@ -486,7 +708,8 @@ const Advertising = () => {
           <Tabs defaultValue="accounts" className="space-y-4">
             <TabsList>
               <TabsTrigger value="accounts">Ad Accounts</TabsTrigger>
-              <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+              <TabsTrigger value="creatives">Creatives ({creatives.length})</TabsTrigger>
+              <TabsTrigger value="campaigns">Campaigns ({campaigns.length})</TabsTrigger>
             </TabsList>
             
             <TabsContent value="campaigns">
@@ -560,6 +783,71 @@ const Advertising = () => {
                           </TableCell>
                         </TableRow>
                       ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="creatives">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Advertisement Creatives</CardTitle>
+                  <CardDescription>
+                    View and manage your LinkedIn advertisement creatives.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Creative</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Landing Page</TableHead>
+                        <TableHead>Created</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {creatives.map((creative) => (
+                        <TableRow key={creative.id}>
+                          <TableCell className="font-medium">
+                            {creative.content.title || `Creative ${creative.id.slice(-8)}`}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(creative.status)}>
+                              {creative.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{creative.type}</TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {creative.content.description || 'No description'}
+                          </TableCell>
+                          <TableCell>
+                            {creative.content.clickUri && (
+                              <a 
+                                href={creative.content.clickUri} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline text-sm"
+                              >
+                                {new URL(creative.content.clickUri).hostname}
+                              </a>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(creative.created_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {creatives.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            No advertisement creatives found. Create your first creative above.
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
