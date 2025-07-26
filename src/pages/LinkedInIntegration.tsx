@@ -122,7 +122,8 @@ const LinkedInIntegration = () => {
     setLoading(true);
     try {
       console.log('Testing LinkedIn connection automatically...');
-      // Use the same API as the working Lead Sync API
+      
+      // First try to test connection using the linkedin-lead-sync API
       const { data, error } = await supabase.functions.invoke('linkedin-lead-sync', {
         body: { action: 'testConnection' }
       });
@@ -131,10 +132,29 @@ const LinkedInIntegration = () => {
 
       if (error) {
         console.error('Supabase function error during connection test:', error);
-        throw error;
-      }
-
-      if (data?.success) {
+        // If linkedin-lead-sync fails, try the linkedin-api directly
+        console.log('Trying linkedin-api as fallback...');
+        
+        const { data: apiData, error: apiError } = await supabase.functions.invoke('linkedin-api', {
+          body: { action: 'testConnection' }
+        });
+        
+        if (apiError) {
+          throw apiError;
+        }
+        
+        if (apiData?.success) {
+          console.log('LinkedIn API connection successful');
+          setIsConnected(true);
+          await fetchProfile();
+          toast({
+            title: "Connected",
+            description: "LinkedIn API connection successful"
+          });
+        } else {
+          throw new Error(apiData?.message || 'Connection test failed');
+        }
+      } else if (data?.success) {
         console.log('Connection successful, fetching profile...');
         setIsConnected(true);
         await fetchProfile();
@@ -167,7 +187,8 @@ const LinkedInIntegration = () => {
   const fetchProfile = async () => {
     try {
       console.log('Fetching LinkedIn profile...');
-      // Use the same API as the working Lead Sync API
+      
+      // First try linkedin-lead-sync
       const { data, error } = await supabase.functions.invoke('linkedin-lead-sync', {
         body: { action: 'getProfile' }
       });
@@ -175,15 +196,27 @@ const LinkedInIntegration = () => {
       console.log('Profile fetch response:', { data, error });
 
       if (error) {
-        console.error('Profile fetch error:', error);
-        throw error;
-      }
-
-      if (data?.success && data.data) {
-        console.log('Profile data received:', data.data);
+        console.error('Profile fetch error with linkedin-lead-sync:', error);
+        // Fallback to linkedin-api
+        const { data: apiData, error: apiError } = await supabase.functions.invoke('linkedin-api', {
+          body: { action: 'getProfile' }
+        });
+        
+        if (apiError) {
+          throw apiError;
+        }
+        
+        if (apiData?.success && apiData.data) {
+          console.log('Profile data received from linkedin-api:', apiData.data);
+          setProfile(apiData.data);
+        } else {
+          console.warn('No profile data received from linkedin-api:', apiData);
+        }
+      } else if (data?.success && data.data) {
+        console.log('Profile data received from linkedin-lead-sync:', data.data);
         setProfile(data.data);
       } else {
-        console.warn('No profile data received:', data);
+        console.warn('No profile data received from linkedin-lead-sync:', data);
       }
     } catch (error: any) {
       console.error('Failed to fetch LinkedIn profile:', error);
@@ -246,6 +279,10 @@ const LinkedInIntegration = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleTestConnection = async () => {
+    await testConnectionAutomatically();
   };
 
   return (
@@ -335,10 +372,18 @@ const LinkedInIntegration = () => {
                 <p className="text-sm text-muted-foreground">
                   LinkedIn access tokens expire after 60 days. If you experience connection issues, reconnect your account.
                 </p>
-                <Button variant="outline" onClick={handleLinkedInConnect} className="w-full">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Reconnect LinkedIn Account
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleTestConnection} disabled={loading}>
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                    ) : null}
+                    Test Connection
+                  </Button>
+                  <Button variant="outline" onClick={handleLinkedInConnect} className="flex-1">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Reconnect LinkedIn Account
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
