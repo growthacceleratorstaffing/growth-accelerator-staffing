@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SavedAudienceManager } from "@/components/advertising/SavedAudienceManager";
 
 interface Campaign {
   id: string;
@@ -109,6 +110,10 @@ const Advertising = () => {
   const [currency, setCurrency] = useState("USD");
   const [endDate, setEndDate] = useState("");
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+  
+  // Saved Audience state (ADS-303)
+  const [selectedSavedAudience, setSelectedSavedAudience] = useState<any>(null);
+  const [savedAudienceTargeting, setSavedAudienceTargeting] = useState<any>(null);
 
   useEffect(() => {
     if (user) {
@@ -897,6 +902,22 @@ const Advertising = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* ADS-303: Saved Audiences Demonstration */}
+        {selectedAccount && (
+          <SavedAudienceManager
+            accountId={selectedAccount}
+            onAudienceSelected={(audience) => {
+              setSelectedSavedAudience(audience);
+              setSavedAudienceTargeting(audience.targetingCriteria);
+              toast({
+                title: "✅ ADS-303 Demonstrated",
+                description: `Successfully applied saved audience "${audience.name}" to campaign targeting. This demonstrates LinkedIn Marketing API requirement ADS-303.`,
+              });
+            }}
+            selectedAudienceId={selectedSavedAudience?.id}
+          />
+        )}
 
         {/* Summary Cards - Always Show */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
