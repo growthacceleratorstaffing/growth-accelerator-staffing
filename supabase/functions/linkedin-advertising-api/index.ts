@@ -415,12 +415,12 @@ async function createCampaign(accessToken: string, campaignData: any) {
   try {
     console.log('Creating LinkedIn campaign with data:', campaignData);
     
-    // Validate required fields for LinkedIn campaign creation
-    if (!campaignData.account || !campaignData.name || !campaignData.type) {
+    // Validate required fields for LinkedIn campaign creation - MUST include campaignGroup
+    if (!campaignData.account || !campaignData.name || !campaignData.campaignGroup) {
       return new Response(
         JSON.stringify({ 
           error: 'Missing required fields', 
-          details: 'Account, name, and type are required for campaign creation' 
+          details: 'Account, name, and campaignGroup are required for campaign creation (campaignGroup required since Oct 30, 2020)' 
         }),
         { 
           status: 400,
@@ -429,61 +429,60 @@ async function createCampaign(accessToken: string, campaignData: any) {
       );
     }
 
-    // LinkedIn campaign creation payload according to their API specs
-    // Based on: https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads/account-structure/create-and-manage-campaigns
+    // LinkedIn campaign creation payload exactly matching the getting started documentation
+    // Based on: https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads/getting-started?view=li-lms-2025-07
     const payload = {
       name: campaignData.name,
-      type: campaignData.type || 'SPONSORED_UPDATES', // Changed from SPONSORED_CONTENT to match docs
+      type: campaignData.type || 'TEXT_AD', // Default to TEXT_AD as shown in docs
       status: 'DRAFT', // Always start as draft
       account: `urn:li:sponsoredAccount:${campaignData.account}`,
       
       // REQUIRED: Campaign Group (required since October 30, 2020)
-      // Note: For now using a placeholder - in production, you'd need to create/fetch actual campaign groups
-      campaignGroup: `urn:li:sponsoredCampaignGroup:${campaignData.campaignGroup || 'default'}`,
+      campaignGroup: `urn:li:sponsoredCampaignGroup:${campaignData.campaignGroup}`,
       
-      // REQUIRED: Offsite delivery setting
-      offsiteDeliveryEnabled: campaignData.offsiteDeliveryEnabled || false,
+      // REQUIRED: Offsite delivery setting (from getting started docs)
+      offsiteDeliveryEnabled: campaignData.offsiteDeliveryEnabled !== undefined ? campaignData.offsiteDeliveryEnabled : false,
       
-      // REQUIRED: Audience expansion
-      audienceExpansionEnabled: campaignData.audienceExpansionEnabled || false,
+      // REQUIRED: Audience expansion (from getting started docs)
+      audienceExpansionEnabled: campaignData.audienceExpansionEnabled !== undefined ? campaignData.audienceExpansionEnabled : false,
       
-      // Budget configuration
+      // Budget configuration (required for most campaign types)
       dailyBudget: {
         amount: campaignData.budget?.toString() || '100',
         currencyCode: campaignData.currency || 'USD'
       },
       
-      // Run schedule
+      // Run schedule (as shown in getting started docs)
       runSchedule: {
         start: Date.now(),
-        end: campaignData.endDate ? new Date(campaignData.endDate).getTime() : undefined // Undefined for continuous
+        end: campaignData.endDate ? new Date(campaignData.endDate).getTime() : undefined
       },
       
-      // Cost and bidding
+      // Cost and bidding (required fields from docs)
       unitCost: {
-        amount: campaignData.bidAmount || '5.00',
+        amount: campaignData.bidAmount || '2.00', // Use example from docs
         currencyCode: campaignData.currency || 'USD'
       },
       costType: campaignData.costType || 'CPC',
       
-      // Optimization settings
-      objectiveType: campaignData.objective || 'BRAND_AWARENESS',
+      // Optimization settings (from getting started docs)
       creativeSelection: campaignData.creativeSelection || 'OPTIMIZED',
       
-      // REQUIRED: Locale
+      // REQUIRED: Locale (from getting started docs)
       locale: {
-        country: campaignData.currency === 'EUR' ? 'NL' : 'US',
-        language: campaignData.currency === 'EUR' ? 'nl' : 'en'
+        country: campaignData.locale?.country || 'US',
+        language: campaignData.locale?.language || 'en'
       },
       
-      // REQUIRED: Basic targeting criteria (minimum required)
+      // REQUIRED: Targeting criteria exactly as shown in getting started docs
       targetingCriteria: campaignData.targetingCriteria || {
         include: {
           and: [
             {
               or: {
                 'urn:li:adTargetingFacet:locations': [
-                  'urn:li:geo:103644278' // Default to United States
+                  'urn:li:geo:103644278', // United States
+                  'urn:li:geo:101174742'  // Canada
                 ]
               }
             }
@@ -492,9 +491,9 @@ async function createCampaign(accessToken: string, campaignData: any) {
       }
     };
 
-    console.log('Campaign creation payload:', JSON.stringify(payload, null, 2));
+    console.log('Campaign creation payload (matching getting started docs):', JSON.stringify(payload, null, 2));
 
-    // Use the correct endpoint format from documentation
+    // Use the exact endpoint from getting started documentation
     const response = await fetch(`https://api.linkedin.com/rest/adAccounts/${campaignData.account}/adCampaigns`, {
       method: 'POST',
       headers: {
