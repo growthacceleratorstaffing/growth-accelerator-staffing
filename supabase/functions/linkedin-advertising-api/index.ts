@@ -423,39 +423,77 @@ async function createCampaign(accessToken: string, campaignData: any) {
     }
 
     // LinkedIn campaign creation payload according to their API specs
+    // Based on: https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads/account-structure/create-and-manage-campaigns
     const payload = {
       name: campaignData.name,
-      type: campaignData.type || 'SPONSORED_CONTENT',
+      type: campaignData.type || 'SPONSORED_UPDATES', // Changed from SPONSORED_CONTENT to match docs
       status: 'DRAFT', // Always start as draft
       account: `urn:li:sponsoredAccount:${campaignData.account}`,
+      
+      // REQUIRED: Campaign Group (required since October 30, 2020)
+      // Note: For now using a placeholder - in production, you'd need to create/fetch actual campaign groups
+      campaignGroup: `urn:li:sponsoredCampaignGroup:${campaignData.campaignGroup || 'default'}`,
+      
+      // REQUIRED: Offsite delivery setting
+      offsiteDeliveryEnabled: campaignData.offsiteDeliveryEnabled || false,
+      
+      // REQUIRED: Audience expansion
+      audienceExpansionEnabled: campaignData.audienceExpansionEnabled || false,
+      
+      // Budget configuration
       dailyBudget: {
         amount: campaignData.budget?.toString() || '100',
         currencyCode: campaignData.currency || 'USD'
       },
+      
+      // Run schedule
       runSchedule: {
         start: Date.now(),
-        end: campaignData.endDate ? new Date(campaignData.endDate).getTime() : Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days default
+        end: campaignData.endDate ? new Date(campaignData.endDate).getTime() : undefined // Undefined for continuous
       },
+      
+      // Cost and bidding
       unitCost: {
         amount: campaignData.bidAmount || '5.00',
         currencyCode: campaignData.currency || 'USD'
       },
       costType: campaignData.costType || 'CPC',
+      
+      // Optimization settings
       objectiveType: campaignData.objective || 'BRAND_AWARENESS',
+      creativeSelection: campaignData.creativeSelection || 'OPTIMIZED',
+      
+      // REQUIRED: Locale
       locale: {
         country: campaignData.currency === 'EUR' ? 'NL' : 'US',
         language: campaignData.currency === 'EUR' ? 'nl' : 'en'
+      },
+      
+      // REQUIRED: Basic targeting criteria (minimum required)
+      targetingCriteria: campaignData.targetingCriteria || {
+        include: {
+          and: [
+            {
+              or: {
+                'urn:li:adTargetingFacet:locations': [
+                  'urn:li:geo:103644278' // Default to United States
+                ]
+              }
+            }
+          ]
+        }
       }
     };
 
-    console.log('Campaign creation payload:', payload);
+    console.log('Campaign creation payload:', JSON.stringify(payload, null, 2));
 
-    const response = await fetch('https://api.linkedin.com/rest/campaigns', {
+    // Use the correct endpoint format from documentation
+    const response = await fetch(`https://api.linkedin.com/rest/adAccounts/${campaignData.account}/adCampaigns`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202507',
+        'LinkedIn-Version': '202411', // Use documented stable version
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
