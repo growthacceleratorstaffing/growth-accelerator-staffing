@@ -790,8 +790,9 @@ async function getAccountCreatives(accessToken: string, accountId: string) {
   try {
     console.log('Fetching LinkedIn creatives for account:', accountId);
     
-    // Updated API endpoint format for creatives by account
-    const url = `https://api.linkedin.com/rest/creatives?q=search&search=(account:(values:List(urn:li:sponsoredAccount:${accountId})))&pageSize=100`;
+    // Use the correct LinkedIn API endpoint for fetching creatives by account
+    // According to LinkedIn API docs: /rest/adAccounts/{adAccountId}/creatives
+    const url = `https://api.linkedin.com/rest/adAccounts/${accountId}/creatives?pageSize=100`;
 
     const response = await fetch(url, {
       headers: {
