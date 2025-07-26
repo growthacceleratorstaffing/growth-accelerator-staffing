@@ -51,6 +51,8 @@ const Advertising = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [linkedInConnected, setLinkedInConnected] = useState(false);
+  const [linkedInProfile, setLinkedInProfile] = useState<any>(null);
 
   // Campaign creation form state
   const [campaignName, setCampaignName] = useState("");
@@ -66,9 +68,58 @@ const Advertising = () => {
 
   useEffect(() => {
     if (user) {
-      fetchAdvertisingData();
+      checkLinkedInConnection();
     }
   }, [user]);
+
+  const checkLinkedInConnection = async () => {
+    try {
+      const { data: connectionData } = await supabase.functions.invoke('linkedin-lead-sync', {
+        body: { action: 'testConnection' }
+      });
+      
+      if (connectionData?.success) {
+        setLinkedInConnected(true);
+        // Get LinkedIn profile info
+        const { data: profileData } = await supabase.functions.invoke('linkedin-lead-sync', {
+          body: { action: 'getProfile' }
+        });
+        if (profileData?.success) {
+          setLinkedInProfile(profileData.data);
+        }
+        fetchAdvertisingData();
+      } else {
+        setLinkedInConnected(false);
+        setLinkedInProfile(null);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error checking LinkedIn connection:', error);
+      setLinkedInConnected(false);
+      setLinkedInProfile(null);
+      setLoading(false);
+    }
+  };
+
+  const handleLinkedInConnect = async () => {
+    try {
+      // Redirect to LinkedIn OAuth
+      const redirectUri = `${window.location.origin}/linkedin-callback`;
+      const clientId = '78gu7z5i8r4cbk'; // From the logs, we can see this is the client ID
+      const scope = 'openid profile email w_member_social r_basicprofile r_organization_social rw_organization_admin r_marketing_leadgen_automation rw_ads w_organization_social_media_manager rw_organization_social_media_admin';
+      
+      const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+      
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Error connecting to LinkedIn:', error);
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to LinkedIn. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const fetchAdvertisingData = async () => {
     if (!user) return;
@@ -279,7 +330,47 @@ const Advertising = () => {
           </div>
         </div>
 
-        {/* Campaign Creation Form */}
+        {/* LinkedIn Connection Status */}
+        {!linkedInConnected ? (
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                LinkedIn Integration Required
+              </CardTitle>
+              <CardDescription>
+                Connect your LinkedIn account to access advertising features, manage campaigns, and sync leads.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={handleLinkedInConnect} className="w-full">
+                Connect LinkedIn Account
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                You'll be redirected to LinkedIn to authorize access to your advertising accounts.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Badge className="bg-green-500 text-white">Connected</Badge>
+                LinkedIn Integration
+              </CardTitle>
+              <CardDescription>
+                {linkedInProfile ? (
+                  `Connected as ${linkedInProfile.localizedFirstName} ${linkedInProfile.localizedLastName}`
+                ) : (
+                  'LinkedIn account connected successfully'
+                )}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+
+        {/* Campaign Creation Form - Only show if LinkedIn is connected */}
+        {linkedInConnected && (
         <Card>
           <CardHeader>
             <CardTitle>Create New LinkedIn Campaign</CardTitle>
@@ -432,8 +523,10 @@ const Advertising = () => {
             </div>
           </CardContent>
         </Card>
+        )}
 
-        {/* Summary Cards */}
+        {/* Summary Cards - Only show if LinkedIn is connected */}
+        {linkedInConnected && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -495,138 +588,145 @@ const Advertising = () => {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="flex items-center space-x-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search campaigns..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-        </div>
+        )}
 
-        {/* Data Tables */}
-        <Tabs defaultValue="accounts" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="accounts">Ad Accounts</TabsTrigger>
-            <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="campaigns">
-            <Card>
-              <CardHeader>
-                <CardTitle>Campaigns</CardTitle>
-                <CardDescription>
-                  Manage your LinkedIn advertising campaigns.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Campaign</TableHead>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Budget</TableHead>
-                      <TableHead>Spent</TableHead>
-                      <TableHead>Impressions</TableHead>
-                      <TableHead>Clicks</TableHead>
-                      <TableHead>CTR</TableHead>
-                      <TableHead>CPC</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCampaigns.map((campaign) => (
-                      <TableRow key={campaign.id}>
-                        <TableCell className="font-medium">{campaign.name}</TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">{campaign.account_name}</div>
-                            <div className="text-muted-foreground">{campaign.account_currency}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={`${getStatusColor(campaign.status)} text-white`}>
-                            {campaign.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>${campaign.budget?.toLocaleString() || 0}</TableCell>
-                        <TableCell>${campaign.spent?.toLocaleString() || 0}</TableCell>
-                        <TableCell>{campaign.impressions?.toLocaleString() || 0}</TableCell>
-                        <TableCell>{campaign.clicks?.toLocaleString() || 0}</TableCell>
-                        <TableCell>{((campaign.ctr || 0) * 100).toFixed(2)}%</TableCell>
-                        <TableCell>${(campaign.cpc || 0).toFixed(2)}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {campaign.status === "ACTIVE" ? (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleCampaignAction(campaign.id, 'pause')}
-                              >
-                                <Pause className="h-4 w-4" />
-                              </Button>
-                            ) : (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleCampaignAction(campaign.id, 'activate')}
-                              >
-                                <Play className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button variant="outline" size="sm">
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+        {/* Search and Data Tables - Only show if LinkedIn is connected */}
+        {linkedInConnected && (
+        <>
+          {/* Search */}
+          <div className="flex items-center space-x-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search campaigns..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+
+          {/* Data Tables */}
+          <Tabs defaultValue="accounts" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="accounts">Ad Accounts</TabsTrigger>
+              <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="campaigns">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Campaigns</CardTitle>
+                  <CardDescription>
+                    Manage your LinkedIn advertising campaigns.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Campaign</TableHead>
+                        <TableHead>Account</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Budget</TableHead>
+                        <TableHead>Spent</TableHead>
+                        <TableHead>Impressions</TableHead>
+                        <TableHead>Clicks</TableHead>
+                        <TableHead>CTR</TableHead>
+                        <TableHead>CPC</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="accounts">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ad Accounts</CardTitle>
-                <CardDescription>
-                  View your LinkedIn ad accounts.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Account Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Currency</TableHead>
-                      <TableHead>Total Budget</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {adAccounts.map((account) => (
-                      <TableRow key={account.id}>
-                        <TableCell className="font-medium">{account.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{account.status}</Badge>
-                        </TableCell>
-                        <TableCell>{account.type}</TableCell>
-                        <TableCell>{account.currency}</TableCell>
-                        <TableCell>${account.total_budget?.toLocaleString() || 0}</TableCell>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCampaigns.map((campaign) => (
+                        <TableRow key={campaign.id}>
+                          <TableCell className="font-medium">{campaign.name}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div className="font-medium">{campaign.account_name}</div>
+                              <div className="text-muted-foreground">{campaign.account_currency}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`${getStatusColor(campaign.status)} text-white`}>
+                              {campaign.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>${campaign.budget?.toLocaleString() || 0}</TableCell>
+                          <TableCell>${campaign.spent?.toLocaleString() || 0}</TableCell>
+                          <TableCell>{campaign.impressions?.toLocaleString() || 0}</TableCell>
+                          <TableCell>{campaign.clicks?.toLocaleString() || 0}</TableCell>
+                          <TableCell>{((campaign.ctr || 0) * 100).toFixed(2)}%</TableCell>
+                          <TableCell>${(campaign.cpc || 0).toFixed(2)}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {campaign.status === "ACTIVE" ? (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleCampaignAction(campaign.id, 'pause')}
+                                >
+                                  <Pause className="h-4 w-4" />
+                                </Button>
+                              ) : (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleCampaignAction(campaign.id, 'activate')}
+                                >
+                                  <Play className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button variant="outline" size="sm">
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="accounts">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ad Accounts</CardTitle>
+                  <CardDescription>
+                    View your LinkedIn ad accounts.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Account Name</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Currency</TableHead>
+                        <TableHead>Total Budget</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    </TableHeader>
+                    <TableBody>
+                      {adAccounts.map((account) => (
+                        <TableRow key={account.id}>
+                          <TableCell className="font-medium">{account.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{account.status}</Badge>
+                          </TableCell>
+                          <TableCell>{account.type}</TableCell>
+                          <TableCell>{account.currency}</TableCell>
+                          <TableCell>${account.total_budget?.toLocaleString() || 0}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </>
+        )}
       </div>
     </div>
   );

@@ -98,6 +98,24 @@ Deno.serve(async (req) => {
       case 'updateIntegration':
         return await updateLinkedInIntegration(supabase, user.id);
       
+      case 'getLeadForms':
+        return await getLeadForms(linkedinAccessToken);
+      
+      case 'downloadLeads':
+        return await downloadLeads(linkedinAccessToken, params.formId, params.dateRange);
+      
+      case 'getAdAccounts':
+        return await getAdAccounts(linkedinAccessToken);
+      
+      case 'getCampaigns':
+        return await getCampaigns(linkedinAccessToken, params.accountId);
+      
+      case 'getLeadsFromForm':
+        return await getLeadsFromForm(linkedinAccessToken, params.formId, params.dateRange);
+      
+      case 'syncLeads':
+        return await syncLinkedInLeads(linkedinAccessToken, user.id, supabase, params);
+      
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
@@ -386,3 +404,449 @@ async function updateLinkedInIntegration(supabase: any, userId: string) {
     return false;
   }
 }
+
+// LinkedIn Lead Gen API Functions based on Microsoft Documentation
+// https://learn.microsoft.com/en-us/linkedin/marketing/lead-sync/leadsync
+
+async function getLeadForms(accessToken: string) {
+  if (!accessToken) {
+    return new Response(
+      JSON.stringify({ error: 'LinkedIn access token not configured' }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  try {
+    console.log('Fetching LinkedIn Lead Gen Forms...');
+    
+    // Get Lead Forms using the Lead Gen API
+    const response = await fetch('https://api.linkedin.com/rest/leadGenForms?q=owner', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202401'
+      }
+    });
+
+    console.log('LinkedIn Lead Forms API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Lead Forms API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Lead Forms data received:', data);
+
+    return new Response(
+      JSON.stringify({ success: true, data: data.elements || [] }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching lead forms:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch lead forms', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function getLeadsFromForm(accessToken: string, formId: string, dateRange?: { start: string, end: string }) {
+  if (!accessToken) {
+    return new Response(
+      JSON.stringify({ error: 'LinkedIn access token not configured' }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  try {
+    console.log('Fetching leads from LinkedIn form:', formId);
+    
+    // Build query parameters for date range if provided
+    let queryParams = `q=formUrn&formUrn=urn:li:leadGenForm:${formId}`;
+    
+    if (dateRange) {
+      queryParams += `&createdTimeRange.start=${new Date(dateRange.start).getTime()}`;
+      queryParams += `&createdTimeRange.end=${new Date(dateRange.end).getTime()}`;
+    }
+
+    // Get form responses using the Lead Gen API
+    const response = await fetch(`https://api.linkedin.com/rest/leadGenFormResponses?${queryParams}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202401'
+      }
+    });
+
+    console.log('LinkedIn Form Responses API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Form Responses API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Form responses data received:', data);
+
+    // Transform the responses into a more usable format
+    const leads = data.elements?.map((response: any) => ({
+      id: response.id,
+      formId: formId,
+      submittedAt: new Date(response.submittedAt).toISOString(),
+      leadDetails: response.leadDetails || {},
+      raw: response
+    })) || [];
+
+    return new Response(
+      JSON.stringify({ success: true, data: leads, total: data.paging?.total || 0 }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching leads from form:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch leads from form', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function downloadLeads(accessToken: string, formId: string, dateRange?: { start: string, end: string }) {
+  // This function combines getting leads and formatting them for download
+  const leadsResponse = await getLeadsFromForm(accessToken, formId, dateRange);
+  const leadsData = await leadsResponse.json();
+  
+  if (!leadsData.success) {
+    return leadsResponse;
+  }
+
+  // Format leads for download (CSV format)
+  const leads = leadsData.data;
+  const csvHeaders = ['ID', 'Form ID', 'Submitted At', 'Lead Details'];
+  const csvRows = leads.map((lead: any) => [
+    lead.id,
+    lead.formId,
+    lead.submittedAt,
+    JSON.stringify(lead.leadDetails)
+  ]);
+
+  return new Response(
+    JSON.stringify({ 
+      success: true, 
+      data: {
+        format: 'csv',
+        headers: csvHeaders,
+        rows: csvRows,
+        leads: leads
+      },
+      total: leads.length
+    }),
+    { 
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }
+  );
+}
+
+async function syncLinkedInLeads(accessToken: string, userId: string, supabase: any, params: any = {}) {
+  if (!accessToken) {
+    return new Response(
+      JSON.stringify({ error: 'LinkedIn access token not configured' }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  try {
+    console.log('Syncing LinkedIn leads for user:', userId);
+    
+    // First get all lead forms
+    const formsResponse = await getLeadForms(accessToken);
+    const formsData = await formsResponse.json();
+    
+    if (!formsData.success) {
+      return formsResponse;
+    }
+
+    const forms = formsData.data;
+    let totalSyncedLeads = 0;
+    const syncResults = [];
+
+    // Sync leads from each form
+    for (const form of forms) {
+      try {
+        const leadsResponse = await getLeadsFromForm(accessToken, form.id, params.dateRange);
+        const leadsData = await leadsResponse.json();
+        
+        if (leadsData.success) {
+          const leads = leadsData.data;
+          
+          // Store leads in database
+          for (const lead of leads) {
+            const leadData = {
+              user_id: userId,
+              linkedin_lead_id: lead.id,
+              form_name: form.name || `Form ${form.id}`,
+              first_name: lead.leadDetails?.firstName || '',
+              last_name: lead.leadDetails?.lastName || '',
+              email: lead.leadDetails?.email || '',
+              phone: lead.leadDetails?.phone || '',
+              company: lead.leadDetails?.company || '',
+              job_title: lead.leadDetails?.jobTitle || '',
+              linkedin_campaign_id: form.associatedCampaignUrn || null,
+              submitted_at: lead.submittedAt,
+              lead_data: lead.raw
+            };
+
+            const { error } = await supabase
+              .from('linkedin_leads')
+              .upsert(leadData, {
+                onConflict: 'user_id,linkedin_lead_id'
+              });
+
+            if (!error) {
+              totalSyncedLeads++;
+            } else {
+              console.error('Error storing lead:', error);
+            }
+          }
+          
+          syncResults.push({
+            formId: form.id,
+            formName: form.name,
+            leadsCount: leads.length,
+            success: true
+          });
+        } else {
+          syncResults.push({
+            formId: form.id,
+            formName: form.name,
+            leadsCount: 0,
+            success: false,
+            error: leadsData.error
+          });
+        }
+      } catch (formError) {
+        console.error(`Error syncing leads from form ${form.id}:`, formError);
+        syncResults.push({
+          formId: form.id,
+          formName: form.name,
+          leadsCount: 0,
+          success: false,
+          error: formError.message
+        });
+      }
+    }
+
+    // Update integration record
+    await updateLinkedInIntegration(supabase, userId);
+
+    console.log(`Synced ${totalSyncedLeads} leads from ${forms.length} forms`);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        data: {
+          totalLeads: totalSyncedLeads,
+          formsProcessed: forms.length,
+          syncResults: syncResults
+        },
+        message: `Successfully synced ${totalSyncedLeads} leads from ${forms.length} forms`
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error syncing LinkedIn leads:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to sync LinkedIn leads', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+// LinkedIn Ads API Functions
+async function getAdAccounts(accessToken: string) {
+  if (!accessToken) {
+    return new Response(
+      JSON.stringify({ error: 'LinkedIn access token not configured' }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  try {
+    console.log('Fetching LinkedIn ad accounts...');
+    
+    const response = await fetch('https://api.linkedin.com/rest/adAccounts?q=search&search=(status:(values:List(ACTIVE,DRAFT)))&pageSize=100', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202401'
+      }
+    });
+
+    console.log('LinkedIn Ad Accounts API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Ad Accounts API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Ad Accounts data received:', data);
+
+    const accounts = data.elements?.map((account: any) => ({
+      id: account.id,
+      name: account.name,
+      status: account.status,
+      type: account.type,
+      currency: account.currency || 'USD',
+      account_data: account
+    })) || [];
+
+    return new Response(
+      JSON.stringify({ success: true, data: accounts }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching ad accounts:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch ad accounts', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function getCampaigns(accessToken: string, accountId?: string) {
+  if (!accessToken) {
+    return new Response(
+      JSON.stringify({ error: 'LinkedIn access token not configured' }),
+      { 
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  try {
+    console.log('Fetching LinkedIn campaigns...', { accountId });
+    
+    let url = 'https://api.linkedin.com/rest/campaigns?q=search&pageSize=100';
+    
+    if (accountId) {
+      url += `&search=(account:(values:List(urn:li:sponsoredAccount:${accountId})))`;
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202401'
+      }
+    });
+
+    console.log('LinkedIn Campaigns API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Campaigns API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Campaigns data received:', data);
+
+    const campaigns = data.elements?.map((campaign: any) => ({
+      id: campaign.id,
+      name: campaign.name,
+      status: campaign.runSchedule?.status || campaign.status || 'UNKNOWN',
+      budget: parseFloat(campaign.dailyBudget?.amount || campaign.totalBudget?.amount || '0'),
+      currency: campaign.dailyBudget?.currencyCode || campaign.totalBudget?.currencyCode || 'USD',
+      created_at: new Date(campaign.createdTime || Date.now()).toISOString(),
+      updated_at: new Date(campaign.lastModifiedTime || Date.now()).toISOString(),
+      campaign_data: campaign
+    })) || [];
+
+    return new Response(
+      JSON.stringify({ success: true, data: campaigns }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching campaigns:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch campaigns', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
