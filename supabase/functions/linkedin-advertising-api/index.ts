@@ -754,11 +754,22 @@ async function createCreative(accessToken: string, creativeData: any) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('LinkedIn Creative Creation API error:', errorText);
+      console.error('Failed payload that caused the error:', JSON.stringify(payload, null, 2));
+      
+      // Try to parse the error for more details
+      let parsedError;
+      try {
+        parsedError = JSON.parse(errorText);
+        console.error('Parsed LinkedIn error details:', parsedError);
+      } catch (e) {
+        console.error('Could not parse error response as JSON');
+      }
       
       return new Response(
         JSON.stringify({ 
           error: 'LinkedIn API error', 
           details: errorText,
+          payload_used: payload,
           message: 'Failed to create creative in LinkedIn. Please check your content and try again.'
         }),
         { 
