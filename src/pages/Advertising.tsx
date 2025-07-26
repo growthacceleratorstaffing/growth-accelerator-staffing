@@ -69,68 +69,36 @@ const Advertising = () => {
   useEffect(() => {
     if (user) {
       checkLinkedInConnection();
+      // Always fetch advertising data, regardless of connection status
+      fetchAdvertisingData();
     }
   }, [user]);
 
   const checkLinkedInConnection = async () => {
     try {
-      // Check if user has a valid LinkedIn token in the database first
-      const { data: tokenData } = await supabase
-        .from('linkedin_user_tokens')
-        .select('*')
-        .eq('user_id', user?.id)
-        .maybeSingle();
-
-      let hasValidToken = false;
+      // Directly test the connection using the existing API
+      const { data: connectionData } = await supabase.functions.invoke('linkedin-lead-sync', {
+        body: { action: 'testConnection' }
+      });
       
-      if (tokenData && new Date(tokenData.token_expires_at) > new Date()) {
-        hasValidToken = true;
-      } else {
-        // Fallback to check global token
-        try {
-          const { data: globalTokenData } = await supabase.functions.invoke('linkedin-api', {
-            body: { action: 'getCredentials' }
-          });
-          
-          if (globalTokenData?.success && globalTokenData.data?.has_access_token) {
-            hasValidToken = true;
-          }
-        } catch (error) {
-          console.error('Error checking global token:', error);
-        }
-      }
-
-      if (hasValidToken) {
-        // Test the connection
-        const { data: connectionData } = await supabase.functions.invoke('linkedin-lead-sync', {
-          body: { action: 'testConnection' }
+      if (connectionData?.success) {
+        setLinkedInConnected(true);
+        // Get LinkedIn profile info
+        const { data: profileData } = await supabase.functions.invoke('linkedin-lead-sync', {
+          body: { action: 'getProfile' }
         });
-        
-        if (connectionData?.success) {
-          setLinkedInConnected(true);
-          // Get LinkedIn profile info
-          const { data: profileData } = await supabase.functions.invoke('linkedin-lead-sync', {
-            body: { action: 'getProfile' }
-          });
-          if (profileData?.success) {
-            setLinkedInProfile(profileData.data);
-          }
-          fetchAdvertisingData();
-        } else {
-          setLinkedInConnected(false);
-          setLinkedInProfile(null);
-          setLoading(false);
+        if (profileData?.success) {
+          setLinkedInProfile(profileData.data);
         }
       } else {
-        // No valid token found
         setLinkedInConnected(false);
         setLinkedInProfile(null);
-        setLoading(false);
       }
     } catch (error) {
       console.error('Error checking LinkedIn connection:', error);
       setLinkedInConnected(false);
       setLinkedInProfile(null);
+    } finally {
       setLoading(false);
     }
   };
@@ -140,6 +108,8 @@ const Advertising = () => {
     if (!user) return;
     
     try {
+      console.log('Fetching advertising data...');
+      
       // Fetch ad accounts first
       const { data: accountsData } = await supabase.functions.invoke('linkedin-advertising-api', {
         body: { action: 'getAdAccounts' }
@@ -148,56 +118,47 @@ const Advertising = () => {
       if (accountsData?.success) {
         const accounts = accountsData.data || [];
         setAdAccounts(accounts);
+        console.log(`Loaded ${accounts.length} ad accounts`);
 
-        // Since account-specific campaign queries are having issues with LinkedIn API,
-        // let's try fetching all campaigns first and then see if we can get any data
+        // Fetch campaigns from all accounts
         let allCampaigns: Campaign[] = [];
         
-        console.log('Trying to fetch all campaigns without account filtering first...');
+        // Try to fetch all campaigns first
         try {
           const { data: allCampaignsData } = await supabase.functions.invoke('linkedin-advertising-api', {
-            body: { action: 'getCampaigns' } // No accountId parameter
+            body: { action: 'getCampaigns' }
           });
           
           if (allCampaignsData?.success && allCampaignsData.data) {
             console.log(`Found ${allCampaignsData.data.length} campaigns from general query`);
             
-            // Add account info to campaigns if we can match them
-            const campaignsWithAccount = allCampaignsData.data.map((campaign: Campaign) => {
-              // Try to match campaign to account if possible
-              // For now, just add general account info since account-specific queries don't work
-              return {
-                ...campaign,
-                account_id: 'general',
-                account_name: 'LinkedIn Campaigns',
-                account_currency: 'USD'
-              };
-            });
+            // Add account info to campaigns
+            const campaignsWithAccount = allCampaignsData.data.map((campaign: Campaign) => ({
+              ...campaign,
+              account_id: campaign.account_id || 'general',
+              account_name: campaign.account_name || 'LinkedIn Campaigns',
+              account_currency: campaign.account_currency || 'USD'
+            }));
             allCampaigns.push(...campaignsWithAccount);
           }
         } catch (error) {
-          console.error('Error fetching all campaigns:', error);
-        }
-        
-        // If we still have no campaigns, show this in the UI
-        if (allCampaigns.length === 0) {
-          console.log('No campaigns found. This could mean:');
-          console.log('1. No campaigns exist in your LinkedIn accounts');
-          console.log('2. The access token doesn\'t have campaign access permissions');
-          console.log('3. LinkedIn API is having issues');
+          console.error('Error fetching campaigns:', error);
         }
         
         setCampaigns(allCampaigns);
-        console.log(`Loaded ${allCampaigns.length} campaigns from ${accounts.length} ad accounts`);
+        console.log(`Total campaigns loaded: ${allCampaigns.length}`);
+      } else {
+        console.log('No ad accounts data or API call failed');
+        // Still set empty arrays so the UI shows properly
+        setAdAccounts([]);
+        setCampaigns([]);
       }
 
     } catch (error) {
       console.error('Error fetching advertising data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load advertising data",
-        variant: "destructive"
-      });
+      // Set empty arrays on error so the UI still renders
+      setAdAccounts([]);
+      setCampaigns([]);
     } finally {
       setLoading(false);
     }
@@ -205,7 +166,7 @@ const Advertising = () => {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchAdvertisingData();
+    await Promise.all([checkLinkedInConnection(), fetchAdvertisingData()]);
     setIsRefreshing(false);
     toast({
       title: "Data Refreshed",
@@ -345,20 +306,8 @@ const Advertising = () => {
           </div>
         </div>
 
-        {/* LinkedIn Connection Status */}
-        {!linkedInConnected ? (
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                LinkedIn Integration Required
-              </CardTitle>
-              <CardDescription>
-                Please connect your LinkedIn account on the <a href="/linkedin-integration" className="text-blue-600 hover:underline">LinkedIn Integration page</a> to access advertising features.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
+        {/* LinkedIn Connection Status - Optional Info Only */}
+        {linkedInConnected ? (
           <Card className="border-green-200 bg-green-50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -374,10 +323,21 @@ const Advertising = () => {
               </CardDescription>
             </CardHeader>
           </Card>
+        ) : (
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                LinkedIn Integration Status
+              </CardTitle>
+              <CardDescription>
+                For full functionality, you can configure LinkedIn integration on the <a href="/linkedin-integration" className="text-blue-600 hover:underline">LinkedIn Integration page</a>.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         )}
 
-        {/* Campaign Creation Form - Only show if LinkedIn is connected */}
-        {linkedInConnected && (
+        {/* Campaign Creation Form - Always Show */}
         <Card>
           <CardHeader>
             <CardTitle>Create New LinkedIn Campaign</CardTitle>
@@ -530,10 +490,8 @@ const Advertising = () => {
             </div>
           </CardContent>
         </Card>
-        )}
 
-        {/* Summary Cards - Only show if LinkedIn is connected */}
-        {linkedInConnected && (
+        {/* Summary Cards - Always Show */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -595,10 +553,7 @@ const Advertising = () => {
           </Card>
         </div>
 
-        )}
-
-        {/* Search and Data Tables - Only show if LinkedIn is connected */}
-        {linkedInConnected && (
+        {/* Search and Data Tables - Always Show */}
         <>
           {/* Search */}
           <div className="flex items-center space-x-2">
@@ -733,7 +688,6 @@ const Advertising = () => {
             </TabsContent>
           </Tabs>
         </>
-        )}
       </div>
     </div>
   );
