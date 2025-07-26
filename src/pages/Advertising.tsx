@@ -111,9 +111,16 @@ const Advertising = () => {
       console.log('Fetching advertising data...');
       
       // Fetch ad accounts first
-      const { data: accountsData } = await supabase.functions.invoke('linkedin-advertising-api', {
+      const { data: accountsData, error: accountsError } = await supabase.functions.invoke('linkedin-advertising-api', {
         body: { action: 'getAdAccounts' }
       });
+      
+      console.log('Ad accounts response:', { accountsData, accountsError });
+      
+      if (accountsError) {
+        console.error('Supabase function error for ad accounts:', accountsError);
+        throw accountsError;
+      }
       
       if (accountsData?.success) {
         const accounts = accountsData.data || [];
@@ -125,11 +132,15 @@ const Advertising = () => {
         
         // Try to fetch all campaigns first
         try {
-          const { data: allCampaignsData } = await supabase.functions.invoke('linkedin-advertising-api', {
+          const { data: allCampaignsData, error: campaignsError } = await supabase.functions.invoke('linkedin-advertising-api', {
             body: { action: 'getCampaigns' }
           });
           
-          if (allCampaignsData?.success && allCampaignsData.data) {
+          console.log('Campaigns response:', { allCampaignsData, campaignsError });
+          
+          if (campaignsError) {
+            console.error('Supabase function error for campaigns:', campaignsError);
+          } else if (allCampaignsData?.success && allCampaignsData.data) {
             console.log(`Found ${allCampaignsData.data.length} campaigns from general query`);
             
             // Add account info to campaigns
@@ -147,6 +158,16 @@ const Advertising = () => {
         
         setCampaigns(allCampaigns);
         console.log(`Total campaigns loaded: ${allCampaigns.length}`);
+      } else if (accountsData?.error) {
+        console.error('LinkedIn API error:', accountsData.error);
+        toast({
+          title: "LinkedIn API Error",
+          description: accountsData.error,
+          variant: "destructive"
+        });
+        // Still set empty arrays so the UI shows properly
+        setAdAccounts([]);
+        setCampaigns([]);
       } else {
         console.log('No ad accounts data or API call failed');
         // Still set empty arrays so the UI shows properly
@@ -154,8 +175,13 @@ const Advertising = () => {
         setCampaigns([]);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching advertising data:', error);
+      toast({
+        title: "Error Loading Data",
+        description: error.message || "Failed to load advertising data",
+        variant: "destructive"
+      });
       // Set empty arrays on error so the UI still renders
       setAdAccounts([]);
       setCampaigns([]);

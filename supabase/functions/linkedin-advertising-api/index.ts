@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('LinkedIn Advertising API called');
+    console.log('LinkedIn Advertising API called - v2');
     
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
