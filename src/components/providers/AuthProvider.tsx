@@ -9,11 +9,10 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   profile: any;
-  jazzhrProfile: any;
+  workableProfile: any;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signOut: () => Promise<void>;
-  syncJazzHRUsers: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [jazzhrProfile, setJazzhrProfile] = useState<any>(null);
+  const [workableProfile, setWorkableProfile] = useState<any>(null);
   const { toast } = useToast();
 
   const isAuthenticated = !!user && !!session;
@@ -60,21 +59,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               
               setProfile(profileData);
 
-              // Fetch JazzHR profile data
-              const { data: jazzhrData } = await supabase
-                .from('jazzhr_users')
+              // Fetch Workable profile data
+              const { data: workableData } = await supabase
+                .from('workable_users')
                 .select('*')
                 .eq('user_id', session.user.id)
                 .maybeSingle();
               
-              setJazzhrProfile(jazzhrData);
+              setWorkableProfile(workableData);
             } catch (error) {
               console.error('Error fetching profile:', error);
             }
           }, 0);
         } else {
           setProfile(null);
-          setJazzhrProfile(null);
+          setWorkableProfile(null);
         }
       }
     );
@@ -90,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setSession(null);
       setProfile(null);
-      setJazzhrProfile(null);
+      setWorkableProfile(null);
       
       toast({
         title: "Signed out successfully",
@@ -144,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Check if the email is allowed (exists in JazzHR users)
       const { data: emailValidation, error: validationError } = await supabase
-        .rpc('validate_jazzhr_email', { email_to_check: email });
+        .rpc('validate_workable_email', { email_to_check: email });
 
       if (validationError) {
         console.error('Email validation error:', validationError);
@@ -185,30 +184,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const syncJazzHRUsers = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('jazzhr-api', {
-        body: { action: 'syncUsers', params: {} }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "JazzHR Users Synced",
-        description: `Successfully synced ${data.synced_count} users from JazzHR.`,
-      });
-
-      return data;
-    } catch (error) {
-      console.error('JazzHR sync error:', error);
-      toast({
-        title: "Sync failed",
-        description: error instanceof Error ? error.message : 'Failed to sync JazzHR users',
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
 
   const value: AuthContextType = {
     user,
@@ -216,11 +191,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     isLoading,
     profile,
-    jazzhrProfile,
+    workableProfile,
     signIn,
     signUp,
     signOut,
-    syncJazzHRUsers,
   };
 
   return (

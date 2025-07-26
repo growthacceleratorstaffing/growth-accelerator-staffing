@@ -183,7 +183,7 @@ const Matches = () => {
             .from('local_placements')
             .update({
               // synced_to_jobadder: true, // Removed field that doesn't exist
-              jobadder_placement_id: jazzHRData.placementId
+              notes: `Synced placement ID: ${jazzHRData.placementId}`
             })
             .eq('id', localPlacement.id);
 

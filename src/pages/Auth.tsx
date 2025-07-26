@@ -22,7 +22,7 @@ export default function Auth() {
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
-  const { signIn, signUp, isAuthenticated, profile, jazzhrProfile, syncJazzHRUsers } = useAuth();
+  const { signIn, signUp, isAuthenticated, profile, workableProfile } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,16 +56,6 @@ export default function Auth() {
     }
   };
 
-  const handleSyncJazzHRUsers = async () => {
-    setIsLoading(true);
-    try {
-      await syncJazzHRUsers();
-    } catch (error) {
-      // Error handling is done in the useAuth hook
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const formatJazzHRRole = (role: string): string => {
     return role?.split('_').map(word => 
@@ -111,23 +101,23 @@ export default function Auth() {
                       <User className="h-4 w-4" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">
-                          {jazzhrProfile?.name || profile?.full_name || profile?.email || 'User'}
+                          {workableProfile?.workable_email || profile?.full_name || profile?.email || 'User'}
                         </div>
                         <div className="text-xs text-muted-foreground truncate">
-                          {jazzhrProfile?.email || profile?.email}
+                          {workableProfile?.workable_email || profile?.email}
                         </div>
                       </div>
                     </div>
                     
-                    {jazzhrProfile && (
+                    {workableProfile && (
                       <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-md">
                         <Shield className="h-4 w-4 text-primary" />
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium">
-                            JazzHR Role: {formatJazzHRRole(jazzhrProfile.jazzhr_role)}
+                            Workable Role: {formatJazzHRRole(workableProfile.workable_role)}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Last synced: {new Date(jazzhrProfile.last_synced_at).toLocaleDateString()}
+                            Last synced: {new Date(workableProfile.updated_at).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
@@ -137,10 +127,10 @@ export default function Auth() {
                       <Button onClick={() => navigate('/dashboard')} className="flex-1">
                         Go to Dashboard
                       </Button>
-                      {jazzhrProfile?.jazzhr_role === 'super_admin' && (
+                      {workableProfile?.workable_role === 'admin' && (
                         <Button 
                           variant="outline" 
-                          onClick={handleSyncJazzHRUsers}
+                          onClick={() => {}}
                           disabled={isLoading}
                           className="flex items-center gap-2"
                         >
