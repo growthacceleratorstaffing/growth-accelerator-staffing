@@ -432,10 +432,10 @@ const Advertising = () => {
   };
 
   const handleCreateCampaign = async () => {
-    if (!campaignName || !campaignType || !budget || !selectedAccount || !selectedCreative) {
+    if (!campaignName || !campaignType || !budget || !selectedAccount) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields (Campaign Name, Type, Account, Creative, and Budget)",
+        description: "Please fill in all required fields (Campaign Name, Type, Account, and Budget)",
         variant: "destructive"
       });
       return;
@@ -443,18 +443,21 @@ const Advertising = () => {
     
     setIsCreatingCampaign(true);
     try {
+      // Get the selected account to determine currency
+      const selectedAccountData = adAccounts.find(acc => acc.id.toString() === selectedAccount);
+      const accountCurrency = selectedAccountData?.currency || 'USD';
+      
       const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
         body: { 
           action: 'createCampaign',
           name: campaignName,
           type: campaignType,
-          creative: selectedCreative,
           account: selectedAccount,
           budget: parseFloat(budget),
           bidAmount: parseFloat(bidAmount) || 5.00,
           costType,
           objective,
-          currency,
+          currency: accountCurrency, // Use account currency instead of form currency
           endDate: endDate || null
         }
       });
@@ -752,10 +755,10 @@ const Advertising = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="selectedCreative">Advertisement Creative *</Label>
+                <Label htmlFor="selectedCreative">Advertisement Creative (Optional)</Label>
                 <Select value={selectedCreative} onValueChange={setSelectedCreative}>
                   <SelectTrigger>
-                    <SelectValue placeholder={creatives.length === 0 ? "No creatives available" : "Select creative"} />
+                    <SelectValue placeholder="Select creative (optional for some campaign types)" />
                   </SelectTrigger>
                   <SelectContent>
                     {creatives.map((creative) => (
@@ -765,9 +768,7 @@ const Advertising = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {(creatives.length === 0 && jobPostings.length === 0) && (
-                  <p className="text-xs text-orange-600 mt-1">Create a creative or have job postings first before creating campaigns</p>
-                )}
+                <p className="text-xs text-muted-foreground mt-1">For some campaign types like job postings, creatives are automatically generated</p>
               </div>
             </div>
 
@@ -817,7 +818,7 @@ const Advertising = () => {
             <div className="flex justify-end pt-4">
               <Button 
                 onClick={handleCreateCampaign}
-                disabled={isCreatingCampaign || (creatives.length === 0 && jobPostings.length === 0)}
+                disabled={isCreatingCampaign}
                 className="min-w-[150px]"
               >
                 {isCreatingCampaign ? "Creating..." : "Create Campaign"}
