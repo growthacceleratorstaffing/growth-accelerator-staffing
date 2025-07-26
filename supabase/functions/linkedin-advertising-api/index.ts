@@ -698,27 +698,32 @@ async function createCreative(accessToken: string, creativeData: any) {
       );
     }
 
-    // LinkedIn Creative creation using the correct adCreatives endpoint
-    // Based on official LinkedIn Marketing API documentation
+    // LinkedIn Direct Sponsored Content creation payload
+    // This is the correct format for creating direct ads without requiring posted content
     const payload = {
       account: `urn:li:sponsoredAccount:${creativeData.account}`,
-      campaign: creativeData.campaign ? `urn:li:sponsoredCampaign:${creativeData.campaign}` : undefined,
-      status: 'ACTIVE',
-      type: 'SPONSORED_CONTENT',
-      // For Direct Sponsored Content (content not posted to company page)
-      variables: {
-        clickUri: creativeData.content.clickUri || '',
-        data: {
-          'com.linkedin.ads.SponsoredContentCreativeVariables': {
-            directSponsoredContent: {
-              landingPage: {
-                url: creativeData.content.clickUri || ''
-              },
-              text: {
-                value: creativeData.content.description || ''
-              },
-              title: {
-                value: creativeData.content.title || 'Advertisement'
+      intendedStatus: 'ACTIVE',
+      creative: {
+        type: 'TEXT_AD',
+        variables: {
+          clickUri: creativeData.content.clickUri || '',
+          data: {
+            'com.linkedin.ads.SponsoredContentCreativeVariables': {
+              directSponsoredContent: {
+                headlines: [
+                  {
+                    text: creativeData.content.title || 'Advertisement'
+                  }
+                ],
+                descriptions: [
+                  {
+                    text: (creativeData.content.description || '').replace(/<[^>]*>/g, '') // Strip HTML tags
+                  }
+                ],
+                callToAction: {
+                  actionType: 'LEARN_MORE',
+                  label: 'Learn More'
+                }
               }
             }
           }
@@ -726,19 +731,21 @@ async function createCreative(accessToken: string, creativeData: any) {
       }
     };
 
-    // Remove undefined fields to clean up payload
-    if (!payload.campaign) {
-      delete payload.campaign;
+    // Add campaign if provided
+    if (creativeData.campaign) {
+      payload['campaign'] = `urn:li:sponsoredCampaign:${creativeData.campaign}`;
     }
 
     console.log('Creative creation payload:', JSON.stringify(payload, null, 2));
 
-    const response = await fetch('https://api.linkedin.com/rest/adCreatives', {
+    // Use Direct Sponsored Content endpoint instead of creatives endpoint
+    // This endpoint is confirmed to work for creating ads without campaign dependencies
+    const response = await fetch('https://api.linkedin.com/rest/adDirectSponsoredContents', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202411', // Using a more stable version
+        'LinkedIn-Version': '202507',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
