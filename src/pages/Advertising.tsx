@@ -344,155 +344,64 @@ const Advertising = () => {
         </div>
 
 
-        {/* Campaign Creation Form - Always Show */}
-        <Card>
+        {/* LinkedIn Advertising Workflow Notice */}
+        <Card className="border-orange-200 bg-orange-50">
           <CardHeader>
-            <CardTitle>Create New LinkedIn Campaign</CardTitle>
-            <CardDescription>
-              Set up a new advertising campaign on LinkedIn with proper targeting and budget settings.
+            <CardTitle className="text-orange-800">LinkedIn Advertising Setup Required</CardTitle>
+            <CardDescription className="text-orange-700">
+              To create LinkedIn campaigns, you need to follow the proper workflow: Ad Account → Advertisement Creative → Campaign
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Required Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="campaignName">Campaign Name *</Label>
-                <Input
-                  id="campaignName"
-                  placeholder="e.g. Software Engineer Recruitment Q1"
-                  value={campaignName}
-                  onChange={(e) => setCampaignName(e.target.value)}
-                />
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <span className="text-green-600 font-semibold text-sm">1</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Ad Account</p>
+                  <p className="text-sm text-gray-600">
+                    {adAccounts.length > 0 ? `✅ ${adAccounts.length} account(s) connected` : '❌ No ad accounts found'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="selectedAccount">Ad Account *</Label>
-                <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select ad account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {adAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id.toString()}>
-                        {account.name} ({account.currency})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
+                  <span className="text-orange-600 font-semibold text-sm">2</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Advertisement Creative</p>
+                  <p className="text-sm text-gray-600">❌ No creatives management available - LinkedIn requires advertisement creatives before creating campaigns</p>
+                </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="campaignType">Campaign Type *</Label>
-                <Select value={campaignType} onValueChange={setCampaignType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select campaign type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SPONSORED_CONTENT">Sponsored Content</SelectItem>
-                    <SelectItem value="SPONSORED_MESSAGING">Sponsored Messaging</SelectItem>
-                    <SelectItem value="TEXT_ADS">Text Ads</SelectItem>
-                    <SelectItem value="DYNAMIC_ADS">Dynamic Ads</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="objective">Campaign Objective</Label>
-                <Select value={objective} onValueChange={setObjective}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select objective" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BRAND_AWARENESS">Brand Awareness</SelectItem>
-                    <SelectItem value="WEBSITE_VISITS">Website Visits</SelectItem>
-                    <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
-                    <SelectItem value="VIDEO_VIEWS">Video Views</SelectItem>
-                    <SelectItem value="LEAD_GENERATION">Lead Generation</SelectItem>
-                    <SelectItem value="WEBSITE_CONVERSIONS">Website Conversions</SelectItem>
-                    <SelectItem value="JOB_APPLICANTS">Job Applicants</SelectItem>
-                  </SelectContent>
-                </Select>
+              
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                  <span className="text-gray-600 font-semibold text-sm">3</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-500">Campaign</p>
+                  <p className="text-sm text-gray-500">Can only be created after advertisement creatives are ready</p>
+                </div>
               </div>
             </div>
-
-            {/* Budget Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="budget">Daily Budget *</Label>
-                <Input
-                  id="budget"
-                  type="number"
-                  step="0.01"
-                  min="10"
-                  placeholder="e.g. 100.00"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Minimum $10 USD</p>
-              </div>
-              <div>
-                <Label htmlFor="bidAmount">Bid Amount</Label>
-                <Input
-                  id="bidAmount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="e.g. 5.00"
-                  value={bidAmount}
-                  onChange={(e) => setBidAmount(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Per click/impression</p>
-              </div>
-              <div>
-                <Label htmlFor="currency">Currency</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-900 mb-2">Next Steps:</h4>
+              <ol className="text-sm text-blue-800 space-y-1">
+                <li>1. Use LinkedIn Campaign Manager directly to create advertisement creatives</li>
+                <li>2. Once creatives are ready, you can create campaigns that reference those creatives</li>
+                <li>3. This page currently allows you to view and manage existing campaigns only</li>
+              </ol>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="costType">Cost Type</Label>
-                <Select value={costType} onValueChange={setCostType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CPC">Cost Per Click (CPC)</SelectItem>
-                    <SelectItem value="CPM">Cost Per Thousand Impressions (CPM)</SelectItem>
-                    <SelectItem value="CPS">Cost Per Send (CPS)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="endDate">End Date (Optional)</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Leave empty for no end date</p>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
+            
+            <div className="flex justify-end">
               <Button 
-                onClick={handleCreateCampaign}
-                disabled={isCreatingCampaign}
-                className="min-w-[150px]"
+                variant="outline"
+                onClick={() => window.open('https://www.linkedin.com/campaignmanager/', '_blank')}
               >
-                {isCreatingCampaign ? "Creating..." : "Create Campaign"}
+                Open LinkedIn Campaign Manager
               </Button>
             </div>
           </CardContent>
