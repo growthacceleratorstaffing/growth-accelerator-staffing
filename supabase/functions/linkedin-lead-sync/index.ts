@@ -850,3 +850,4 @@ async function getCampaigns(accessToken: string, accountId?: string) {
       }
     );
   }
+}
