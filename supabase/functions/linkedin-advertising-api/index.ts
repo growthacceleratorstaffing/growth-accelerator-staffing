@@ -122,6 +122,9 @@ Deno.serve(async (req) => {
       case 'testConnection':
         return await testLinkedInConnection(linkedinAccessToken);
       
+      case 'refreshToken':
+        return await refreshAccessToken(user.id, supabase);
+      
       case 'getAdAccounts':
         return await getAdAccounts(linkedinAccessToken);
       
@@ -154,6 +157,28 @@ Deno.serve(async (req) => {
       
       case 'createCampaignGroup':
         return await createCampaignGroup(linkedinAccessToken, params);
+      
+      // ADS-301, ADS-302: Targeting facets and entities
+      case 'getTargetingFacets':
+        return await getTargetingFacets(linkedinAccessToken);
+      
+      case 'getTargetingEntities':
+        return await getTargetingEntities(linkedinAccessToken, params.facet, params.query);
+      
+      case 'getAudienceCounts':
+        return await getAudienceCounts(linkedinAccessToken, params.targetingCriteria);
+      
+      // ADS-303: Saved audiences
+      case 'getSavedAudiences':
+        return await getSavedAudiences(linkedinAccessToken, params.accountId);
+      
+      // ADS-501: Campaign reporting
+      case 'getCampaignReporting':
+        return await getCampaignReporting(linkedinAccessToken, params);
+      
+      // ADS-204, ADS-205: Dark share creation
+      case 'createDarkShare':
+        return await createDarkShare(linkedinAccessToken, params);
       
       default:
         return new Response(
@@ -1284,6 +1309,617 @@ async function createCampaignGroup(accessToken: string, groupData: any) {
         error: 'Failed to create campaign group', 
         details: error.message,
         message: 'An unexpected error occurred while creating the campaign group.'
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+// ADS-004, ADS-006: OAuth re-trigger and refresh token handling
+async function refreshAccessToken(userId: string, supabase: any) {
+  try {
+    console.log('Refreshing LinkedIn access token for user:', userId);
+    
+    // Get current token data with refresh token
+    const { data: tokenData } = await supabase
+      .from('linkedin_user_tokens')
+      .select('access_token, refresh_token, token_expires_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (!tokenData || !tokenData.refresh_token) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'No refresh token available',
+          requiresReauth: true,
+          message: 'User needs to re-authorize LinkedIn access'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const linkedinClientId = Deno.env.get('LINKEDIN_CLIENT_ID');
+    const linkedinClientSecret = Deno.env.get('LINKEDIN_CLIENT_SECRET');
+    
+    if (!linkedinClientId || !linkedinClientSecret) {
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn credentials not configured' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Refresh the access token using LinkedIn OAuth2 endpoint
+    const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: tokenData.refresh_token,
+        client_id: linkedinClientId,
+        client_secret: linkedinClientSecret
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('Token refresh failed:', errorText);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Token refresh failed',
+          details: errorText,
+          requiresReauth: true,
+          message: 'User needs to re-authorize LinkedIn access'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const newTokenData = await tokenResponse.json();
+    
+    // Update the database with new token information
+    const expiresAt = new Date(Date.now() + (newTokenData.expires_in * 1000)).toISOString();
+    
+    const { error: updateError } = await supabase
+      .from('linkedin_user_tokens')
+      .update({
+        access_token: newTokenData.access_token,
+        refresh_token: newTokenData.refresh_token || tokenData.refresh_token, // Keep existing if new one not provided
+        token_expires_at: expiresAt,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+
+    if (updateError) {
+      console.error('Failed to update token in database:', updateError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to store new token' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('Access token refreshed successfully for user:', userId);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        message: 'Access token refreshed successfully',
+        expires_at: expiresAt
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error refreshing access token:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to refresh access token', 
+        details: error.message,
+        requiresReauth: true
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+// ADS-301: Get all available targeting facets
+async function getTargetingFacets(accessToken: string) {
+  try {
+    console.log('Fetching LinkedIn targeting facets...');
+    
+    const response = await fetch('https://api.linkedin.com/rest/adTargetingFacets', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507'
+      }
+    });
+
+    console.log('LinkedIn Targeting Facets API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Targeting Facets API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Targeting facets data received:', data);
+
+    return new Response(
+      JSON.stringify({ success: true, data: data.elements || [] }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching targeting facets:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch targeting facets', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+// ADS-301: Get entities within a targeting facet
+async function getTargetingEntities(accessToken: string, facet: string, query?: string) {
+  try {
+    console.log('Fetching LinkedIn targeting entities for facet:', facet);
+    
+    let url = `https://api.linkedin.com/rest/adTargetingEntities?q=adTargetingFacet&queryVersion=QUERY_USES_URNS&facet=${encodeURIComponent(facet)}`;
+    
+    if (query) {
+      url += `&query=${encodeURIComponent(query)}`;
+    }
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507'
+      }
+    });
+
+    console.log('LinkedIn Targeting Entities API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Targeting Entities API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Targeting entities data received:', data);
+
+    return new Response(
+      JSON.stringify({ success: true, data: data.elements || [] }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching targeting entities:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch targeting entities', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+// ADS-302: Get audience counts for targeting criteria
+async function getAudienceCounts(accessToken: string, targetingCriteria: any) {
+  try {
+    console.log('Fetching LinkedIn audience counts for criteria:', targetingCriteria);
+    
+    // Build URL with targeting criteria as query parameters
+    const baseUrl = 'https://api.linkedin.com/rest/audienceCounts?q=targetingCriteria';
+    let url = baseUrl;
+    
+    // Add targeting criteria parameters to URL
+    if (targetingCriteria && targetingCriteria.include) {
+      const params = new URLSearchParams();
+      
+      // Handle include criteria
+      if (targetingCriteria.include.and) {
+        targetingCriteria.include.and.forEach((andGroup: any, groupIndex: number) => {
+          if (andGroup.or) {
+            Object.keys(andGroup.or).forEach(facet => {
+              const entities = andGroup.or[facet];
+              entities.forEach((entity: string, entityIndex: number) => {
+                params.append(`target.includedTargetingFacets.${facet.split(':').pop()}[${entityIndex}]`, entity);
+              });
+            });
+          }
+        });
+      }
+      
+      // Handle exclude criteria
+      if (targetingCriteria.exclude && targetingCriteria.exclude.or) {
+        Object.keys(targetingCriteria.exclude.or).forEach(facet => {
+          const entities = targetingCriteria.exclude.or[facet];
+          entities.forEach((entity: string, entityIndex: number) => {
+            params.append(`target.excludingTargetingFacets.${facet.split(':').pop()}[${entityIndex}]`, entity);
+          });
+        });
+      }
+      
+      url += '&' + params.toString();
+    }
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507'
+      }
+    });
+
+    console.log('LinkedIn Audience Counts API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Audience Counts API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Audience counts data received:', data);
+
+    return new Response(
+      JSON.stringify({ success: true, data: data.elements || [] }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching audience counts:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch audience counts', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+// ADS-303: Get saved audiences for an account
+async function getSavedAudiences(accessToken: string, accountId: string) {
+  try {
+    console.log('Fetching LinkedIn saved audiences for account:', accountId);
+    
+    const url = `https://api.linkedin.com/rest/adAccounts/${accountId}/savedAudiences?pageSize=100`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507'
+      }
+    });
+
+    console.log('LinkedIn Saved Audiences API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Saved Audiences API error:', errorText);
+      
+      // Return empty array if no saved audiences or API not available
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: [], 
+          message: 'No saved audiences found or feature not available',
+          source: 'fallback_empty'
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Saved audiences data received:', data);
+
+    return new Response(
+      JSON.stringify({ success: true, data: data.elements || [] }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching saved audiences:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        data: [], 
+        message: 'Could not fetch saved audiences',
+        source: 'error_fallback'
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+// ADS-501: Campaign reporting with pivots
+async function getCampaignReporting(accessToken: string, params: any) {
+  try {
+    console.log('Fetching LinkedIn campaign reporting with params:', params);
+    
+    const { 
+      campaigns, 
+      accounts, 
+      dateRange = { start: '2024-01-01', end: '2024-12-31' },
+      pivot = 'CAMPAIGN',
+      fields = 'impressions,clicks,costInUsd,externalWebsiteConversions,dateRange'
+    } = params;
+    
+    // Build the URL for analytics reporting
+    let url = `https://api.linkedin.com/rest/analyticsFinderResults?q=analytics&pivot=${pivot}`;
+    
+    // Add date range
+    if (dateRange.start && dateRange.end) {
+      const startDate = new Date(dateRange.start);
+      const endDate = new Date(dateRange.end);
+      url += `&dateRange=(start:(year:${startDate.getFullYear()},month:${startDate.getMonth() + 1},day:${startDate.getDate()}),end:(year:${endDate.getFullYear()},month:${endDate.getMonth() + 1},day:${endDate.getDate()}))`;
+    }
+    
+    // Add campaigns filter
+    if (campaigns && campaigns.length > 0) {
+      const campaignUrns = campaigns.map((id: string) => `urn:li:sponsoredCampaign:${id}`);
+      url += `&campaigns=List(${campaignUrns.join(',')})`;
+    }
+    
+    // Add accounts filter if no campaigns specified
+    if (accounts && accounts.length > 0 && (!campaigns || campaigns.length === 0)) {
+      const accountUrns = accounts.map((id: string) => `urn:li:sponsoredAccount:${id}`);
+      url += `&accounts=List(${accountUrns.join(',')})`;
+    }
+    
+    // Add fields
+    url += `&fields=${fields}`;
+    
+    console.log('Campaign reporting URL:', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507'
+      }
+    });
+
+    console.log('LinkedIn Campaign Reporting API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Campaign Reporting API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Campaign reporting data received:', data);
+
+    return new Response(
+      JSON.stringify({ success: true, data: data.elements || [] }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error fetching campaign reporting:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch campaign reporting', details: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+// ADS-204, ADS-205: Create dark shares (image/article)
+async function createDarkShare(accessToken: string, shareData: any) {
+  try {
+    console.log('Creating LinkedIn dark share with data:', shareData);
+    
+    const { account, type, title, description, clickUri, media } = shareData;
+    
+    if (!account || !type || !title) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields', 
+          details: 'Account, type, and title are required for dark share creation' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Create dark share payload based on type (image or article)
+    const payload = {
+      author: `urn:li:sponsoredAccount:${account}`,
+      lifecycleState: 'PUBLISHED',
+      visibility: {
+        'com.linkedin.ugc.MemberNetworkVisibility': 'DARK' // Dark share for advertising only
+      }
+    };
+
+    if (type === 'image') {
+      // Image share payload
+      payload.specificContent = {
+        'com.linkedin.ugc.ShareContent': {
+          shareCommentary: {
+            text: description || ''
+          },
+          shareMediaCategory: 'IMAGE',
+          media: media ? [{
+            status: 'READY',
+            media: media.urn || media.id || media
+          }] : []
+        }
+      };
+    } else if (type === 'article') {
+      // Article share payload
+      payload.specificContent = {
+        'com.linkedin.ugc.ShareContent': {
+          shareCommentary: {
+            text: description || ''
+          },
+          shareMediaCategory: 'ARTICLE',
+          media: [{
+            status: 'READY',
+            originalUrl: clickUri || '',
+            title: {
+              text: title
+            },
+            description: {
+              text: description || ''
+            }
+          }]
+        }
+      };
+    } else {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid share type', 
+          details: 'Type must be "image" or "article"' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('Dark share creation payload:', JSON.stringify(payload, null, 2));
+
+    const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-RestLi-Protocol-Version': '2.0.0'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('LinkedIn Dark Share Creation API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Dark Share Creation API error:', errorText);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'LinkedIn API error', 
+          details: errorText,
+          payload_used: payload,
+          message: 'Failed to create dark share in LinkedIn. Please check your content and try again.'
+        }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Dark share created successfully:', data);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Dark share created successfully in LinkedIn',
+        data: {
+          id: data.id,
+          type: type,
+          author: data.author,
+          ...data
+        }
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error creating dark share:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to create dark share', 
+        details: error.message,
+        message: 'An unexpected error occurred while creating the dark share.'
       }),
       { 
         status: 500,
