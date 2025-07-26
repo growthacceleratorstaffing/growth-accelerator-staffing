@@ -306,36 +306,6 @@ const Advertising = () => {
           </div>
         </div>
 
-        {/* LinkedIn Connection Status - Optional Info Only */}
-        {linkedInConnected ? (
-          <Card className="border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Badge className="bg-green-500 text-white">Connected</Badge>
-                LinkedIn Integration
-              </CardTitle>
-              <CardDescription>
-                {linkedInProfile ? (
-                  `Connected as ${linkedInProfile.localizedFirstName} ${linkedInProfile.localizedLastName}`
-                ) : (
-                  'LinkedIn account connected successfully'
-                )}
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                LinkedIn Integration Status
-              </CardTitle>
-              <CardDescription>
-                For full functionality, you can configure LinkedIn integration on the <a href="/linkedin-integration" className="text-blue-600 hover:underline">LinkedIn Integration page</a>.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
 
         {/* Campaign Creation Form - Always Show */}
         <Card>
