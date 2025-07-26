@@ -682,11 +682,11 @@ async function createCreative(accessToken: string, creativeData: any) {
     console.log('Creating LinkedIn creative with data:', creativeData);
     
     // Validate required fields for LinkedIn creative creation
-    if (!creativeData.account || !creativeData.campaign || !creativeData.content) {
+    if (!creativeData.account || !creativeData.content) {
       return new Response(
         JSON.stringify({ 
           error: 'Missing required fields', 
-          details: 'Account, campaign, and content are required for creative creation' 
+          details: 'Account and content are required for creative creation' 
         }),
         { 
           status: 400,
@@ -696,9 +696,8 @@ async function createCreative(accessToken: string, creativeData: any) {
     }
 
     // LinkedIn creative creation payload for Sponsored Content
-    const payload = {
+    const payload: any = {
       account: `urn:li:sponsoredAccount:${creativeData.account}`,
-      campaign: `urn:li:sponsoredCampaign:${creativeData.campaign}`,
       status: 'ACTIVE',
       type: 'SPONSORED_CONTENT',
       content: {
@@ -712,6 +711,11 @@ async function createCreative(accessToken: string, creativeData: any) {
         imageReference: creativeData.content.imageReference || null
       }
     };
+
+    // Only add campaign if provided (it's optional for standalone creatives)
+    if (creativeData.campaign) {
+      payload.campaign = `urn:li:sponsoredCampaign:${creativeData.campaign}`;
+    }
 
     console.log('Creative creation payload:', payload);
 
