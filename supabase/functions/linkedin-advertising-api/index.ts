@@ -1139,59 +1139,134 @@ async function getCampaignGroups(accessToken: string, accountId: string) {
   try {
     console.log('Fetching LinkedIn campaign groups for account:', accountId);
     
-    // Use field projections to get specific fields we need for the UI
-    // Based on: https://learn.microsoft.com/en-us/linkedin/shared/api-guide/concepts/projections
-    const fieldsParam = '&fields=id,name,status,account,changeAuditStamps,totalBudget,runSchedule';
-    const url = `https://api.linkedin.com/rest/adAccounts/${accountId}/adCampaignGroups?pageSize=100${fieldsParam}`;
+    // Try multiple API endpoints to find campaign groups
+    const endpoints = [
+      // Standard REST API endpoint
+      `https://api.linkedin.com/rest/adAccounts/${accountId}/adCampaignGroups?pageSize=100`,
+      // Alternative endpoint without account ID path
+      `https://api.linkedin.com/rest/adCampaignGroups?q=search&search=(account:(values:List(urn:li:sponsoredAccount:${accountId})))&pageSize=100`,
+      // Direct search endpoint
+      `https://api.linkedin.com/rest/adCampaignGroups?q=search&account=urn:li:sponsoredAccount:${accountId}&pageSize=100`
+    ];
 
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'X-RestLi-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202411'
-      }
-    });
+    for (let i = 0; i < endpoints.length; i++) {
+      const url = endpoints[i];
+      console.log(`Trying campaign groups endpoint ${i + 1}:`, url);
 
-    console.log('LinkedIn Campaign Groups API response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('LinkedIn Campaign Groups API error:', errorText);
-      
-      // Return empty array instead of error to avoid blocking the UI
-      console.log('Campaign Groups API failed, returning empty array');
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          data: [], 
-          message: 'Could not fetch campaign groups - this is normal if none exist yet',
-          source: 'fallback_empty'
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'X-RestLi-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202507'
         }
-      );
+      });
+
+      console.log(`Campaign Groups API endpoint ${i + 1} response status:`, response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`Campaign Groups data received from endpoint ${i + 1}:`, data);
+
+        // Transform campaign groups data
+        const campaignGroups = data.elements?.map((group: any) => ({
+          id: group.id,
+          name: group.name,
+          status: group.status,
+          account: group.account,
+          totalBudget: group.totalBudget,
+          runSchedule: group.runSchedule,
+          created_at: new Date(group.changeAuditStamps?.created?.time || Date.now()).toISOString(),
+          updated_at: new Date(group.changeAuditStamps?.lastModified?.time || Date.now()).toISOString(),
+          group_data: group
+        })) || [];
+
+        console.log(`Found ${campaignGroups.length} campaign groups using endpoint ${i + 1}`);
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            data: campaignGroups,
+            source: `endpoint_${i + 1}`,
+            message: campaignGroups.length > 0 ? `Found ${campaignGroups.length} campaign groups` : 'No campaign groups found'
+          }),
+          { 
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      } else {
+        const errorText = await response.text();
+        console.error(`Campaign Groups API endpoint ${i + 1} error:`, errorText);
+      }
     }
 
-    const data = await response.json();
-    console.log('Campaign Groups data received:', data);
+    // If all endpoints fail, try to extract campaign groups from existing campaigns
+    console.log('All direct endpoints failed, trying to find campaign groups from existing campaigns...');
+    
+    try {
+      const campaignsUrl = `https://api.linkedin.com/rest/adAccounts/${accountId}/adCampaigns?q=search&pageSize=100`;
+      const campaignsResponse = await fetch(campaignsUrl, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'X-RestLi-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202507'
+        }
+      });
 
-    // Transform campaign groups data to include useful information using field projections
-    const campaignGroups = data.elements?.map((group: any) => ({
-      id: group.id,
-      name: group.name,
-      status: group.status,
-      account: group.account,
-      totalBudget: group.totalBudget,
-      runSchedule: group.runSchedule,
-      created_at: new Date(group.changeAuditStamps?.created?.time || Date.now()).toISOString(),
-      updated_at: new Date(group.changeAuditStamps?.lastModified?.time || Date.now()).toISOString(),
-      group_data: group
-    })) || [];
+      if (campaignsResponse.ok) {
+        const campaignsData = await campaignsResponse.json();
+        const uniqueCampaignGroups = new Set<string>();
+        
+        // Extract unique campaign group URNs from campaigns
+        campaignsData.elements?.forEach((campaign: any) => {
+          if (campaign.campaignGroup) {
+            uniqueCampaignGroups.add(campaign.campaignGroup);
+          }
+        });
 
+        console.log('Found campaign group URNs from campaigns:', Array.from(uniqueCampaignGroups));
+
+        // Convert URNs to campaign group objects
+        const campaignGroups = Array.from(uniqueCampaignGroups).map(urn => {
+          const id = urn.split(':').pop();
+          return {
+            id: id,
+            name: `Campaign Group ${id}`,
+            status: 'UNKNOWN',
+            account: `urn:li:sponsoredAccount:${accountId}`,
+            urn: urn,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            group_data: { id, urn, source: 'extracted_from_campaigns' }
+          };
+        });
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            data: campaignGroups,
+            source: 'extracted_from_campaigns',
+            message: `Found ${campaignGroups.length} campaign groups by extracting from existing campaigns`
+          }),
+          { 
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+    } catch (extractError) {
+      console.error('Error extracting campaign groups from campaigns:', extractError);
+    }
+
+    // Final fallback - return empty array
+    console.log('All methods failed, returning empty array');
     return new Response(
-      JSON.stringify({ success: true, data: campaignGroups }),
+      JSON.stringify({ 
+        success: true, 
+        data: [], 
+        message: 'Could not fetch campaign groups - this is normal if none exist yet',
+        source: 'fallback_empty'
+      }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -1200,12 +1275,11 @@ async function getCampaignGroups(accessToken: string, accountId: string) {
 
   } catch (error) {
     console.error('Error fetching campaign groups:', error);
-    // Return empty array on error to avoid blocking the UI
     return new Response(
       JSON.stringify({ 
         success: true, 
         data: [], 
-        message: 'Could not fetch campaign groups - this is normal if none exist yet',
+        message: 'Error fetching campaign groups',
         source: 'error_fallback'
       }),
       { 
