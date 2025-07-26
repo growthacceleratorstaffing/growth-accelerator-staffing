@@ -74,21 +74,36 @@ const Advertising = () => {
 
   const checkLinkedInConnection = async () => {
     try {
-      const { data: connectionData } = await supabase.functions.invoke('linkedin-lead-sync', {
-        body: { action: 'testConnection' }
-      });
-      
-      if (connectionData?.success) {
-        setLinkedInConnected(true);
-        // Get LinkedIn profile info
-        const { data: profileData } = await supabase.functions.invoke('linkedin-lead-sync', {
-          body: { action: 'getProfile' }
+      // Check if user has a valid LinkedIn token in the database
+      const { data: tokenData } = await supabase
+        .from('linkedin_user_tokens')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (tokenData && new Date(tokenData.token_expires_at) > new Date()) {
+        // Token exists and is not expired, test the connection
+        const { data: connectionData } = await supabase.functions.invoke('linkedin-lead-sync', {
+          body: { action: 'testConnection' }
         });
-        if (profileData?.success) {
-          setLinkedInProfile(profileData.data);
+        
+        if (connectionData?.success) {
+          setLinkedInConnected(true);
+          // Get LinkedIn profile info
+          const { data: profileData } = await supabase.functions.invoke('linkedin-lead-sync', {
+            body: { action: 'getProfile' }
+          });
+          if (profileData?.success) {
+            setLinkedInProfile(profileData.data);
+          }
+          fetchAdvertisingData();
+        } else {
+          setLinkedInConnected(false);
+          setLinkedInProfile(null);
+          setLoading(false);
         }
-        fetchAdvertisingData();
       } else {
+        // No valid token found
         setLinkedInConnected(false);
         setLinkedInProfile(null);
         setLoading(false);
@@ -105,10 +120,19 @@ const Advertising = () => {
     try {
       // Redirect to LinkedIn OAuth
       const redirectUri = `${window.location.origin}/linkedin-callback`;
-      const clientId = '78gu7z5i8r4cbk'; // From the logs, we can see this is the client ID
+      const clientId = '78gu7z5i8r4cbk'; // This should match the client ID in Supabase secrets
       const scope = 'openid profile email w_member_social r_basicprofile r_organization_social rw_organization_admin r_marketing_leadgen_automation rw_ads w_organization_social_media_manager rw_organization_social_media_admin';
+      const state = Math.random().toString(36).substring(7);
       
-      const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+      // Store state for validation
+      localStorage.setItem('linkedin_oauth_state', state);
+      
+      const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=${state}`;
+      
+      toast({
+        title: "Redirecting to LinkedIn",
+        description: "Please authorize access to your LinkedIn account..."
+      });
       
       window.location.href = authUrl;
     } catch (error) {
