@@ -804,16 +804,25 @@ const Advertising = () => {
                 <Label htmlFor="selectedCampaignGroup">Campaign Group *</Label>
                 <Select value={selectedCampaignGroup} onValueChange={setSelectedCampaignGroup}>
                   <SelectTrigger>
-                    <SelectValue placeholder={campaignGroups.length === 0 ? "No campaign groups found" : "Select campaign group"} />
+                    <SelectValue placeholder={
+                      campaignGroups.filter(group => !selectedAccount || group.account_id?.toString() === selectedAccount).length === 0 
+                        ? "No campaign groups found" 
+                        : "Select campaign group"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
                     {campaignGroups
-                      .filter(group => !selectedAccount || group.account_id === selectedAccount)
+                      .filter(group => !selectedAccount || group.account_id?.toString() === selectedAccount)
                       .map((group) => (
                         <SelectItem key={group.id} value={group.id.toString()}>
-                          {group.name} ({group.status})
+                          {group.name} (ID: {group.id})
                         </SelectItem>
                       ))}
+                    {campaignGroups.filter(group => !selectedAccount || group.account_id?.toString() === selectedAccount).length === 0 && (
+                      <SelectItem value="" disabled>
+                        No campaign groups available
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 {campaignGroups.length === 0 && (
@@ -821,9 +830,14 @@ const Advertising = () => {
                     No campaign groups found. Campaign groups are required for campaigns.
                   </p>
                 )}
-                {selectedAccount && campaignGroups.filter(g => g.account_id === selectedAccount).length === 0 && campaignGroups.length > 0 && (
+                {selectedAccount && campaignGroups.filter(g => g.account_id?.toString() === selectedAccount).length === 0 && campaignGroups.length > 0 && (
                   <p className="text-xs text-orange-600 mt-1">
                     No campaign groups found for selected account.
+                  </p>
+                )}
+                {campaignGroups.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Found {campaignGroups.filter(group => !selectedAccount || group.account_id?.toString() === selectedAccount).length} campaign groups{selectedAccount ? ' for this account' : ' total'}
                   </p>
                 )}
               </div>
