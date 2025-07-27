@@ -65,26 +65,26 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto space-y-6">
+      <div className="container mx-auto px-4 py-4 md:py-8">
+        <div className="max-w-2xl mx-auto space-y-4 md:space-y-6">
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <User className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold">Growth Accelerator</h1>
+              <User className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+              <h1 className="text-2xl md:text-3xl font-bold">Growth Accelerator</h1>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-sm md:text-base text-muted-foreground px-4">
               Welcome to the JazzHR-powered Growth Accelerator Platform
             </p>
           </div>
 
-          <Tabs defaultValue="account" className="space-y-6">
+          <Tabs defaultValue="account" className="space-y-4 md:space-y-6">
             <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="account">Account</TabsTrigger>
             </TabsList>
 
             {/* Account Authentication Tab */}
-            <TabsContent value="account" className="space-y-6">
+            <TabsContent value="account" className="space-y-4 md:space-y-6">
               {isAuthenticated ? (
                 <Card>
                   <CardHeader>
@@ -98,7 +98,7 @@ export default function Auth() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
-                      <User className="h-4 w-4" />
+                      <User className="h-4 w-4 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">
                           {workableProfile?.workable_email || profile?.full_name || profile?.email || 'User'}
@@ -123,7 +123,7 @@ export default function Auth() {
                       </div>
                     )}
                     
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <Button onClick={() => navigate('/dashboard')} className="flex-1">
                         Go to Dashboard
                       </Button>
@@ -132,10 +132,10 @@ export default function Auth() {
                           variant="outline" 
                           onClick={() => {}}
                           disabled={isLoading}
-                          className="flex items-center gap-2"
+                          className="flex items-center justify-center gap-2 sm:w-auto"
                         >
                           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                          Sync Users
+                          <span className="sm:inline">Sync Users</span>
                         </Button>
                       )}
                     </div>
@@ -204,9 +204,9 @@ export default function Auth() {
                       </CardHeader>
                       <CardContent>
                         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                          <p className="text-sm text-blue-700">
-                            <Shield className="h-4 w-4 inline mr-1" />
-                            Only JazzHR team members can register. Your email must be registered in the JazzHR system.
+                          <p className="text-sm text-blue-700 flex items-start gap-2">
+                            <Shield className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                            <span>Only JazzHR team members can register. Your email must be registered in the JazzHR system.</span>
                           </p>
                         </div>
                         <form onSubmit={handleSignUp} className="space-y-4">
