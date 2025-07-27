@@ -42,10 +42,10 @@ const Jobs = () => {
 
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Vacancies</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Vacancies</h1>
           <p className="text-muted-foreground mt-2">Find your next opportunity - from JazzHR and local job postings</p>
         </div>
       </div>
@@ -66,7 +66,7 @@ const Jobs = () => {
         </TabsList>
 
         <TabsContent value="vacancies" className="space-y-6">
-          <div className="flex gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -79,7 +79,7 @@ const Jobs = () => {
           </div>
 
           {loading ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[...Array(6)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardHeader>
@@ -96,24 +96,26 @@ const Jobs = () => {
               ))}
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {jobs.map((job) => (
                 <Card key={job.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/job/${job.id}`)}>
                   <CardHeader>
-                    <CardTitle className="text-lg">{job.title}</CardTitle>
+                    <CardTitle className="text-base md:text-lg leading-tight">{job.title}</CardTitle>
                     <CardDescription className="flex items-center gap-2">
-                      <Building className="h-4 w-4" />
-                      {job.department || "Growth Accelerator"}
+                      <Building className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{job.department || "Growth Accelerator"}</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      {job.city && job.state ? `${job.city}, ${job.state}` : "Remote"}
+                      <MapPin className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{job.city && job.state ? `${job.city}, ${job.state}` : "Remote"}</span>
                     </div>
                     
                     {job.status && (
-                      <Badge variant={job.status === 'Open' ? 'default' : 'secondary'}>{job.status}</Badge>
+                      <Badge variant={job.status === 'Open' ? 'default' : 'secondary'} className="w-fit">
+                        {job.status}
+                      </Badge>
                     )}
                     
                     <p className="text-sm text-muted-foreground line-clamp-3">
@@ -130,7 +132,7 @@ const Jobs = () => {
                       }
                     </p>
                     
-                    <div className="flex justify-between items-center pt-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-4">
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -138,10 +140,11 @@ const Jobs = () => {
                           e.stopPropagation();
                           handleApplyClick(job);
                         }}
+                        className="w-full sm:w-auto"
                       >
                         Apply Now
                       </Button>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground text-center sm:text-right">
                         {job.created_at ? new Date(job.created_at).toLocaleDateString() : "JazzHR Job"}
                       </span>
                     </div>

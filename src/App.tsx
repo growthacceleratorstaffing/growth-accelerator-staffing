@@ -274,8 +274,10 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <SidebarInset className="flex-1">
-          {children}
+        <SidebarInset className="flex-1 overflow-x-auto">
+          <div className="p-4 md:p-6 lg:p-8">
+            {children}
+          </div>
         </SidebarInset>
       </div>
     </SidebarProvider>

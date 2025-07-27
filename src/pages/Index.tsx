@@ -165,26 +165,26 @@ const Index = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-2">Welcome to your job posting portal</p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {statsCards.map((stat, index) => (
           <Card key={index} className="bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="flex items-center gap-2">
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+                <stat.icon className={`h-4 w-4 md:h-5 md:w-5 ${stat.color} flex-shrink-0`} />
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="text-xl md:text-2xl font-bold">{stat.value}</div>
               <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
             </CardContent>
           </Card>
@@ -192,13 +192,13 @@ const Index = () => {
       </div>
 
       {/* JazzHR Data Cards */}
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* JazzHR Jobs Overview */}
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <CardTitle className="flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
+                <Briefcase className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
                 JazzHR Jobs
               </CardTitle>
               <Link to="/jobs">
@@ -213,19 +213,19 @@ const Index = () => {
             {recentJobs.length > 0 ? (
               <div className="space-y-4">
                 {recentJobs.map((job) => (
-                  <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{job.title}</h3>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                  <div key={job.id} className="flex flex-col sm:flex-row items-start justify-between p-4 border rounded-lg gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-base md:text-lg">{job.title}</h3>
+                      <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-2 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <Briefcase className="h-4 w-4" />
+                          <Briefcase className="h-4 w-4 flex-shrink-0" />
                           {job.company}
                         </span>
                         <span>Remote</span>
                         <span>Posted: {job.posted}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                       <Badge variant="secondary">Full-time</Badge>
                       {job.synced && <Badge variant="default" className="bg-green-500">JazzHR</Badge>}
                     </div>
@@ -245,9 +245,9 @@ const Index = () => {
         {/* JazzHR Candidates Overview */}
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
+                <Users className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
                 JazzHR Candidates
               </CardTitle>
               <Link to="/candidates">
