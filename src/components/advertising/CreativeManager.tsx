@@ -343,7 +343,7 @@ export const CreativeManager: React.FC<CreativeManagerProps> = ({
                         <SelectValue placeholder="Select campaign" />
                       </SelectTrigger>
                       <SelectContent>
-                        {campaigns.map(campaign => (
+                        {campaigns.filter(campaign => campaign.id && campaign.id.trim() !== '').map(campaign => (
                           <SelectItem key={campaign.id} value={campaign.id}>
                             {campaign.name}
                           </SelectItem>
