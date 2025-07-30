@@ -292,7 +292,7 @@ export const CreativeAssetManager: React.FC<CreativeAssetManagerProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {assetRecipes.map(recipe => (
+                      {assetRecipes.filter(recipe => recipe.value && recipe.value.trim() !== '').map(recipe => (
                         <SelectItem key={recipe.value} value={recipe.value}>
                           {recipe.label}
                         </SelectItem>
