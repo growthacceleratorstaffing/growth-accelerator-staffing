@@ -627,8 +627,8 @@ const Advertising = () => {
                       <SelectValue placeholder={jobPostings.length === 0 ? "No job postings available" : "Select a job posting"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {jobPostings.map((job) => (
-                        <SelectItem key={job.id} value={job.id}>
+                      {jobPostings.filter(job => job.id && job.id.toString().trim() !== '').map((job) => (
+                        <SelectItem key={job.id} value={job.id.toString()}>
                           {job.title} {job.company_name && `• ${job.company_name}`}
                         </SelectItem>
                       ))}
