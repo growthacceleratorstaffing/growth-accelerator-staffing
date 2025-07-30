@@ -269,8 +269,21 @@ const Advertising = () => {
             .limit(50);
           
           if (!jobPostingsError && jobPostingsData) {
-            setJobPostings(jobPostingsData);
-            console.log(`Loaded ${jobPostingsData.length} job postings`);
+            // Ensure all jobs have valid IDs
+            const validJobs = jobPostingsData.filter(job => {
+              const hasValidId = job.id && typeof job.id === 'string' && job.id.trim() !== '';
+              if (!hasValidId) {
+                console.warn('Found job without valid ID:', job);
+              }
+              return hasValidId;
+            });
+            
+            setJobPostings(validJobs);
+            console.log(`Loaded ${validJobs.length} valid job postings out of ${jobPostingsData.length} total`);
+            
+            if (validJobs.length !== jobPostingsData.length) {
+              console.warn(`Filtered out ${jobPostingsData.length - validJobs.length} jobs with invalid IDs`);
+            }
           } else {
             console.error('Error fetching job postings:', jobPostingsError);
             setJobPostings([]);
