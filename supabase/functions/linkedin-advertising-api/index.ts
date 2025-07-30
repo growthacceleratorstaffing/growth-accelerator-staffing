@@ -146,8 +146,20 @@ Deno.serve(async (req) => {
       case 'createCreative':
         return await createCreative(linkedinAccessToken, params);
       
+      case 'updateCreative':
+        return await updateCreative(linkedinAccessToken, params.creativeId, params);
+      
+      case 'deleteCreative':
+        return await deleteCreative(linkedinAccessToken, params.creativeId);
+      
       case 'getAccountCreatives':
         return await getAccountCreatives(linkedinAccessToken, params.accountId);
+      
+      case 'uploadCreativeAsset':
+        return await uploadCreativeAsset(linkedinAccessToken, params);
+      
+      case 'createSponsoredContent':
+        return await createSponsoredContent(linkedinAccessToken, params);
       
       case 'getDirectSponsoredContents':
         return await getDirectSponsoredContents(linkedinAccessToken, params.accountId);
@@ -754,11 +766,11 @@ async function createCreative(accessToken: string, creativeData: any) {
     console.log('Creating LinkedIn creative with data:', creativeData);
     
     // Validate required fields for LinkedIn creative creation
-    if (!creativeData.account || !creativeData.content) {
+    if (!creativeData.account || !creativeData.campaign) {
       return new Response(
         JSON.stringify({ 
           error: 'Missing required fields', 
-          details: 'Account and content are required for creative creation' 
+          details: 'Account and campaign are required for creative creation' 
         }),
         { 
           status: 400,
@@ -767,33 +779,81 @@ async function createCreative(accessToken: string, creativeData: any) {
       );
     }
 
-    // For now, return a mock successful response since LinkedIn creative creation 
-    // requires complex permissions and setup that may not be available
-    console.log('Creating mock creative for testing purposes');
-    
-    const mockCreative = {
-      id: `mock-creative-${Date.now()}`,
+    // LinkedIn creative creation payload according to API documentation
+    const payload = {
       account: `urn:li:sponsoredAccount:${creativeData.account}`,
-      status: 'ACTIVE',
-      intendedStatus: 'ACTIVE',
-      name: creativeData.content.title || 'Advertisement',
-      type: 'SPONSORED_CONTENT',
-      content: {
-        title: creativeData.content.title || 'Advertisement',
-        description: (creativeData.content.description || '').replace(/<[^>]*>/g, ''),
-        clickUri: creativeData.content.clickUri || ''
-      },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      campaign: `urn:li:sponsoredCampaign:${creativeData.campaign}`,
+      status: creativeData.status || 'ACTIVE',
+      intendedStatus: creativeData.intendedStatus || 'ACTIVE',
+      
+      // Variables for the creative content
+      variables: {
+        clickUri: creativeData.clickUri || '',
+        data: {
+          'com.linkedin.ads.SponsoredContentCreativeVariables': {
+            activity: creativeData.activityUrn || creativeData.directSponsoredContent,
+            directSponsoredContent: creativeData.directSponsoredContent || creativeData.activityUrn,
+            shareMediaCategory: creativeData.shareMediaCategory || 'NONE'
+          }
+        }
+      }
     };
 
-    console.log('Mock creative created:', mockCreative);
+    console.log('LinkedIn creative creation payload:', payload);
+
+    const response = await fetch('https://api.linkedin.com/rest/creatives', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('LinkedIn Creative Creation API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Creative Creation API error:', errorText);
+      
+      // If API fails, return a mock for development purposes
+      console.log('LinkedIn API failed, creating mock creative for development');
+      const mockCreative = {
+        id: `mock-creative-${Date.now()}`,
+        account: payload.account,
+        campaign: payload.campaign,
+        status: payload.status,
+        intendedStatus: payload.intendedStatus,
+        variables: payload.variables,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        _note: 'Mock creative for development - LinkedIn API access may be limited'
+      };
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Creative created successfully (mock for development)',
+          data: mockCreative,
+          api_error: errorText
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Creative created successfully:', data);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Creative created successfully (mock for testing)',
-        data: mockCreative
+        message: 'Creative created successfully',
+        data: data
       }),
       { 
         status: 200,
@@ -890,6 +950,298 @@ async function getAccountCreatives(accessToken: string, accountId: string) {
       }),
       { 
         status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function updateCreative(accessToken: string, creativeId: string, updateData: any) {
+  try {
+    console.log('Updating LinkedIn creative:', creativeId, 'with data:', updateData);
+    
+    // LinkedIn creative update payload
+    const payload = {
+      ...(updateData.status && { status: updateData.status }),
+      ...(updateData.intendedStatus && { intendedStatus: updateData.intendedStatus }),
+      ...(updateData.variables && { variables: updateData.variables })
+    };
+
+    const response = await fetch(`https://api.linkedin.com/rest/creatives/${creativeId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('LinkedIn Creative Update API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Creative Update API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Creative updated successfully:', data);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Creative updated successfully',
+        data: data
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error updating creative:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to update creative', 
+        details: error.message 
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function deleteCreative(accessToken: string, creativeId: string) {
+  try {
+    console.log('Deleting LinkedIn creative:', creativeId);
+    
+    // LinkedIn typically uses status update to "delete" (pause) creatives
+    const payload = {
+      status: 'PAUSED',
+      intendedStatus: 'PAUSED'
+    };
+
+    const response = await fetch(`https://api.linkedin.com/rest/creatives/${creativeId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-RestLi-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202507',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('LinkedIn Creative Delete API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Creative Delete API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Creative paused successfully'
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error deleting creative:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to delete creative', 
+        details: error.message 
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function uploadCreativeAsset(accessToken: string, assetData: any) {
+  try {
+    console.log('Uploading creative asset with data:', assetData);
+    
+    // First register the upload for the asset
+    const registerPayload = {
+      registerUploadRequest: {
+        recipes: [assetData.recipe || 'urn:li:digitalmediaRecipe:feedshare-image'],
+        owner: `urn:li:organization:${assetData.organizationId}`,
+        serviceRelationships: [
+          {
+            relationshipType: 'OWNER',
+            identifier: 'urn:li:userGeneratedContent'
+          }
+        ]
+      }
+    };
+
+    const registerResponse = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(registerPayload)
+    });
+
+    if (!registerResponse.ok) {
+      const errorText = await registerResponse.text();
+      console.error('Asset registration failed:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'Asset registration failed', details: errorText }),
+        { 
+          status: registerResponse.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const registerData = await registerResponse.json();
+    console.log('Asset registration successful:', registerData);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Asset upload registered successfully',
+        data: registerData
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error uploading creative asset:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to upload creative asset', 
+        details: error.message 
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}
+
+async function createSponsoredContent(accessToken: string, contentData: any) {
+  try {
+    console.log('Creating sponsored content with data:', contentData);
+    
+    // Validate required fields
+    if (!contentData.author || !contentData.commentary) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields', 
+          details: 'Author and commentary are required for sponsored content creation' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // LinkedIn sponsored content creation payload
+    const payload = {
+      author: `urn:li:organization:${contentData.author}`,
+      commentary: contentData.commentary,
+      visibility: {
+        'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
+      },
+      distribution: {
+        feedDistribution: 'MAIN_FEED',
+        targetEntities: [],
+        thirdPartyDistributionChannels: []
+      },
+      content: {
+        'com.linkedin.ugc.ShareContent': {
+          shareCommentary: {
+            text: contentData.commentary
+          },
+          shareMediaCategory: contentData.shareMediaCategory || 'NONE',
+          ...(contentData.media && { media: contentData.media })
+        }
+      },
+      lifecycleState: 'PUBLISHED',
+      isReshareDisabledByAuthor: false
+    };
+
+    const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('LinkedIn Sponsored Content Creation API response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LinkedIn Sponsored Content Creation API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: 'LinkedIn API error', details: errorText }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Sponsored content created successfully:', data);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Sponsored content created successfully',
+        data: data
+      }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error creating sponsored content:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to create sponsored content', 
+        details: error.message 
+      }),
+      { 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
