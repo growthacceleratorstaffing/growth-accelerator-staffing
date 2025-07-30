@@ -819,7 +819,7 @@ const Advertising = () => {
                         </SelectItem>
                       ))}
                     {campaignGroups.filter(group => !selectedAccount || group.account_id?.toString() === selectedAccount).length === 0 && (
-                      <SelectItem value="" disabled>
+                      <SelectItem value="none" disabled>
                         No campaign groups available
                       </SelectItem>
                     )}

@@ -288,7 +288,7 @@ export const LinkedInCampaignReporting = ({ campaigns, accounts }: LinkedInCampa
                   <SelectValue placeholder="All campaigns" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Campaigns</SelectItem>
+                  <SelectItem value="all">All Campaigns</SelectItem>
                   {campaigns.map(campaign => (
                     <SelectItem key={campaign.id} value={campaign.id}>
                       {campaign.name}
@@ -304,7 +304,7 @@ export const LinkedInCampaignReporting = ({ campaigns, accounts }: LinkedInCampa
                   <SelectValue placeholder="All accounts" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Accounts</SelectItem>
+                  <SelectItem value="all">All Accounts</SelectItem>
                   {accounts.map(account => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.name}
