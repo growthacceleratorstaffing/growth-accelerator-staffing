@@ -490,10 +490,23 @@ const Advertising = () => {
   };
 
   const handleCreateCampaign = async () => {
+    // Check if creative is required based on campaign type
+    const creativeRequiredTypes = ['SPONSORED_UPDATES', 'TEXT_ADS', 'DYNAMIC_ADS'];
+    const isCreativeRequired = creativeRequiredTypes.includes(campaignType);
+    
     if (!campaignName || !campaignType || !budget || !selectedAccount || !selectedCampaignGroup) {
       toast({
         title: "Error",
         description: "Please fill in all required fields (Campaign Name, Type, Account, Campaign Group, and Budget)",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (isCreativeRequired && !selectedCreative) {
+      toast({
+        title: "Error",
+        description: `Creative is required for ${campaignType} campaigns. Please select a creative or create one first.`,
         variant: "destructive"
       });
       return;
@@ -505,20 +518,27 @@ const Advertising = () => {
       const selectedAccountData = adAccounts.find(acc => acc.id.toString() === selectedAccount);
       const accountCurrency = selectedAccountData?.currency || 'USD';
       
+      const campaignPayload: any = { 
+        action: 'createCampaign',
+        name: campaignName,
+        type: campaignType,
+        account: selectedAccount,
+        campaignGroup: selectedCampaignGroup, // Pass the selected campaign group
+        budget: parseFloat(budget),
+        bidAmount: parseFloat(bidAmount) || 5.00,
+        costType,
+        objective,
+        currency: accountCurrency, // Use account currency instead of form currency
+        endDate: endDate || null
+      };
+      
+      // Only include creative if one is selected
+      if (selectedCreative) {
+        campaignPayload.creative = selectedCreative;
+      }
+      
       const { data, error } = await supabase.functions.invoke('linkedin-advertising-api', {
-        body: { 
-          action: 'createCampaign',
-          name: campaignName,
-          type: campaignType,
-          account: selectedAccount,
-          campaignGroup: selectedCampaignGroup, // Pass the selected campaign group
-          budget: parseFloat(budget),
-          bidAmount: parseFloat(bidAmount) || 5.00,
-          costType,
-          objective,
-          currency: accountCurrency, // Use account currency instead of form currency
-          endDate: endDate || null
-        }
+        body: campaignPayload
       });
       
       if (error) throw error;
@@ -533,6 +553,7 @@ const Advertising = () => {
         setCampaignType("");
         setSelectedCreative("");
         setSelectedAccount("");
+        setSelectedCampaignGroup("");
         setBudget("");
         setBidAmount("");
         setCostType("CPC");
@@ -858,10 +879,16 @@ const Advertising = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="selectedCreative">Advertisement Creative (Optional)</Label>
+                <Label htmlFor="selectedCreative">
+                  Advertisement Creative {(['SPONSORED_UPDATES', 'TEXT_ADS', 'DYNAMIC_ADS'].includes(campaignType)) ? '*' : '(Optional)'}
+                </Label>
                 <Select value={selectedCreative} onValueChange={setSelectedCreative}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select creative (optional for some campaign types)" />
+                    <SelectValue placeholder={
+                      (['SPONSORED_UPDATES', 'TEXT_ADS', 'DYNAMIC_ADS'].includes(campaignType)) 
+                        ? "Select creative (required for this campaign type)" 
+                        : "Select creative (optional for some campaign types)"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
                     {creatives.map((creative) => (
@@ -871,7 +898,12 @@ const Advertising = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">For some campaign types like job postings, creatives are automatically generated</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(['SPONSORED_UPDATES', 'TEXT_ADS', 'DYNAMIC_ADS'].includes(campaignType)) 
+                    ? "Creative is required for this campaign type. Create one in Step 1 if needed."
+                    : "For some campaign types like job postings, creatives are automatically generated"
+                  }
+                </p>
               </div>
             </div>
 
