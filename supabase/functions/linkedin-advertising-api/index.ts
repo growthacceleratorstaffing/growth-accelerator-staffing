@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
         return await getCreatives(linkedinAccessToken, params.campaignId);
       
       case 'createCreative':
-        return await createCreative(linkedinAccessToken, params);
+        return await createCreative(linkedinAccessToken, params, supabase, user.id);
       
       case 'updateCreative':
         return await updateCreative(linkedinAccessToken, params.creativeId, params);
@@ -761,16 +761,17 @@ async function getCreatives(accessToken: string, campaignId: string) {
   }
 }
 
-async function createCreative(accessToken: string, creativeData: any) {
+async function createCreative(accessToken: string, creativeData: any, supabase: any, userId: string) {
   try {
     console.log('Creating LinkedIn creative with data:', creativeData);
     
-    // Validate required fields for LinkedIn creative creation
-    if (!creativeData.account || !creativeData.campaign) {
+    // For LinkedIn creatives without a specific campaign, we'll create a Direct Sponsored Content
+    // which can be used later in campaigns
+    if (!creativeData.account) {
       return new Response(
         JSON.stringify({ 
           error: 'Missing required fields', 
-          details: 'Account and campaign are required for creative creation' 
+          details: 'Account is required for creative creation' 
         }),
         { 
           status: 400,
@@ -779,29 +780,19 @@ async function createCreative(accessToken: string, creativeData: any) {
       );
     }
 
-    // LinkedIn creative creation payload according to API documentation
-    const payload = {
+    // Create a Direct Sponsored Content first, which can be used later in campaigns
+    const contentPayload = {
       account: `urn:li:sponsoredAccount:${creativeData.account}`,
-      campaign: `urn:li:sponsoredCampaign:${creativeData.campaign}`,
-      status: creativeData.status || 'ACTIVE',
-      intendedStatus: creativeData.intendedStatus || 'ACTIVE',
-      
-      // Variables for the creative content
-      variables: {
-        clickUri: creativeData.clickUri || '',
-        data: {
-          'com.linkedin.ads.SponsoredContentCreativeVariables': {
-            activity: creativeData.activityUrn || creativeData.directSponsoredContent,
-            directSponsoredContent: creativeData.directSponsoredContent || creativeData.activityUrn,
-            shareMediaCategory: creativeData.shareMediaCategory || 'NONE'
-          }
-        }
+      content: {
+        title: creativeData.content?.title || 'Advertisement Title',
+        description: creativeData.content?.description || 'Advertisement Description',
+        clickUri: creativeData.content?.clickUri || creativeData.clickUri || ''
       }
     };
 
-    console.log('LinkedIn creative creation payload:', payload);
+    console.log('LinkedIn content creation payload:', contentPayload);
 
-    const response = await fetch('https://api.linkedin.com/rest/creatives', {
+    const response = await fetch('https://api.linkedin.com/rest/directSponsoredContents', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -809,7 +800,7 @@ async function createCreative(accessToken: string, creativeData: any) {
         'LinkedIn-Version': '202507',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(contentPayload)
     });
 
     console.log('LinkedIn Creative Creation API response status:', response.status);
@@ -822,15 +813,35 @@ async function createCreative(accessToken: string, creativeData: any) {
       console.log('LinkedIn API failed, creating mock creative for development');
       const mockCreative = {
         id: `mock-creative-${Date.now()}`,
-        account: payload.account,
-        campaign: payload.campaign,
-        status: payload.status,
-        intendedStatus: payload.intendedStatus,
-        variables: payload.variables,
+        account: contentPayload.account,
+        content: contentPayload.content,
+        status: 'ACTIVE',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         _note: 'Mock creative for development - LinkedIn API access may be limited'
       };
+
+      // Save the mock creative to database
+      try {
+        const { error: dbError } = await supabase
+          .from('linkedin_creatives')
+          .insert({
+            id: mockCreative.id,
+            account_id: creativeData.account,
+            title: creativeData.content?.title || 'Advertisement Title',
+            description: creativeData.content?.description || 'Advertisement Description',
+            click_uri: creativeData.content?.clickUri || '',
+            status: 'ACTIVE',
+            created_by: userId,
+            creative_data: mockCreative
+          });
+        
+        if (dbError) {
+          console.error('Error saving mock creative to database:', dbError);
+        }
+      } catch (dbError) {
+        console.error('Database save error (non-critical):', dbError);
+      }
 
       return new Response(
         JSON.stringify({ 
@@ -848,6 +859,28 @@ async function createCreative(accessToken: string, creativeData: any) {
 
     const data = await response.json();
     console.log('Creative created successfully:', data);
+
+    // Save the creative to database
+    try {
+      const { error: dbError } = await supabase
+        .from('linkedin_creatives')
+        .insert({
+          id: data.id || `mock-creative-${Date.now()}`,
+          account_id: creativeData.account,
+          title: creativeData.content?.title || 'Advertisement Title',
+          description: creativeData.content?.description || 'Advertisement Description',
+          click_uri: creativeData.content?.clickUri || '',
+          status: 'ACTIVE',
+          created_by: userId,
+          creative_data: data
+        });
+      
+      if (dbError) {
+        console.error('Error saving creative to database:', dbError);
+      }
+    } catch (dbError) {
+      console.error('Database save error (non-critical):', dbError);
+    }
 
     return new Response(
       JSON.stringify({ 
