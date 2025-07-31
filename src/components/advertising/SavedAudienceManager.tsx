@@ -16,6 +16,9 @@ interface SavedAudience {
   status: string;
   created_at: string;
   updated_at: string;
+  source?: string;
+  originalCampaignId?: string;
+  originalCampaignName?: string;
 }
 
 interface SavedAudienceManagerProps {
@@ -58,7 +61,17 @@ export const SavedAudienceManager = ({
         setSavedAudiences(data.data || []);
         console.log('Loaded saved audiences:', data.data);
         
-        if (data.data.length === 0) {
+        if (data.source === 'campaign_extraction') {
+          toast({
+            title: "Real Campaign Data Loaded",
+            description: `Loaded ${data.data.length} audience targeting criteria extracted from your existing campaigns.`,
+          });
+        } else if (data.source === 'saved_audiences_api') {
+          toast({
+            title: "Saved Audiences Loaded",
+            description: `Loaded ${data.data.length} saved audiences from LinkedIn.`,
+          });
+        } else if (data.data.length === 0) {
           // Create demo audiences to show the capability
           createDemoAudiences();
         }
@@ -273,9 +286,23 @@ export const SavedAudienceManager = ({
               <TableBody>
                 {savedAudiences.map((audience) => (
                   <TableRow key={audience.id} className={selectedAudienceId === audience.id ? 'bg-muted' : ''}>
-                    <TableCell className="font-medium">{audience.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col gap-1">
+                        <span>{audience.name}</span>
+                        {audience.source === 'campaign_extraction' && (
+                          <Badge variant="outline" className="text-xs w-fit">
+                            From Campaign
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-xs">
                       {audience.description}
+                      {audience.originalCampaignName && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          Original: {audience.originalCampaignName}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
