@@ -913,6 +913,44 @@ async function getAccountCreatives(accessToken: string, accountId: string) {
   try {
     console.log('Fetching LinkedIn creatives for account:', accountId);
     
+    // First try to get saved creatives from our database
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+    
+    const { data: savedCreatives, error: dbError } = await supabaseClient
+      .from('linkedin_creatives')
+      .select('*')
+      .eq('account_id', accountId);
+    
+    if (dbError) {
+      console.error('Database error fetching creatives:', dbError);
+    }
+    
+    // If we have saved creatives, return them
+    if (savedCreatives && savedCreatives.length > 0) {
+      console.log(`Found ${savedCreatives.length} saved creatives for account ${accountId}`);
+      return new Response(JSON.stringify({
+        success: true,
+        data: savedCreatives.map(creative => ({
+          id: creative.id,
+          status: creative.status,
+          type: creative.type || 'DIRECT_SPONSORED_CONTENT',
+          account: `urn:li:sponsoredAccount:${creative.account_id}`,
+          campaign: creative.campaign_urn,
+          content: {
+            title: creative.title,
+            description: creative.description,
+            clickUri: creative.click_uri
+          },
+          created_at: creative.created_at,
+          updated_at: creative.updated_at
+        })),
+        source: 'database'
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    
     // Use the correct LinkedIn API endpoint for fetching creatives by account
     // According to LinkedIn API docs: /rest/adAccounts/{adAccountId}/creatives
     const url = `https://api.linkedin.com/rest/adAccounts/${accountId}/creatives?pageSize=100`;
@@ -964,7 +1002,7 @@ async function getAccountCreatives(accessToken: string, accountId: string) {
     })) || [];
 
     return new Response(
-      JSON.stringify({ success: true, data: creatives }),
+      JSON.stringify({ success: true, data: creatives, source: 'linkedin_api' }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
