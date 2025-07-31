@@ -694,6 +694,45 @@ export type Database = {
         }
         Relationships: []
       }
+      linkedin_creatives: {
+        Row: {
+          account_id: string
+          click_uri: string | null
+          created_at: string | null
+          created_by: string | null
+          creative_data: Json | null
+          description: string | null
+          id: string
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_id: string
+          click_uri?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          creative_data?: Json | null
+          description?: string | null
+          id: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string
+          click_uri?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          creative_data?: Json | null
+          description?: string | null
+          id?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       linkedin_leads: {
         Row: {
           campaign_id: string | null
